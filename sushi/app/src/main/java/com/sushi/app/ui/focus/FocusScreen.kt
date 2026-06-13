@@ -1,10 +1,12 @@
 package com.sushi.app.ui.focus
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +24,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -42,19 +46,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Skill
 import com.sushi.app.data.model.Task
 import com.sushi.app.logic.LevelUpEvent
 import com.sushi.app.logic.SettlementResult
+import com.sushi.app.ui.theme.CardShape
+import com.sushi.app.ui.theme.CardShapeSmall
 import com.sushi.app.ui.theme.Cinnabar
+import com.sushi.app.ui.theme.CinnabarFaint
+import com.sushi.app.ui.theme.DialogShape
 import com.sushi.app.ui.theme.Ink
 import com.sushi.app.ui.theme.InkFaint
 import com.sushi.app.ui.theme.InkLight
 import com.sushi.app.ui.theme.Linen
 import com.sushi.app.ui.theme.Paper
-import com.sushi.app.viewmodel.FocusUiState
+import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.viewmodel.FocusViewModel
 import kotlinx.coroutines.delay
 
@@ -83,26 +100,33 @@ fun FocusScreen(
                 onCancel = viewModel::dismissSettlement
             )
         }
-        uiState.isFocusing -> {
-            FocusTimerContent(
-                taskName = uiState.currentTaskName ?: "",
-                elapsedSeconds = uiState.elapsedSeconds,
-                onTick = viewModel::updateElapsedTime,
-                onStop = viewModel::stopFocus
-            )
-        }
         else -> {
-            TaskSelectionContent(
-                activeTasks = uiState.activeTasks,
-                allSkills = uiState.allSkills,
-                isCreatingTask = uiState.isCreatingTask,
-                onSelectTask = { task, skillId ->
-                    viewModel.startFocus(task.id, task.name, skillId)
-                },
-                onShowCreateTask = viewModel::showCreateTask,
-                onHideCreateTask = viewModel::hideCreateTask,
-                onCreateTask = viewModel::createTask
-            )
+            Crossfade(
+                targetState = uiState.isFocusing,
+                animationSpec = tween(durationMillis = 400),
+                label = "focusStateTransition"
+            ) { isFocusing ->
+                if (isFocusing) {
+                    FocusTimerContent(
+                        taskName = uiState.currentTaskName ?: "",
+                        elapsedSeconds = uiState.elapsedSeconds,
+                        onTick = viewModel::updateElapsedTime,
+                        onStop = viewModel::stopFocus
+                    )
+                } else {
+                    TaskSelectionContent(
+                        activeTasks = uiState.activeTasks,
+                        allSkills = uiState.allSkills,
+                        isCreatingTask = uiState.isCreatingTask,
+                        onSelectTask = { task, skillId ->
+                            viewModel.startFocus(task.id, task.name, skillId)
+                        },
+                        onShowCreateTask = viewModel::showCreateTask,
+                        onHideCreateTask = viewModel::hideCreateTask,
+                        onCreateTask = viewModel::createTask
+                    )
+                }
+            }
         }
     }
 }
@@ -126,8 +150,8 @@ private fun TaskSelectionContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = SushiSpacing.xxl, vertical = SushiSpacing.xxxl),
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
         ) {
             Text(
                 text = "选择任务",
@@ -135,14 +159,31 @@ private fun TaskSelectionContent(
                 color = Ink
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(SushiSpacing.sm))
 
             if (activeTasks.isEmpty()) {
-                Text(
-                    text = "暂无进行中的任务",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = InkFaint
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+                    ) {
+                        Text(
+                            text = "暂无进行中的任务",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = InkLight
+                        )
+                        Text(
+                            text = "点击下方按钮创建一个新任务吧",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InkFaint
+                        )
+                    }
+                }
             } else {
                 activeTasks.forEach { task ->
                     val skillName = allSkills.find { it.id == task.linkedSkillId }?.name ?: ""
@@ -155,17 +196,23 @@ private fun TaskSelectionContent(
             }
         }
 
-        OutlinedButton(
+        Button(
             onClick = onShowCreateTask,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 32.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = Paper,
-                contentColor = Ink
+                .padding(bottom = SushiSpacing.xxxl)
+                .shadow(2.dp, CardShape),
+            shape = CardShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Cinnabar,
+                contentColor = Paper
             )
         ) {
-            Text(text = "+ 新任务")
+            Text(
+                text = "+ 新任务",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 
@@ -187,10 +234,12 @@ private fun TaskCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(1.dp, CardShape)
+            .clip(CardShape)
             .background(Paper)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
     ) {
         Text(
             text = task.name,
@@ -218,6 +267,7 @@ private fun CreateTaskDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = DialogShape,
         title = {
             Text(
                 text = "新建任务",
@@ -226,19 +276,22 @@ private fun CreateTaskDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
                 TextField(
                     value = taskName,
                     onValueChange = { taskName = it },
                     placeholder = { Text("任务名称", color = InkFaint) },
                     singleLine = true,
+                    shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Paper,
-                        unfocusedContainerColor = Paper,
+                        focusedContainerColor = PaperWarm,
+                        unfocusedContainerColor = PaperWarm,
                         cursorColor = Ink,
                         focusedIndicatorColor = Cinnabar,
-                        unfocusedIndicatorColor = InkFaint
-                    )
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Text(
@@ -248,25 +301,34 @@ private fun CreateTaskDialog(
                 )
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
                 ) {
                     allSkills.forEach { skill ->
                         val isSelected = selectedSkillId == skill.id
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(if (isSelected) Linen else Paper)
+                                .clip(CardShapeSmall)
+                                .background(if (isSelected) CinnabarFaint else PaperWarm)
                                 .clickable { selectedSkillId = skill.id }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(16.dp)
+                                    .size(18.dp)
                                     .clip(CircleShape)
                                     .background(if (isSelected) Cinnabar else InkFaint)
+                                    .then(
+                                        if (isSelected) {
+                                            Modifier
+                                                .padding(4.dp)
+                                                .clip(CircleShape)
+                                                .background(Paper)
+                                        } else Modifier
+                                    )
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(SushiSpacing.sm))
                             Text(
                                 text = skill.name,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -325,6 +387,8 @@ private fun FocusTimerContent(
         label = "breathingAlpha"
     )
 
+    val progressAngle = ((elapsedSeconds % 3600) / 3600f) * 360f
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -333,32 +397,85 @@ private fun FocusTimerContent(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)
         ) {
+            Text(
+                text = "专注中",
+                style = MaterialTheme.typography.labelLarge,
+                color = Cinnabar,
+                fontWeight = FontWeight.Medium
+            )
+
             Text(
                 text = taskName,
                 style = MaterialTheme.typography.bodyMedium,
                 color = InkLight
             )
 
-            Text(
-                text = formatElapsedTime(elapsedSeconds),
-                style = MaterialTheme.typography.displayLarge,
-                color = Ink
-            )
+            Spacer(modifier = Modifier.height(SushiSpacing.sm))
 
             Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(Cinnabar)
-                    .alpha(breathingAlpha)
-            )
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.size(220.dp)) {
+                    val strokeWidth = 3.dp.toPx()
+                    val arcPadding = strokeWidth / 2
+                    drawArc(
+                        color = Linen,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = Offset(arcPadding, arcPadding),
+                        size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                    drawArc(
+                        color = Cinnabar,
+                        startAngle = -90f,
+                        sweepAngle = progressAngle,
+                        useCenter = false,
+                        topLeft = Offset(arcPadding, arcPadding),
+                        size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = formatElapsedTime(elapsedSeconds),
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = Ink
+                )
+            }
+
+            Spacer(modifier = Modifier.height(SushiSpacing.sm))
+
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(Cinnabar.copy(alpha = 0.15f))
+                        .alpha(breathingAlpha)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(Cinnabar)
+                        .alpha(breathingAlpha)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(SushiSpacing.lg))
 
             OutlinedButton(
                 onClick = onStop,
+                shape = CardShape,
                 colors = ButtonDefaults.outlinedButtonColors(
                     containerColor = Paper,
                     contentColor = Cinnabar
@@ -388,8 +505,11 @@ private fun SettlementDialog(
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
+    val ratio = if (rawDurationMin > 0) netDurationMin.toFloat() / rawDurationMin.toFloat() else 0f
+
     AlertDialog(
         onDismissRequest = onCancel,
+        shape = DialogShape,
         title = {
             Text(
                 text = "结算",
@@ -398,7 +518,7 @@ private fun SettlementDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)) {
                 Text(
                     text = "原始时长：${rawDurationMin} 分钟",
                     style = MaterialTheme.typography.bodyMedium,
@@ -424,15 +544,18 @@ private fun SettlementDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                 ) {
                     listOf(-5, -10, -15).forEach { adjustment ->
                         OutlinedButton(
                             onClick = { onAdjustNetDuration(adjustment) },
                             enabled = netDurationMin + adjustment >= 0,
+                            shape = CardShapeSmall,
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Paper,
-                                contentColor = InkLight
+                                containerColor = PaperWarm,
+                                contentColor = InkLight,
+                                disabledContainerColor = PaperWarm,
+                                disabledContentColor = InkFaint
                             ),
                             modifier = Modifier.weight(1f)
                         ) {
@@ -443,11 +566,22 @@ private fun SettlementDialog(
 
                 Text(
                     text = "$netDurationMin 分钟",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
                     color = Ink
                 )
 
-                // 描述输入
+                LinearProgressIndicator(
+                    progress = ratio,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(CircleShape),
+                    color = Cinnabar,
+                    trackColor = Linen,
+                )
+
                 Text(
                     text = "做了什么",
                     style = MaterialTheme.typography.labelLarge,
@@ -459,12 +593,14 @@ private fun SettlementDialog(
                     placeholder = { Text("记录你做了什么…", color = InkFaint) },
                     singleLine = false,
                     maxLines = 3,
+                    shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Paper,
-                        unfocusedContainerColor = Paper,
+                        focusedContainerColor = PaperWarm,
+                        unfocusedContainerColor = PaperWarm,
                         cursorColor = Ink,
                         focusedIndicatorColor = Cinnabar,
-                        unfocusedIndicatorColor = InkFaint
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -491,6 +627,7 @@ private fun SettlementResultDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = DialogShape,
         title = {
             Text(
                 text = "结算完成",
@@ -499,7 +636,7 @@ private fun SettlementResultDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
                 if (result.levelUpEvents.isNotEmpty()) {
                     result.levelUpEvents.forEach { event ->
                         LevelUpItem(event = event)
@@ -507,16 +644,22 @@ private fun SettlementResultDialog(
                 }
 
                 if (result.unlockedAffixes.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(SushiSpacing.xs))
                     Text(
                         text = "解锁词条",
                         style = MaterialTheme.typography.labelLarge,
-                        color = InkLight
+                        color = Cinnabar,
+                        fontWeight = FontWeight.SemiBold
                     )
                     result.unlockedAffixes.forEach { affix ->
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(CardShapeSmall)
+                                .background(CinnabarFaint)
+                                .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                         ) {
                             Box(
                                 modifier = Modifier
@@ -527,7 +670,8 @@ private fun SettlementResultDialog(
                             Text(
                                 text = affix.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Ink
+                                color = Ink,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
@@ -554,18 +698,36 @@ private fun SettlementResultDialog(
 @Composable
 private fun LevelUpItem(event: LevelUpEvent) {
     Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CardShapeSmall)
+            .background(CinnabarFaint)
+            .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
     ) {
         Text(
             text = event.skillName,
             style = MaterialTheme.typography.bodyMedium,
-            color = Ink
+            color = Ink,
+            fontWeight = FontWeight.Medium
         )
         Text(
-            text = "LV ${event.oldLevel} → ${event.newLevel}",
+            text = "LV ${event.oldLevel}",
             style = MaterialTheme.typography.bodyMedium,
-            color = Cinnabar
+            color = InkLight
+        )
+        Text(
+            text = "→",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Cinnabar,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "${event.newLevel}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Cinnabar,
+            fontWeight = FontWeight.Bold
         )
     }
 }

@@ -2,6 +2,10 @@ package com.sushi.app.ui.skill
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,6 +25,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -38,12 +45,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Affix
 import com.sushi.app.data.model.Profession
@@ -53,14 +63,23 @@ import com.sushi.app.logic.LevelUpEvent
 import com.sushi.app.logic.SettlementResult
 import com.sushi.app.ui.theme.AmberGold
 import com.sushi.app.ui.theme.BronzeCopper
+import com.sushi.app.ui.theme.CardShape
+import com.sushi.app.ui.theme.CardShapeSmall
 import com.sushi.app.ui.theme.Cinnabar
+import com.sushi.app.ui.theme.CinnabarLight
+import com.sushi.app.ui.theme.DialogShape
 import com.sushi.app.ui.theme.Ink
+import com.sushi.app.ui.theme.InkAlpha08
 import com.sushi.app.ui.theme.InkFaint
+import com.sushi.app.ui.theme.InkFaintest
 import com.sushi.app.ui.theme.InkLight
 import com.sushi.app.ui.theme.Linen
 import com.sushi.app.ui.theme.ObsidianBlack
 import com.sushi.app.ui.theme.Paper
+import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.RawStoneGray
+import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.viewmodel.SkillDetail
 import com.sushi.app.viewmodel.SkillDisplay
 import com.sushi.app.viewmodel.SkillUiState
@@ -76,8 +95,12 @@ fun SkillScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        when {
-            uiState.selectedSkill != null -> {
+        Crossfade(
+            targetState = uiState.selectedSkill != null,
+            animationSpec = tween(durationMillis = 300),
+            label = "skillCrossfade"
+        ) { isDetail ->
+            if (isDetail && uiState.selectedSkill != null) {
                 SkillDetailContent(
                     detail = uiState.selectedSkill!!,
                     onBack = viewModel::clearSelectedSkill,
@@ -95,8 +118,7 @@ fun SkillScreen(
                     },
                     onManualInject = viewModel::showManualInject
                 )
-            }
-            else -> {
+            } else {
                 SkillListContent(
                     uiState = uiState,
                     onSelectCategory = viewModel::selectCategory,
@@ -121,7 +143,6 @@ fun SkillScreen(
         }
     }
 
-    // 手动注入弹窗
     if (uiState.showManualInject && uiState.selectedSkill != null) {
         ManualInjectDialog(
             skillName = uiState.selectedSkill!!.skill.name,
@@ -138,7 +159,6 @@ fun SkillScreen(
         )
     }
 
-    // 手动注入结果
     uiState.manualInjectResult?.let { result ->
         SettlementResultDialog(
             result = result,
@@ -167,21 +187,36 @@ private fun SkillListContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
         ) {
             if (uiState.skills.isEmpty() && !uiState.isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 48.dp),
+                        .padding(top = 64.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "暂无技能",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = InkFaint
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+                    ) {
+                        Text(
+                            text = "◎",
+                            style = MaterialTheme.typography.displaySmall,
+                            color = InkFaintest
+                        )
+                        Text(
+                            text = "暂无技能",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = InkFaint
+                        )
+                        Text(
+                            text = "在当前分类下还没有技能",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InkFaintest
+                        )
+                    }
                 }
             } else {
                 uiState.skills.forEach { display ->
@@ -211,11 +246,27 @@ private fun CategoryTabs(
         modifier = Modifier
             .fillMaxWidth()
             .background(Paper)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
         horizontalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        tabs.forEach { (category, label) ->
+        tabs.forEachIndexed { index, (category, label) ->
             val isSelected = category == selectedCategory
+            val animatedIndicatorWidth by animateDpAsState(
+                targetValue = if (isSelected) 24.dp else 0.dp,
+                animationSpec = tween(durationMillis = 250),
+                label = "tabIndicatorWidth_$index"
+            )
+            val animatedIndicatorColor by animateColorAsState(
+                targetValue = if (isSelected) Ink else Color.Transparent,
+                animationSpec = tween(durationMillis = 250),
+                label = "tabIndicatorColor_$index"
+            )
+            val animatedTextColor by animateColorAsState(
+                targetValue = if (isSelected) Ink else InkFaint,
+                animationSpec = tween(durationMillis = 250),
+                label = "tabTextColor_$index"
+            )
+
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -225,14 +276,15 @@ private fun CategoryTabs(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (isSelected) Ink else InkFaint
+                    color = animatedTextColor
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Box(
                     modifier = Modifier
-                        .width(if (isSelected) 24.dp else 0.dp)
-                        .height(2.dp)
-                        .background(if (isSelected) Ink else Color.Transparent)
+                        .width(animatedIndicatorWidth)
+                        .height(2.5.dp)
+                        .clip(RoundedCornerShape(1.dp))
+                        .background(animatedIndicatorColor)
                 )
             }
         }
@@ -249,9 +301,11 @@ private fun SkillCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(CardShape)
+            .shadow(1.dp, CardShape)
             .background(Linen)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Row(
@@ -266,38 +320,56 @@ private fun SkillCard(
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
             ) {
                 Text(
                     text = "${display.level}",
-                    style = MaterialTheme.typography.headlineLarge.copy(fontFamily = FontFamily.Serif),
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Bold
+                    ),
                     color = Ink
                 )
-                Text(
-                    text = display.tierLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tierColor
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(PillShape)
+                        .background(tierColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = display.tierLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tierColor
+                    )
+                }
             }
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
         ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(5.dp))
                     .background(Paper)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(display.progress / 120f)
-                        .clip(RoundedCornerShape(3.dp))
+                        .clip(RoundedCornerShape(5.dp))
                         .background(tierColor.copy(alpha = 0.55f))
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(display.progress / 120f)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(tierColor.copy(alpha = 0.2f))
+                        .offset(x = (-1).dp)
                 )
             }
             Text(
@@ -325,59 +397,78 @@ private fun SkillDetailContent(
             .background(Paper)
             .verticalScroll(rememberScrollState())
     ) {
-        // 返回按钮
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onBack)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "←",
-                style = MaterialTheme.typography.headlineMedium,
-                color = InkLight
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "返回",
-                style = MaterialTheme.typography.bodyMedium,
-                color = InkLight
-            )
+            Box(
+                modifier = Modifier
+                    .clip(CardShapeSmall)
+                    .background(PaperWarm)
+                    .clickable(onClick = onBack)
+                    .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "←",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = InkLight
+                    )
+                    Text(
+                        text = "返回",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = InkLight
+                    )
+                }
+            }
         }
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = SushiSpacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.xxl)
         ) {
-            // 等级与材质
             Row(
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.md)
             ) {
                 Text(
                     text = "${detail.level}",
-                    style = MaterialTheme.typography.displayLarge.copy(fontFamily = FontFamily.Serif),
+                    style = MaterialTheme.typography.displayLarge.copy(
+                        fontFamily = FontFamily.Serif,
+                        fontSize = 72.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
                     color = Ink
                 )
-                Text(
-                    text = detail.tierLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = tierColor,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(PillShape)
+                        .background(tierColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .offset(y = (-8).dp)
+                ) {
+                    Text(
+                        text = detail.tierLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = tierColor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
-            // 技能名
             Text(
                 text = detail.skill.name,
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.SansSerif),
                 color = Ink
             )
 
-            // 经验进度条
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "经验值",
@@ -386,21 +477,29 @@ private fun SkillDetailContent(
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                 ) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(5.dp))
                             .background(Linen)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .fillMaxWidth(detail.progress / 120f)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(5.dp))
                                 .background(tierColor.copy(alpha = 0.55f))
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(detail.progress / 120f)
+                                .clip(RoundedCornerShape(5.dp))
+                                .background(tierColor.copy(alpha = 0.2f))
+                                .offset(x = (-1).dp)
                         )
                     }
                     Text(
@@ -411,20 +510,33 @@ private fun SkillDetailContent(
                 }
             }
 
-            // 手动注入按钮
-            OutlinedButton(
+            Button(
                 onClick = onManualInject,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Cinnabar,
+                    contentColor = Paper
+                ),
+                shape = CardShape
             ) {
                 Text(
                     text = "+ 手动注入时间",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Cinnabar
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
                 )
             }
 
-            // 关联职业
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(InkFaintest)
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                 Text(
                     text = "关联职业",
                     style = MaterialTheme.typography.labelMedium,
@@ -432,7 +544,7 @@ private fun SkillDetailContent(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     detail.professions.forEach { profession ->
@@ -443,8 +555,11 @@ private fun SkillDetailContent(
                     }
                     Box(
                         modifier = Modifier
+                            .clip(PillShape)
+                            .shadow(0.5.dp, PillShape)
                             .background(Linen)
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                            .clickable { onAddProfession("") }
+                            .padding(horizontal = 14.dp, vertical = 6.dp)
                     ) {
                         Text(
                             text = "+",
@@ -455,33 +570,64 @@ private fun SkillDetailContent(
                 }
             }
 
-            // 词条树
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(InkFaintest)
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                 Text(
                     text = "词条",
                     style = MaterialTheme.typography.labelMedium,
                     color = InkLight
                 )
 
-                detail.unlockedAffixes.forEach { affix ->
-                    AffixItem(affix = affix, isUnlocked = true, tierColor = tierColor)
-                }
-
-                detail.lockedAffixes.forEach { affix ->
-                    AffixItem(affix = affix, isUnlocked = false, tierColor = tierColor)
-                }
-
                 if (detail.unlockedAffixes.isEmpty() && detail.lockedAffixes.isEmpty()) {
-                    Text(
-                        text = "暂无词条",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = InkFaint
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(CardShapeSmall)
+                            .background(PaperWarm)
+                            .padding(SushiSpacing.lg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "◇",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = InkFaintest
+                            )
+                            Text(
+                                text = "暂无词条",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = InkFaint
+                            )
+                        }
+                    }
+                } else {
+                    detail.unlockedAffixes.forEach { affix ->
+                        AffixItem(affix = affix, isUnlocked = true, tierColor = tierColor)
+                    }
+
+                    detail.lockedAffixes.forEach { affix ->
+                        AffixItem(affix = affix, isUnlocked = false, tierColor = tierColor)
+                    }
                 }
             }
 
-            // 历史记录
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(InkFaintest)
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                 Text(
                     text = "历史记录",
                     style = MaterialTheme.typography.labelMedium,
@@ -489,11 +635,30 @@ private fun SkillDetailContent(
                 )
 
                 if (detail.historyRecords.isEmpty()) {
-                    Text(
-                        text = "暂无记录",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = InkFaint
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(CardShapeSmall)
+                            .background(PaperWarm)
+                            .padding(SushiSpacing.lg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "◷",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = InkFaintest
+                            )
+                            Text(
+                                text = "暂无记录",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = InkFaint
+                            )
+                        }
+                    }
                 } else {
                     detail.historyRecords.forEach { record ->
                         HistoryRecordItem(record = record)
@@ -501,7 +666,7 @@ private fun SkillDetailContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
         }
     }
 }
@@ -509,35 +674,44 @@ private fun SkillDetailContent(
 @Composable
 private fun HistoryRecordItem(record: TimeRecord) {
     val dateFormat = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
-    val startText = dateFormat.format(record.startDateTime)
-    val endText = dateFormat.format(record.endDateTime)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(CardShapeSmall)
             .background(Linen)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "${record.netDurationMin}分钟纯时间",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
                 color = Ink
             )
             if (record.isManualEntry) {
-                Text(
-                    text = "手动",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Cinnabar
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(PillShape)
+                        .background(Cinnabar.copy(alpha = 0.1f))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "手动",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Cinnabar
+                    )
+                }
             }
         }
         Text(
-            text = "$startText → $endText",
+            text = "${dateFormat.format(record.startDateTime)} → ${dateFormat.format(record.endDateTime)}",
             style = MaterialTheme.typography.bodySmall,
             color = InkFaint
         )
@@ -558,8 +732,10 @@ private fun ProfessionChip(
 ) {
     Row(
         modifier = Modifier
+            .clip(PillShape)
+            .shadow(0.5.dp, PillShape)
             .background(Linen)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -583,17 +759,27 @@ private fun AffixItem(
     isUnlocked: Boolean,
     tierColor: Color
 ) {
-    val contentAlpha = if (isUnlocked) 1f else 0.35f
+    val contentAlpha = if (isUnlocked) 1f else 0.4f
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(CardShapeSmall)
+            .background(if (isUnlocked) Linen else PaperWarm)
             .alpha(contentAlpha)
-            .background(Linen)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        if (isUnlocked) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(32.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(tierColor)
+            )
+        }
         Box(
             modifier = Modifier
                 .size(8.dp)
@@ -616,18 +802,22 @@ private fun AffixItem(
             )
         }
         if (!isUnlocked) {
-            Text(
-                text = "LV${affix.requiredSkillLevel}",
-                style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
-            )
+            Box(
+                modifier = Modifier
+                    .clip(PillShape)
+                    .background(InkFaintest)
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = "LV${affix.requiredSkillLevel}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = InkFaint
+                )
+            }
         }
     }
 }
 
-/**
- * 手动注入时间弹窗
- */
 @Composable
 private fun ManualInjectDialog(
     skillName: String,
@@ -639,10 +829,8 @@ private fun ManualInjectDialog(
     var description by remember { mutableStateOf("") }
     var startDateTime by remember { mutableStateOf(System.currentTimeMillis()) }
 
-    // endDateTime 由 startDateTime + minutes 推导，minutes 变化时自动更新
     var endDateTime by remember { mutableStateOf(startDateTime + 30 * 60 * 1000L) }
 
-    // 当 minutes 变化时同步更新 endDateTime
     LaunchedEffect(minutes, startDateTime) {
         endDateTime = startDateTime + minutes * 60 * 1000L
     }
@@ -653,8 +841,11 @@ private fun ManualInjectDialog(
     val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
+    val estimatedExp = minutes * 10
+
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = DialogShape,
         title = {
             Text(
                 text = "注入纯时间 → $skillName",
@@ -663,8 +854,14 @@ private fun ManualInjectDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // 纯时间分钟数
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(InkFaintest)
+                )
+
                 Text(
                     text = "纯时间（分钟）",
                     style = MaterialTheme.typography.labelLarge,
@@ -672,24 +869,35 @@ private fun ManualInjectDialog(
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                 ) {
                     OutlinedButton(
-                        onClick = { minutes = (minutes - 5).coerceAtLeast(1) }
+                        onClick = { minutes = (minutes - 5).coerceAtLeast(1) },
+                        shape = CardShapeSmall
                     ) { Text("-5") }
                     Text(
                         text = "$minutes",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.Serif),
+                        style = MaterialTheme.typography.displaySmall.copy(
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Bold
+                        ),
                         color = Ink,
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center
                     )
                     OutlinedButton(
-                        onClick = { minutes += 5 }
+                        onClick = { minutes += 5 },
+                        shape = CardShapeSmall
                     ) { Text("+5") }
                 }
 
-                // 开始时间
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(InkFaintest)
+                )
+
                 Text(
                     text = "开始时间",
                     style = MaterialTheme.typography.labelLarge,
@@ -697,9 +905,8 @@ private fun ManualInjectDialog(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                 ) {
-                    // 日期选择
                     OutlinedButton(
                         onClick = {
                             DatePickerDialog(
@@ -714,11 +921,11 @@ private fun ManualInjectDialog(
                                 startCal.get(Calendar.DAY_OF_MONTH)
                             ).show()
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = CardShapeSmall
                     ) {
                         Text(dateFormat.format(startDateTime), color = Ink)
                     }
-                    // 时间选择
                     OutlinedButton(
                         onClick = {
                             TimePickerDialog(
@@ -734,13 +941,13 @@ private fun ManualInjectDialog(
                                 true
                             ).show()
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = CardShapeSmall
                     ) {
                         Text(timeFormat.format(startDateTime), color = Ink)
                     }
                 }
 
-                // 结束时间
                 Text(
                     text = "结束时间",
                     style = MaterialTheme.typography.labelLarge,
@@ -748,7 +955,7 @@ private fun ManualInjectDialog(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                 ) {
                     OutlinedButton(
                         onClick = {
@@ -763,7 +970,8 @@ private fun ManualInjectDialog(
                                 endCal.get(Calendar.DAY_OF_MONTH)
                             ).show()
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = CardShapeSmall
                     ) {
                         Text(dateFormat.format(endDateTime), color = Ink)
                     }
@@ -781,13 +989,20 @@ private fun ManualInjectDialog(
                                 true
                             ).show()
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        shape = CardShapeSmall
                     ) {
                         Text(timeFormat.format(endDateTime), color = Ink)
                     }
                 }
 
-                // 做了什么
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(InkFaintest)
+                )
+
                 Text(
                     text = "做了什么",
                     style = MaterialTheme.typography.labelLarge,
@@ -799,6 +1014,7 @@ private fun ManualInjectDialog(
                     placeholder = { Text("记录你做了什么…", color = InkFaint) },
                     singleLine = false,
                     maxLines = 3,
+                    shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Paper,
                         unfocusedContainerColor = Paper,
@@ -808,16 +1024,45 @@ private fun ManualInjectDialog(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(CardShapeSmall)
+                        .background(Linen)
+                        .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "$minutes 分钟纯时间 → $estimatedExp Exp",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = InkLight
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     onConfirm(minutes, startDateTime, endDateTime, description)
                 },
-                enabled = minutes > 0
+                enabled = minutes > 0,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Cinnabar,
+                    contentColor = Paper,
+                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
+                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                ),
+                shape = CardShape
             ) {
-                Text(text = "确认注入", color = Cinnabar)
+                Text(
+                    text = "确认注入",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
             }
         },
         dismissButton = {
@@ -836,6 +1081,7 @@ private fun SettlementResultDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = DialogShape,
         title = {
             Text(
                 text = "时间已注入",
@@ -844,10 +1090,15 @@ private fun SettlementResultDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
                 if (result.levelUpEvents.isNotEmpty()) {
                     result.levelUpEvents.forEach { event ->
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(CardShapeSmall)
+                                .background(Linen)
+                                .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
@@ -858,7 +1109,9 @@ private fun SettlementResultDialog(
                             )
                             Text(
                                 text = "LV ${event.oldLevel} → ${event.newLevel}",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
                                 color = Cinnabar
                             )
                         }
@@ -873,8 +1126,13 @@ private fun SettlementResultDialog(
                     )
                     result.unlockedAffixes.forEach { affix ->
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(CardShapeSmall)
+                                .background(Linen)
+                                .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                         ) {
                             Box(
                                 modifier = Modifier
@@ -892,17 +1150,33 @@ private fun SettlementResultDialog(
                 }
 
                 if (result.levelUpEvents.isEmpty() && result.unlockedAffixes.isEmpty()) {
-                    Text(
-                        text = "纯时间已记录",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = InkLight
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(CardShapeSmall)
+                            .background(PaperWarm)
+                            .padding(SushiSpacing.lg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "纯时间已记录",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = InkLight
+                        )
+                    }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = "好的", color = Cinnabar)
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Cinnabar,
+                    contentColor = Paper
+                ),
+                shape = CardShape
+            ) {
+                Text(text = "好的")
             }
         },
         containerColor = Paper

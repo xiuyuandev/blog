@@ -1,5 +1,10 @@
 package com.sushi.app.ui.panel
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,6 +18,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
@@ -25,14 +32,19 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Affix
 import com.sushi.app.data.model.AttributeType
+import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.Cinnabar
 import com.sushi.app.ui.theme.Ink
 import com.sushi.app.ui.theme.InkFaint
+import com.sushi.app.ui.theme.InkFaintest
 import com.sushi.app.ui.theme.InkLight
+import com.sushi.app.ui.theme.InkAlpha08
 import com.sushi.app.ui.theme.Linen
 import com.sushi.app.ui.theme.Paper
+import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.viewmodel.PanelUiState
 import com.sushi.app.viewmodel.PanelViewModel
+import java.text.NumberFormat
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -64,20 +76,30 @@ fun PanelScreen(
             .fillMaxSize()
             .background(Paper)
     ) {
-        if (uiState.isLoading) {
+        AnimatedVisibility(
+            visible = uiState.isLoading,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
             Text(
                 text = "…",
                 style = MaterialTheme.typography.bodyLarge,
                 color = InkFaint,
                 modifier = Modifier.align(Alignment.Center)
             )
-        } else {
+        }
+
+        AnimatedVisibility(
+            visible = !uiState.isLoading,
+            enter = fadeIn(animationSpec = tween(SushiAnim.NORMAL)),
+            exit = fadeOut()
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                    .padding(horizontal = SushiSpacing.xxl, vertical = SushiSpacing.xxxl),
+                verticalArrangement = Arrangement.spacedBy(SushiSpacing.xxl)
             ) {
                 PanelHeader(
                     professionName = uiState.professionName,
@@ -88,17 +110,24 @@ fun PanelScreen(
                     attributes = uiState.attributes
                 )
 
+                // Divider between RadarChart and Affixes
+                SectionDivider()
+
                 AffixesSection(
                     affixes = uiState.unlockedAffixes
                 )
+
+                Spacer(modifier = Modifier.height(SushiSpacing.sm))
 
                 // 同步入口
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .shadow(1.dp, CardShape)
+                        .clip(CardShape)
                         .background(Linen)
                         .clickable(onClick = onNavigateToSync)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.md),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -109,7 +138,7 @@ fun PanelScreen(
                     )
                     Text(
                         text = "→",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.titleMedium,
                         color = InkFaint
                     )
                 }
@@ -127,9 +156,11 @@ private fun PanelHeader(
     val minutes = totalPureTimeMin % 60
     val timeText = "${hours}h ${minutes}m"
 
+    val formattedExp = NumberFormat.getNumberInstance().format(totalPureTimeMin)
+
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
     ) {
         Text(
             text = professionName.ifBlank { "游侠" },
@@ -138,7 +169,7 @@ private fun PanelHeader(
         )
         Row(
             verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
         ) {
             Text(
                 text = timeText,
@@ -149,10 +180,27 @@ private fun PanelHeader(
                 text = "纯时",
                 style = MaterialTheme.typography.bodyMedium,
                 color = InkLight,
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier.padding(bottom = SushiSpacing.xs)
             )
         }
+        Text(
+            text = "$formattedExp Exp",
+            style = MaterialTheme.typography.bodySmall,
+            color = InkFaint
+        )
     }
+}
+
+@Composable
+private fun SectionDivider() {
+    Spacer(modifier = Modifier.height(SushiSpacing.xs))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(0.5.dp)
+            .background(InkFaintest)
+    )
+    Spacer(modifier = Modifier.height(SushiSpacing.xs))
 }
 
 @Composable
@@ -161,9 +209,39 @@ private fun RadarChartSection(
 ) {
     val textMeasurer = rememberTextMeasurer()
 
+    // Animate attribute values
+    val animatedPhysique by animateIntAsState(
+        targetValue = attributes[AttributeType.PHYSIQUE] ?: 0,
+        animationSpec = tween(SushiAnim.NORMAL), label = "physique"
+    )
+    val animatedIntellect by animateIntAsState(
+        targetValue = attributes[AttributeType.INTELLECT] ?: 0,
+        animationSpec = tween(SushiAnim.NORMAL), label = "intellect"
+    )
+    val animatedCreation by animateIntAsState(
+        targetValue = attributes[AttributeType.CREATION] ?: 0,
+        animationSpec = tween(SushiAnim.NORMAL), label = "creation"
+    )
+    val animatedInsight by animateIntAsState(
+        targetValue = attributes[AttributeType.INSIGHT] ?: 0,
+        animationSpec = tween(SushiAnim.NORMAL), label = "insight"
+    )
+    val animatedDominion by animateIntAsState(
+        targetValue = attributes[AttributeType.DOMINION] ?: 0,
+        animationSpec = tween(SushiAnim.NORMAL), label = "dominion"
+    )
+
+    val animatedAttributes = mapOf(
+        AttributeType.PHYSIQUE to animatedPhysique,
+        AttributeType.INTELLECT to animatedIntellect,
+        AttributeType.CREATION to animatedCreation,
+        AttributeType.INSIGHT to animatedInsight,
+        AttributeType.DOMINION to animatedDominion
+    )
+
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
     ) {
         Text(
             text = "属性",
@@ -231,13 +309,13 @@ private fun RadarChartSection(
             }
 
             // Calculate max value for normalization (use at least 1 to avoid division by zero)
-            val maxValue = attributes.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+            val maxValue = animatedAttributes.values.maxOrNull()?.coerceAtLeast(1) ?: 1
 
             // Draw data polygon and data points
             val dataPoints = mutableListOf<Offset>()
             for (i in 0 until attributeCount) {
                 val attrType = radarAttributes[i]
-                val value = attributes[attrType] ?: 0
+                val value = animatedAttributes[attrType] ?: 0
                 val normalizedRadius = radius * (value.toFloat() / maxValue.toFloat()).coerceIn(0f, 1f)
                 val angle = startAngle + i * angleStep
                 dataPoints.add(
@@ -283,7 +361,7 @@ private fun RadarChartSection(
             for (i in 0 until attributeCount) {
                 val attrType = radarAttributes[i]
                 val label = attributeLabels[attrType] ?: ""
-                val value = attributes[attrType] ?: 0
+                val value = animatedAttributes[attrType] ?: 0
                 val angle = startAngle + i * angleStep
                 val labelRadius = radius + 36f
                 val labelX = centerX + labelRadius * cos(angle)
@@ -325,7 +403,7 @@ private fun AffixesSection(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
     ) {
         Text(
             text = "已解锁词条",
@@ -334,19 +412,36 @@ private fun AffixesSection(
         )
 
         if (affixes.isEmpty()) {
-            Text(
-                text = "尚无解锁词条",
-                style = MaterialTheme.typography.bodySmall,
-                color = InkFaint,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(1.dp, CardShape)
+                    .clip(CardShape)
+                    .background(Linen.copy(alpha = 0.5f))
+                    .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.lg),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+            ) {
+                Text(
+                    text = "·",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = InkFaintest
+                )
+                Text(
+                    text = "尚无解锁词条",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = InkFaint
+                )
+            }
         } else {
             affixes.forEach { affix ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .shadow(1.dp, CardShape)
+                        .clip(CardShape)
                         .background(Linen.copy(alpha = 0.5f))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.md),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

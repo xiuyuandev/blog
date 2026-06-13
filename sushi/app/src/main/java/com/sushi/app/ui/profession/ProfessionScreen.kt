@@ -1,5 +1,7 @@
 package com.sushi.app.ui.profession
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,12 +14,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -32,19 +35,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.ui.theme.AmberGold
 import com.sushi.app.ui.theme.BronzeCopper
+import com.sushi.app.ui.theme.CardShape
+import com.sushi.app.ui.theme.CardShapeSmall
+import com.sushi.app.ui.theme.Cinnabar
+import com.sushi.app.ui.theme.DialogShape
 import com.sushi.app.ui.theme.Ink
 import com.sushi.app.ui.theme.InkFaint
+import com.sushi.app.ui.theme.InkFaintest
 import com.sushi.app.ui.theme.InkLight
 import com.sushi.app.ui.theme.Linen
 import com.sushi.app.ui.theme.ObsidianBlack
 import com.sushi.app.ui.theme.Paper
+import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.RawStoneGray
+import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.viewmodel.ProfessionDetail
 import com.sushi.app.viewmodel.ProfessionDisplay
 import com.sushi.app.viewmodel.ProfessionUiState
@@ -58,14 +72,16 @@ fun ProfessionScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        when {
-            uiState.selectedProfession != null -> {
+        Crossfade(
+            targetState = uiState.selectedProfession != null,
+            animationSpec = tween(durationMillis = 300)
+        ) { hasDetail ->
+            if (hasDetail && uiState.selectedProfession != null) {
                 ProfessionDetailContent(
                     detail = uiState.selectedProfession!!,
                     onBack = viewModel::clearSelectedProfession
                 )
-            }
-            else -> {
+            } else {
                 ProfessionListContent(
                     uiState = uiState,
                     onSelectProfession = viewModel::selectProfession,
@@ -112,8 +128,8 @@ private fun ProfessionListContent(
                 .fillMaxSize()
                 .background(Paper)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
         ) {
             Text(
                 text = "职业身份",
@@ -121,23 +137,30 @@ private fun ProfessionListContent(
                     fontFamily = FontFamily.Serif
                 ),
                 color = Ink,
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier.padding(bottom = SushiSpacing.xs)
             )
 
             if (uiState.professions.isEmpty() && !uiState.isLoading) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 32.dp),
+                        .padding(top = SushiSpacing.xxxl),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
                 ) {
                     Text(
                         text = "游侠",
-                        style = MaterialTheme.typography.displaySmall.copy(
-                            fontFamily = FontFamily.Serif
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.Light
                         ),
                         color = InkLight
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(1.dp)
+                            .background(InkFaintest)
                     )
                     Text(
                         text = "你尚未选择职业，自由如风",
@@ -159,14 +182,18 @@ private fun ProfessionListContent(
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 20.dp, bottom = 20.dp)
-                .background(Ink, CircleShape)
+                .padding(end = SushiSpacing.xl, bottom = SushiSpacing.xl)
+                .shadow(4.dp, CircleShape)
+                .background(Cinnabar, CircleShape)
+                .clip(CircleShape)
                 .clickable(onClick = onShowCreate)
-                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(horizontal = 24.dp, vertical = 14.dp)
         ) {
             Text(
                 text = "+",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
                 color = Paper
             )
         }
@@ -183,9 +210,11 @@ private fun ProfessionCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(1.dp, CardShape)
+            .clip(CardShape)
             .background(Linen)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Row(
@@ -202,7 +231,7 @@ private fun ProfessionCard(
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
             ) {
                 Text(
                     text = "${display.level}",
@@ -211,30 +240,36 @@ private fun ProfessionCard(
                     ),
                     color = Ink
                 )
-                Text(
-                    text = display.tierLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = tierColor
-                )
+                Box(
+                    modifier = Modifier
+                        .background(tierColor.copy(alpha = 0.12f), PillShape)
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = display.tierLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tierColor
+                    )
+                }
             }
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
         ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(Paper)
+                    .height(8.dp)
+                    .clip(CardShapeSmall)
+                    .background(PaperWarm)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(display.progress / 120f)
-                        .clip(RoundedCornerShape(3.dp))
+                        .clip(CardShapeSmall)
                         .background(tierColor.copy(alpha = 0.55f))
                 )
             }
@@ -264,16 +299,25 @@ private fun ProfessionDetailContent(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clip(CardShape)
                 .clickable(onClick = onBack)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "←",
-                style = MaterialTheme.typography.headlineMedium,
-                color = InkLight
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(Linen),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "←",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = InkLight
+                )
+            }
+            Spacer(modifier = Modifier.width(SushiSpacing.sm))
             Text(
                 text = "返回",
                 style = MaterialTheme.typography.bodyMedium,
@@ -284,27 +328,36 @@ private fun ProfessionDetailContent(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(horizontal = SushiSpacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.xxl)
         ) {
             // Level and tier
             Row(
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.md)
             ) {
                 Text(
                     text = "${detail.level}",
                     style = MaterialTheme.typography.displayLarge.copy(
-                        fontFamily = FontFamily.Serif
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 64.sp
                     ),
                     color = Ink
                 )
-                Text(
-                    text = detail.tierLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = tierColor,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Bottom)
+                        .padding(bottom = 10.dp)
+                        .background(tierColor.copy(alpha = 0.12f), PillShape)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = detail.tierLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = tierColor
+                    )
+                }
             }
 
             // Profession name
@@ -316,11 +369,16 @@ private fun ProfessionDetailContent(
                 color = Ink
             )
 
+            Divider(
+                color = InkFaintest,
+                thickness = 1.dp
+            )
+
             // Total pure time
             val hours = detail.totalPureTimeMin / 60
             val minutes = detail.totalPureTimeMin % 60
             val timeText = if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)) {
                 Text(
                     text = "素时累计",
                     style = MaterialTheme.typography.labelMedium,
@@ -328,12 +386,18 @@ private fun ProfessionDetailContent(
                 )
                 Text(
                     text = timeText,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontFamily = FontFamily.Serif
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Medium
                     ),
                     color = Ink
                 )
             }
+
+            Divider(
+                color = InkFaintest,
+                thickness = 1.dp
+            )
 
             // Progress bar
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -344,20 +408,20 @@ private fun ProfessionDetailContent(
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                 ) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
+                            .height(10.dp)
+                            .clip(CardShapeSmall)
                             .background(Linen)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .fillMaxWidth(detail.progress / 120f)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(CardShapeSmall)
                                 .background(tierColor.copy(alpha = 0.55f))
                         )
                     }
@@ -369,8 +433,13 @@ private fun ProfessionDetailContent(
                 }
             }
 
+            Divider(
+                color = InkFaintest,
+                thickness = 1.dp
+            )
+
             // Core skills matrix
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                 Text(
                     text = "核心技能矩阵",
                     style = MaterialTheme.typography.labelMedium,
@@ -390,7 +459,7 @@ private fun ProfessionDetailContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
         }
     }
 }
@@ -404,8 +473,10 @@ private fun CoreSkillItem(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(1.dp, CardShapeSmall)
+            .clip(CardShapeSmall)
             .background(Linen)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Row(
@@ -413,11 +484,22 @@ private fun CoreSkillItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = skillWithProgress.skill.name,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Ink
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(tierColor)
+                )
+                Text(
+                    text = skillWithProgress.skill.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Ink
+                )
+            }
             Text(
                 text = "LV ${skillWithProgress.level}",
                 style = MaterialTheme.typography.labelMedium.copy(
@@ -429,20 +511,20 @@ private fun CoreSkillItem(
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
         ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(Paper)
+                    .height(6.dp)
+                    .clip(CardShapeSmall)
+                    .background(PaperWarm)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(skillWithProgress.progress / 120f)
-                        .clip(RoundedCornerShape(2.dp))
+                        .clip(CardShapeSmall)
                         .background(tierColor.copy(alpha = 0.55f))
                 )
             }
@@ -464,6 +546,7 @@ private fun CreateProfessionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = DialogShape,
         title = {
             Text(
                 text = "新建职业",
@@ -484,12 +567,15 @@ private fun CreateProfessionDialog(
                     )
                 },
                 singleLine = true,
+                shape = CardShapeSmall,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Ink,
+                    focusedBorderColor = Cinnabar,
                     unfocusedBorderColor = InkLight,
                     focusedTextColor = Ink,
                     unfocusedTextColor = Ink,
-                    cursorColor = Ink
+                    cursorColor = Cinnabar,
+                    focusedContainerColor = PaperWarm,
+                    unfocusedContainerColor = PaperWarm
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -504,7 +590,7 @@ private fun CreateProfessionDialog(
             ) {
                 Text(
                     text = "确认",
-                    color = Ink
+                    color = Cinnabar
                 )
             }
         },

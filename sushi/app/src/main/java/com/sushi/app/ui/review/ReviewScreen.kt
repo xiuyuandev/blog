@@ -1,7 +1,15 @@
 package com.sushi.app.ui.review
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +24,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,18 +41,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.TimeRecord
+import com.sushi.app.ui.theme.CardShape
+import com.sushi.app.ui.theme.CardShapeSmall
 import com.sushi.app.ui.theme.Cinnabar
+import com.sushi.app.ui.theme.CinnabarFaint
+import com.sushi.app.ui.theme.CinnabarLight
 import com.sushi.app.ui.theme.Ink
 import com.sushi.app.ui.theme.InkFaint
+import com.sushi.app.ui.theme.InkFaintest
 import com.sushi.app.ui.theme.InkLight
-import com.sushi.app.ui.theme.Linen
 import com.sushi.app.ui.theme.Paper
-import com.sushi.app.viewmodel.ReviewUiState
+import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.SerifFontFamily
+import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.viewmodel.ReviewViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -53,8 +77,8 @@ fun ReviewScreen(
             .fillMaxSize()
             .background(Paper)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+            .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.xxl),
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.xxl)
     ) {
         CalendarView(
             selectedDate = uiState.selectedDate,
@@ -62,10 +86,19 @@ fun ReviewScreen(
             onSelectDate = viewModel::selectDate
         )
 
-        TimelineSection(
-            records = uiState.recordsByDate,
-            isLoading = uiState.isLoading
-        )
+        AnimatedContent(
+            targetState = uiState.selectedDate,
+            transitionSpec = {
+                slideInVertically { height -> height / 4 } + fadeIn() togetherWith
+                    slideOutVertically { height -> -height / 4 } + fadeOut()
+            },
+            label = "timeline_transition"
+        ) { targetDate ->
+            TimelineSection(
+                records = uiState.recordsByDate,
+                isLoading = uiState.isLoading
+            )
+        }
 
         StatisticsSection(
             weeklyTotalMin = uiState.weeklyTotalMin,
@@ -129,28 +162,118 @@ private fun CalendarView(
     }
     val selectedDayTimestamp = selectedCal.timeInMillis
 
+    // Today's start-of-day timestamp
+    val todayTimestamp = remember {
+        Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Linen)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .shadow(2.dp, CardShape)
+            .clip(CardShape)
+            .background(PaperWarm)
+            .padding(SushiSpacing.xl),
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
     ) {
-        Text(
-            text = "${year}年 ${monthNames[month]}",
-            style = MaterialTheme.typography.headlineSmall,
-            color = Ink
-        )
+        // Month navigation row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(
+                onClick = {
+                    val prev = Calendar.getInstance().apply {
+                        timeInMillis = selectedDate
+                        add(Calendar.MONTH, -1)
+                    }
+                    onSelectDate(prev.timeInMillis)
+                },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = "上个月",
+                    tint = InkLight,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+            ) {
+                Text(
+                    text = "${year}年 ${monthNames[month]}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Ink
+                )
+                // Today button
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(CinnabarFaint)
+                        .clickable { onSelectDate(System.currentTimeMillis()) }
+                        .padding(horizontal = SushiSpacing.sm, vertical = SushiSpacing.xs),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CalendarToday,
+                            contentDescription = null,
+                            tint = Cinnabar,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = "今天",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Cinnabar
+                        )
+                    }
+                }
+            }
+
+            IconButton(
+                onClick = {
+                    val next = Calendar.getInstance().apply {
+                        timeInMillis = selectedDate
+                        add(Calendar.MONTH, 1)
+                    }
+                    onSelectDate(next.timeInMillis)
+                },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "下个月",
+                    tint = InkLight,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
 
         // Day of week headers
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = SushiSpacing.xs),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             listOf("一", "二", "三", "四", "五", "六", "日").forEach { dayName ->
                 Text(
                     text = dayName,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        letterSpacing = 1.sp
+                    ),
                     color = InkFaint,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
@@ -185,32 +308,64 @@ private fun CalendarView(
                         }
                         val dayTimestamp = dayCal.timeInMillis
                         val isSelected = dayTimestamp == selectedDayTimestamp
+                        val isToday = dayTimestamp == todayTimestamp
                         val hasRecord = datesWithRecords.contains(dayTimestamp)
 
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { onSelectDate(dayTimestamp) }
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 2.dp),
                             contentAlignment = Alignment.Center
                         ) {
+                            // Background circles
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(Cinnabar)
+                                )
+                            } else if (isToday) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(InkFaintest.copy(alpha = 0.4f))
+                                )
+                            }
+
                             Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = { onSelectDate(dayTimestamp) }
+                                    )
+                                    .padding(SushiSpacing.sm)
                             ) {
                                 Text(
                                     text = "$dayNumber",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Ink,
-                                    textDecoration = if (isSelected) TextDecoration.Underline else TextDecoration.None
+                                    color = when {
+                                        isSelected -> Paper
+                                        isToday -> Cinnabar
+                                        else -> Ink
+                                    },
+                                    fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
                                 )
+                                // Record indicator dot
                                 if (hasRecord) {
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.height(1.dp))
                                     Box(
                                         modifier = Modifier
                                             .size(4.dp)
                                             .clip(CircleShape)
-                                            .background(Cinnabar)
+                                            .background(if (isSelected) Paper else Cinnabar)
                                     )
+                                } else {
+                                    Spacer(modifier = Modifier.height(5.dp))
                                 }
                             }
                         }
@@ -229,9 +384,11 @@ private fun TimelineSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Linen)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .shadow(2.dp, CardShape)
+            .clip(CardShape)
+            .background(PaperWarm)
+            .padding(SushiSpacing.xl),
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
     ) {
         Text(
             text = "时间记录",
@@ -239,35 +396,80 @@ private fun TimelineSection(
             color = Ink
         )
 
-        if (isLoading) {
-            Text(
-                text = "加载中…",
-                style = MaterialTheme.typography.bodyMedium,
-                color = InkFaint
-            )
-        } else if (records.isEmpty()) {
-            Text(
-                text = "此日无记录",
-                style = MaterialTheme.typography.bodyMedium,
-                color = InkFaint
-            )
-        } else {
-            records.forEach { record ->
-                TimelineEntry(record = record)
+        Crossfade(
+            targetState = isLoading to records,
+            label = "timeline_content"
+        ) { (loading, recs) ->
+            when {
+                loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = SushiSpacing.xxl),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "加载中…",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = InkFaint
+                        )
+                    }
+                }
+                recs.isEmpty() -> {
+                    EmptyTimelineState()
+                }
+                else -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)) {
+                        recs.forEachIndexed { index, record ->
+                            TimelineEntry(
+                                record = record,
+                                isLast = index == recs.lastIndex
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun TimelineEntry(record: TimeRecord) {
+private fun EmptyTimelineState() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = SushiSpacing.xxxl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
+    ) {
+        Icon(
+            imageVector = Icons.Filled.EventNote,
+            contentDescription = null,
+            tint = InkFaintest,
+            modifier = Modifier.size(40.dp)
+        )
+        Text(
+            text = "此日暂无记录",
+            style = MaterialTheme.typography.bodyMedium,
+            color = InkFaint
+        )
+        Text(
+            text = "选择有记录的日期查看详情",
+            style = MaterialTheme.typography.bodySmall,
+            color = InkFaintest
+        )
+    }
+}
+
+@Composable
+private fun TimelineEntry(record: TimeRecord, isLast: Boolean) {
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val startText = timeFormat.format(record.startDateTime)
     val endText = timeFormat.format(record.endDateTime)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(SushiSpacing.md)
     ) {
         // Timeline connector
         Column(
@@ -275,32 +477,67 @@ private fun TimelineEntry(record: TimeRecord) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(6.dp)
+                    .size(8.dp)
                     .clip(CircleShape)
-                    .background(InkLight)
+                    .background(Cinnabar)
             )
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(32.dp)
-                    .background(InkFaint)
-            )
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .width(1.5.dp)
+                        .height(40.dp)
+                        .background(InkFaintest)
+                )
+            }
         }
 
-        // Content
+        // Content card
         Column(
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+            modifier = Modifier
+                .weight(1f)
+                .clip(CardShapeSmall)
+                .background(Paper)
+                .padding(SushiSpacing.md),
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
         ) {
-            Text(
-                text = "$startText → $endText",
-                style = MaterialTheme.typography.labelLarge,
-                color = Ink
-            )
-            Text(
-                text = "${record.netDurationMin}分钟纯时间",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Ink
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "$startText → $endText",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Ink
+                )
+                // Duration badge
+                Box(
+                    modifier = Modifier
+                        .clip(CardShapeSmall)
+                        .background(CinnabarFaint)
+                        .padding(horizontal = SushiSpacing.sm, vertical = 2.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Schedule,
+                            contentDescription = null,
+                            tint = Cinnabar,
+                            modifier = Modifier.size(10.dp)
+                        )
+                        Text(
+                            text = formatDuration(record.netDurationMin),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Cinnabar,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
             if (record.description.isNotBlank()) {
                 Text(
                     text = record.description,
@@ -317,12 +554,20 @@ private fun StatisticsSection(
     weeklyTotalMin: Int,
     monthlyTotalMin: Int
 ) {
+    // Weekly goal: 40 hours = 2400 min; Monthly goal: 160 hours = 9600 min
+    val weeklyGoalMin = 2400
+    val monthlyGoalMin = 9600
+    val weeklyProgress = if (weeklyTotalMin > 0) (weeklyTotalMin.toFloat() / weeklyGoalMin).coerceIn(0f, 1f) else 0f
+    val monthlyProgress = if (monthlyTotalMin > 0) (monthlyTotalMin.toFloat() / monthlyGoalMin).coerceIn(0f, 1f) else 0f
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Linen)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+            .shadow(2.dp, CardShape)
+            .clip(CardShape)
+            .background(PaperWarm)
+            .padding(SushiSpacing.xl),
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)
     ) {
         Text(
             text = "统计",
@@ -331,31 +576,130 @@ private fun StatisticsSection(
         )
 
         // Weekly stats
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CalendarToday,
+                        contentDescription = null,
+                        tint = InkLight,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "本周纯时间",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = InkLight
+                    )
+                }
+                Text(
+                    text = if (weeklyTotalMin > 0) formatDuration(weeklyTotalMin) else "暂无数据",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontFamily = SerifFontFamily
+                    ),
+                    color = if (weeklyTotalMin > 0) Ink else InkFaint
+                )
+            }
+            // Progress bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CardShapeSmall)
+                    .background(InkFaintest.copy(alpha = 0.3f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(weeklyProgress)
+                        .height(6.dp)
+                        .clip(CardShapeSmall)
+                        .background(Cinnabar)
+                )
+            }
             Text(
-                text = "本周纯时间",
-                style = MaterialTheme.typography.labelLarge,
-                color = InkLight
-            )
-            Text(
-                text = if (weeklyTotalMin > 0) "${weeklyTotalMin}分钟" else "暂无数据",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (weeklyTotalMin > 0) Ink else InkFaint
+                text = if (weeklyTotalMin > 0) "目标 ${formatDuration(weeklyGoalMin)}" else "",
+                style = MaterialTheme.typography.labelSmall,
+                color = InkFaint
             )
         }
 
+        // Divider
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(InkFaintest.copy(alpha = 0.3f))
+        )
+
         // Monthly stats
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.EventNote,
+                        contentDescription = null,
+                        tint = InkLight,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = "本月纯时间",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = InkLight
+                    )
+                }
+                Text(
+                    text = if (monthlyTotalMin > 0) formatDuration(monthlyTotalMin) else "暂无数据",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontFamily = SerifFontFamily
+                    ),
+                    color = if (monthlyTotalMin > 0) Ink else InkFaint
+                )
+            }
+            // Progress bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(CardShapeSmall)
+                    .background(InkFaintest.copy(alpha = 0.3f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(monthlyProgress)
+                        .height(6.dp)
+                        .clip(CardShapeSmall)
+                        .background(CinnabarLight)
+                )
+            }
             Text(
-                text = "本月纯时间",
-                style = MaterialTheme.typography.labelLarge,
-                color = InkLight
-            )
-            Text(
-                text = if (monthlyTotalMin > 0) "${monthlyTotalMin}分钟" else "暂无数据",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (monthlyTotalMin > 0) Ink else InkFaint
+                text = if (monthlyTotalMin > 0) "目标 ${formatDuration(monthlyGoalMin)}" else "",
+                style = MaterialTheme.typography.labelSmall,
+                color = InkFaint
             )
         }
+    }
+}
+
+private fun formatDuration(totalMin: Int): String {
+    if (totalMin <= 0) return "0m"
+    val hours = totalMin / 60
+    val minutes = totalMin % 60
+    return when {
+        hours > 0 && minutes > 0 -> "${hours}h ${minutes}m"
+        hours > 0 -> "${hours}h"
+        else -> "${minutes}m"
     }
 }
