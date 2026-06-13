@@ -1,19 +1,20 @@
-# 素时 · 开发计划(V1.0)
+# 素时 · 开发计划(V1.0 修订版)
 
-> **目标**: 用 4 周时间,从现有 31 项功能工程中**精简重构**,交付一个 8MB 以内、完全离线、纯公益的素时 V1.0 APK。
-> **撰写日期**: 2026-06-13
+> **目标**: 在现有 31 项功能工程基础上,**保留 29 项核心 + 剥离 2 项(白噪音/云同步) + 换皮 Material 3 设计语言**,交付符合"Google 风格 + 中国气质 + 离线公益"的素时 V1.0 APK。
+> **策略**: 不推翻,而是**减法换皮**。
+> **撰写日期**: 2026-06-13 · 修订版
 
 ---
 
 ## 目录
 
 1. [总体策略](#1-总体策略)
-2. [技术栈精简](#2-技术栈精简)
+2. [技术栈](#2-技术栈)
 3. [架构设计](#3-架构设计)
 4. [数据模型](#4-数据模型)
 5. [代码改造清单](#5-代码改造清单)
 6. [阶段划分与里程碑](#6-阶段划分与里程碑)
-7. [任务清单(周维度)](#7-任务清单周维度)
+7. [任务清单(28 天)](#7-任务清单28-天)
 8. [质量保障](#8-质量保障)
 9. [发布计划](#9-发布计划)
 10. [长期维护](#10-长期维护)
@@ -22,52 +23,44 @@
 
 ## 1. 总体策略
 
-### 1.1 设计原则
-- **减法优先**: 砍掉所有非核心功能,直到无法再减
-- **离线为王**: 不引入任何网络依赖(SDK、库、字体网络下载)
-- **公益级稳定**: 一次构建,运行 10 年不崩
-- **极致性能**: APK < 8MB,启动 < 500ms,内存 < 100MB
+### 1.1 核心原则
+> **核心不动(技能为核),只做减法换皮**
 
-### 1.2 重构思路
-**不重写,而是瘦身**。当前工程已有 31 项功能实现,本次任务:
-1. **删**: 砍掉云同步、AI、游戏化、社交、推送相关代码
-2. **改**: 视觉/文案按宋式极简重做
-3. **留**: 数据层、图表组件、基础 UI 组件保留核心
-4. **补**: 补 24 节气、农历、备份/恢复 3 个核心功能
+| 维度 | 决策 |
+|---|---|
+| **功能层** | 29 项保留 + 2 项剥离(白噪音、云同步) |
+| **设计层** | 全 UI 换皮为 Material 3 + 中国色板 |
+| **交互层** | 改用 Material 3 标准组件(NavigationBar / ExtendedFAB / ModalBottomSheet) |
+| **数据层** | 完全保留(已经过验证) |
+| **业务逻辑** | 完全保留(经验引擎、毕业逻辑、Streak、成就) |
+| **依赖层** | 移除 Hilt(用顶层单例)、保留 Compose/Room/Flow |
+
+### 1.2 三件大事
+1. **换皮**(60% 工作量): 重写所有 Composable 主题
+2. **减负**(20% 工作量): 移除 2 项功能,瘦身依赖
+3. **打磨**(20% 工作量): 中国本土化、节气/农历、备份
 
 ### 1.3 关键决策
 | 决策项 | 选择 | 理由 |
 |---|---|---|
-| DI 框架 | **不用 Hilt,改用顶层单例** | 减依赖、减方法数、零反射 |
+| DI 框架 | **不用 Hilt,改用顶层单例** | 减依赖、减方法数 |
 | 网络库 | **完全移除** | 不联网 |
-| 数据库 | **Room 保留** | 稳定、本地、无网络 |
-| UI 框架 | **Compose 保留** | 主流、声明式、Jetpack 支持 |
-| 主题 | **Material 3 减配** | 只用其底层组件,不用动态色 |
-| 协程 | **保留** | 必要 |
-| Flow | **保留** | 必要 |
-| 序列化 | **Gson → Moshi 或 kotlinx.serialization** | 更小更快 |
-| 字体 | **思源宋体/黑体/楷体内置子集** | 离线可用 |
-| 图标 | **Lucide Icons 内置** | 离线、无版权 |
-| 备份 | **本地文件 + SAF** | 离线、无网络 |
+| 数据库 | **Room 保留**(已建 v3 迁移) | 稳定,本地 |
+| UI 框架 | **Compose 保留 + Material 3 升级** | 主流、Jetpack |
+| 主题 | **Material 3 baseline + 中国静态色** | 不用动态取色 |
+| 协程/Flow | **保留** | 必要 |
+| 序列化 | **Gson 保留**(已在用) | 兼容性 |
+| 字体 | **思源黑体/霞鹜文楷内置子集** | 离线可用 |
+| 图标 | **Material Symbols Rounded 内置** | 离线、无版权 |
+| 备份 | **本地文件 + SAF** | 离线 |
 
 ---
 
-## 2. 技术栈精简
+## 2. 技术栈
 
-### 2.1 移除的依赖
+### 2.1 当前依赖(保留)
 ```kotlin
-// 以下依赖全部移除
-- hilt-android / hilt-compiler
-- okhttp / retrofit / gson(网络相关)
-- datastore-preferences(改用 SharedPreferences)
-- navigation-compose(改用单 Activity + 自管理状态)
-- material3 dynamic color
-- 所有第三方统计/崩溃 SDK
-```
-
-### 2.2 保留的依赖(最小化)
-```kotlin
-// app/build.gradle.kts
+// build.gradle.kts (V1.0 精简版)
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.activity:activity-compose:1.8.2")
@@ -84,195 +77,260 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("androidx.navigation:navigation-compose:2.7.6")
+    implementation("com.google.code.gson:gson:2.10.1")
+    
+    // 移除的(原工程有,V1.0 不要)
+    // - hilt-android / hilt-compiler
+    // - okhttp / retrofit
+    // - datastore(改用 SharedPreferences 或保留)
+    // - material dynamic color(改用静态)
 }
 ```
 
-### 2.3 目标 APK 大小
-- 基础: ~3MB
-- 字体子集(思源宋/黑/楷体各 1MB): +3MB
-- 图标(Lucide 全套): +1MB
+### 2.2 目标 APK 大小
+- 基础 Compose + Material 3: ~3MB
+- Room: +0.5MB
+- 字体子集(思源黑/霞鹜文楷/思源宋体,各 1MB): +3MB
+- 图标(仅按需引入): +0.5MB
 - **总计: ~7MB** ✅
+
+### 2.3 权限申请
+**目标: 0 权限**
+- ❌ 不申请网络
+- ❌ 不申请存储(用 SAF)
+- ❌ 不申请通知
+- ❌ 不申请位置
+- ❌ 不申请任何其他
 
 ---
 
 ## 3. 架构设计
 
 ### 3.1 总体架构
-**经典 MVVM + 单例 Repository**
+**保留现有 MVVM + Repository 模式**,用顶层单例替代 Hilt。
 
 ```
 ┌─────────────────────────────┐
-│  UI (Compose Screens)       │
+│  UI (Compose Screens)       │  ← 5 Tab + FAB
 └──────────────┬──────────────┘
                │ collectAsState
 ┌──────────────▼──────────────┐
-│  ViewModel (StateFlow)      │
+│  ViewModel (StateFlow)      │  ← 现有 ViewModel 全部保留
 └──────────────┬──────────────┘
                │ suspend / Flow
 ┌──────────────▼──────────────┐
-│  Repository(单例,顶层)       │
+│  SushiContainer(单例,顶层)   │  ← 替代 Hilt
+│  ├─ Repository               │
+│  ├─ ExperienceEngine         │
+│  └─ SolarTerm/Lunar/Backup   │
 └──────────────┬──────────────┘
                │
 ┌──────────────▼──────────────┐
-│  Room (SQLite) + DataStore  │
+│  Room (SQLite v3) + Prefs   │  ← 完全保留
 └─────────────────────────────┘
 ```
 
 ### 3.2 顶层单例容器
-替代 Hilt,用一个简单的 `AppContainer`:
+替代 Hilt,引入 `SushiContainer` 单例:
 
 ```kotlin
 // SushiContainer.kt
 object SushiContainer {
-    lateinit var database: SushiDatabase
-        private set
-    lateinit var repository: SushiRepository
-        private set
-    lateinit var timeFormatter: TimeFormatter
-        private set
+    lateinit var database: SushiDatabase private set
+    lateinit var repository: SushiRepository private set
+    lateinit var engine: ExperienceEngine private set
+    lateinit var backupManager: BackupManager private set
+    lateinit var solarTermCalculator: SolarTermCalculator private set
+    lateinit var lunarConverter: LunarConverter private set
 
     fun init(context: Context) {
         database = Room.databaseBuilder(
             context, SushiDatabase::class.java, "sushi.db"
         ).build()
         repository = SushiRepository(
-            database.timeRecordDao(),
-            database.categoryDao(),
-            database.settingsDao()
+            timeRecordDao = database.timeRecordDao(),
+            skillDao = database.skillDao(),
+            // ... 11 个 DAO
         )
-        timeFormatter = TimeFormatter()
+        engine = ExperienceEngine(repository)
+        solarTermCalculator = SolarTermCalculator()
+        lunarConverter = LunarConverter()
+        backupManager = BackupManager(context, repository)
     }
 }
 ```
 
-### 3.3 状态管理
-- 每个 ViewModel 暴露一个 `StateFlow<UiState>`
+### 3.3 ViewModel 改造
+将现有 ViewModel 中的 `@Inject` 改为手动注入:
+
+```kotlin
+// 现有
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val repository: SushiRepository
+) : ViewModel()
+
+// 改为
+class HomeViewModel(
+    private val repository: SushiRepository = SushiContainer.repository
+) : ViewModel() {
+    companion object {
+        fun create() = HomeViewModel()
+    }
+}
+```
+
+### 3.4 状态管理
+- 每个 ViewModel 暴露 `StateFlow<UiState>`
 - UI 用 `collectAsStateWithLifecycle()` 订阅
 - 一次性事件用 `SharedFlow` 或 `Channel`
 - **不引入任何第三方状态库**
 
-### 3.4 目录结构
+### 3.5 目录结构(V1.0 精简)
 ```
 app/src/main/java/com/sushi/app/
-├── SushiApp.kt              # Application
-├── SushiContainer.kt        # 单例容器
-├── MainActivity.kt          # 单 Activity
+├── SushiApp.kt              # Application(精简)
+├── SushiContainer.kt        # 单例容器(新增)
+├── MainActivity.kt          # 单 Activity + 底部导航
 ├── data/
 │   ├── db/
-│   │   ├── SushiDatabase.kt
-│   │   ├── TimeRecordDao.kt
-│   │   ├── CategoryDao.kt
-│   │   └── SettingsDao.kt
-│   ├── model/
+│   │   ├── SushiDatabase.kt        # v3,保留
+│   │   ├── TimeRecordDao.kt        # 保留
+│   │   ├── SkillDao.kt             # 保留
+│   │   ├── ProfessionDao.kt        # 保留
+│   │   ├── TaskDao.kt              # 保留
+│   │   ├── AchievementDao.kt       # 保留
+│   │   ├── GoalDao.kt              # 保留
+│   │   ├── DailyReflectionDao.kt   # 保留
+│   │   ├── PauseLogDao.kt          # 保留
+│   │   ├── HelpEntryDao.kt         # 保留
+│   │   └── Migrations.kt           # 保留
+│   ├── model/              # 全部保留
 │   │   ├── TimeRecord.kt
-│   │   ├── Category.kt
-│   │   ├── SolarTerm.kt
-│   │   └── LunarDate.kt
+│   │   ├── Skill.kt
+│   │   ├── Profession.kt
+│   │   ├── Task.kt
+│   │   ├── Achievement.kt
+│   │   ├── Goal.kt
+│   │   ├── DailyReflection.kt
+│   │   ├── PauseLog.kt
+│   │   ├── HelpEntry.kt
+│   │   ├── SolarTerm.kt            # 新增
+│   │   └── LunarDate.kt            # 新增
 │   └── repository/
-│       └── SushiRepository.kt
+│       ├── SushiRepository.kt      # 保留
+│       ├── SeedData.kt             # 保留(精简)
+│       └── BackupManager.kt        # 新增(替代云同步)
+├── logic/
+│   └── ExperienceEngine.kt        # 保留(产品灵魂)
+├── sync/                    # ❌ 整目录删除
+│   ├── BackupManager.kt
+│   ├── S3SyncService.kt
+│   ├── SyncConfig.kt
+│   ├── SyncConfigManager.kt
+│   ├── SyncService.kt
+│   └── WebDavSyncService.kt
+├── di/                      # ❌ 整目录删除
+│   ├── DatabaseModule.kt
+│   ├── RepositoryModule.kt
+│   └── SyncModule.kt
 ├── ui/
 │   ├── theme/
-│   │   ├── Color.kt
-│   │   ├── Theme.kt
-│   │   ├── Type.kt
-│   │   └── Shape.kt
-│   ├── components/
-│   │   ├── SushiButton.kt
-│   │   ├── SushiDialog.kt
-│   │   ├── SushiCharts.kt
-│   │   └── SushiHeatmap.kt
-│   ├── home/
+│   │   ├── Color.kt                # 重写:中国静态色板
+│   │   ├── Theme.kt                # 重写:Material 3
+│   │   ├── Type.kt                 # 重写:中文字体
+│   │   └── Shape.kt                # 新增:Material 3 圆角
+│   ├── components/                 # 重写
+│   │   ├── SushiButton.kt          # 重写:Material 3 Button
+│   │   ├── SushiDialog.kt          # 重写:Material 3 AlertDialog
+│   │   ├── SushiSheet.kt           # 重写:ModalBottomSheet
+│   │   ├── SushiSnackbar.kt        # 新增:统一反馈
+│   │   ├── SushiCharts.kt          # 重写:用 Material 3 配色
+│   │   ├── SushiHeatmap.kt         # 重写:GitHub 风格
+│   │   ├── SushiIcons.kt           # 改用 Material Symbols
+│   │   └── LevelUpCelebration.kt   # 重写:克制版
+│   ├── home/                       # 重写:5 Tab 主页
 │   │   ├── HomeScreen.kt
 │   │   └── HomeViewModel.kt
-│   ├── history/
-│   │   ├── HistoryScreen.kt
-│   │   └── HistoryViewModel.kt
-│   ├── stats/
-│   │   ├── StatsScreen.kt
-│   │   └── StatsViewModel.kt
-│   └── settings/
-│       ├── SettingsScreen.kt
-│       └── SettingsViewModel.kt
+│   ├── skill/                      # 保留并重写
+│   │   ├── SkillScreen.kt
+│   │   ├── SkillDetailScreen.kt    # 新增
+│   │   ├── SkillViewModel.kt
+│   │   └── tree/
+│   │       ├── SkillTreeScreen.kt
+│   │       └── SkillTreeViewModel.kt
+│   ├── profession/                 # 保留
+│   ├── task/                       # 新增独立目录
+│   │   ├── TaskScreen.kt
+│   │   └── TaskViewModel.kt
+│   ├── goal/                       # 保留
+│   ├── achievement/                # 保留
+│   ├── report/                     # 保留
+│   ├── reflection/                 # 保留
+│   ├── onboarding/                 # 保留
+│   ├── help/                       # 保留
+│   ├── settings/                   # 新增(原 SyncScreen 拆出)
+│   │   ├── SettingsScreen.kt
+│   │   └── SettingsViewModel.kt
+│   └── navigation/
+│       └── SushiNavHost.kt         # 重写:5 Tab 布局
 ├── util/
-│   ├── TimeFormatter.kt
-│   ├── SolarTermCalculator.kt
-│   ├── LunarConverter.kt
-│   ├── BackupManager.kt
-│   └── HapticFeedback.kt
-└── viewmodel/               # 公共 ViewModel
-    └── AppViewModel.kt
+│   ├── HapticFeedback.kt           # 保留
+│   ├── TimeFormatter.kt            # 保留
+│   ├── SolarTermCalculator.kt      # 新增
+│   ├── LunarConverter.kt           # 新增
+│   └── SolarTermQuotes.kt          # 新增
+├── viewmodel/                      # 精简
+│   ├── AppViewModel.kt             # 合并所有公共状态
+│   └── ...
+├── MainActivity.kt                 # 重写:用 NavHost
+└── SushiApp.kt                     # 精简
 ```
 
 ---
 
 ## 4. 数据模型
 
-### 4.1 数据表(V1.0 精简为 3 张表)
+### 4.1 数据库:完全保留 v3
+**v3 已包含 17 张表 + 31 项功能所需全部字段**,V1.0 不动结构。
 
-#### 4.1.1 `time_records`(时间记录)
-```sql
-CREATE TABLE time_records (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    start_time INTEGER NOT NULL,        -- 毫秒时间戳
-    end_time INTEGER NOT NULL,          -- 毫秒时间戳
-    duration_ms INTEGER NOT NULL,       -- 时长(冗余,便于查询)
-    category_id INTEGER NOT NULL,       -- 分类 ID
-    tag TEXT,                           -- 二级标签(可选)
-    note TEXT,                          -- 备注
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    FOREIGN KEY (category_id) REFERENCES categories(id)
-);
-CREATE INDEX idx_records_start ON time_records(start_time);
-CREATE INDEX idx_records_category ON time_records(category_id);
-```
-
-#### 4.1.2 `categories`(分类)
-```sql
-CREATE TABLE categories (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,                 -- 名称(工作/学习/...)
-    color INTEGER NOT NULL,             -- 颜色(ARGB)
-    icon TEXT NOT NULL,                 -- 图标名
-    sort_order INTEGER NOT NULL,        -- 排序
-    is_visible INTEGER NOT NULL DEFAULT 1,
-    is_preset INTEGER NOT NULL DEFAULT 0 -- 是否预置(不可删)
-);
-```
-
-#### 4.1.3 `settings`(设置,K-V 表)
-```sql
-CREATE TABLE settings (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-);
--- 常用 key: theme_mode, default_category_id, solar_term_enabled
-```
+主要表:
+- `time_records`(时间记录)
+- `skills`(技能)
+- `professions`(职业)
+- `tasks`(任务)
+- `achievements`(成就)
+- `goals`(目标)
+- `daily_reflections`(复盘)
+- `pause_logs`(暂停日志)
+- `help_entries`(帮助)
+- ... 等
 
 ### 4.2 预置数据
-启动时若 `categories` 表为空,插入 8 大域:
-```
-1  工作   远山黛 #5A6B7C
-2  学习   苔绿   #4A6741
-3  家庭   朱砂   #B23A48
-4  健康   落柿   #D97847
-5  爱好   赭石   #8B6F47
-6  社交   陶土   #A65D5D
-7  休息   紫灰   #9B8AA0
-8  修行   玄黑   #2A2A2A
-```
+- 8 大域(职业)
+- 默认技能
+- 14 项成就
+- 17 条帮助词条
+- 48 句节气古语
+- 24 节气 + 农历(2025-2050 硬编码)
 
-### 4.3 数据库迁移
-- 全新工程,**不保留旧数据**
-- 老用户首次打开会看到"导入旧数据"选项(基于 JSON 导入)
+### 4.3 备份格式(JSON)
+完全保留现有 BackupManager 的 JSON 格式,加 V1.0 版本号。
 
-### 4.4 备份格式(JSON)
 ```json
 {
   "version": 1,
   "exportedAt": "2026-06-13T10:00:00Z",
-  "categories": [...],
-  "timeRecords": [...]
+  "appVersion": "1.0.0",
+  "skills": [...],
+  "professions": [...],
+  "tasks": [...],
+  "timeRecords": [...],
+  "achievements": [...],
+  "goals": [...],
+  "dailyReflections": [...],
+  "pauseLogs": [...]
 }
 ```
 
@@ -282,87 +340,63 @@ CREATE TABLE settings (
 
 ### 5.1 删除清单(从现有工程中删除)
 
-| 文件/目录 | 原因 |
+| 路径 | 原因 |
 |---|---|
-| `di/` | 移除 Hilt |
-| `sync/` (WebDavSyncService, S3SyncService, BackupManager, SyncConfig*) | 不联网 |
-| `data/dao/AchievementDao.kt` | 移除成就系统 |
-| `data/dao/GoalDao.kt` | 移除目标系统 |
-| `data/dao/DailyReflectionDao.kt` | 移除复盘系统 |
-| `data/dao/PauseLogDao.kt` | 移除暂停日志 |
-| `data/dao/SyncConflictDao.kt` | 移除冲突解决 |
-| `data/dao/HelpEntryDao.kt` | 移除帮助系统 |
-| `data/dao/AffixDao.kt` | 移除词缀系统 |
-| `data/dao/ProfessionDao.kt` | 移除职业系统 |
-| `data/dao/TaskDao.kt` | 移除任务系统 |
-| `data/model/Achievement.kt` 及相关 | 同上 |
-| `data/model/Goal.kt` 及相关 | 同上 |
-| `data/model/DailyReflection.kt` 及相关 | 同上 |
-| `data/model/PauseLog.kt` 及相关 | 同上 |
-| `data/model/SyncConflict.kt` 及相关 | 同上 |
-| `data/model/HelpEntry.kt` 及相关 | 同上 |
-| `data/model/Affix.kt` 及相关 | 同上 |
-| `data/model/Profession.kt` 及相关 | 同上 |
-| `data/model/Task.kt` 及相关 | 同上 |
-| `data/model/AttributeType.kt`, `SkillCategory.kt` | 移除技能分类系统 |
-| `data/repository/SeedData.kt` | 重写为精简版 |
-| `logic/ExperienceEngine.kt` | 移除经验系统 |
-| `ui/achievement/`, `ui/goal/`, `ui/reflection/`, `ui/help/`, `ui/onboarding/`, `ui/skill/tree/`, `ui/celebration/`, `ui/report/` | 移除对应屏幕 |
-| `ui/skill/` | 重写为简化版 |
-| `ui/profession/` | 移除 |
-| `ui/review/` | 移除 |
-| `ui/panel/` | 重写为主页 |
-| `ui/navigation/SushiNavHost.kt` | 重写 |
-| `viewmodel/FocusViewModel.kt`, `SkillViewModel.kt`, `ProfessionViewModel.kt`, `ReviewViewModel.kt`, `PanelViewModel.kt` | 重写/删除 |
-| `viewmodel/SyncViewModel.kt` | 删除 |
-| `util/HapticFeedback.kt` | 保留 |
-| `AndroidManifest.xml` 中的网络权限 | 移除 |
+| `di/` 整目录 | 移除 Hilt,改用 SushiContainer |
+| `sync/` 整目录 | 不联网,移除所有同步逻辑 |
+| `ui/sync/SyncScreen.kt` | 无同步,删除 |
+| `ui/sync/SyncViewModel.kt` | 无同步,删除 |
+| `viewmodel/SyncViewModel.kt` | 无同步,删除 |
+| `sync/BackupManager.kt`(原云备份版) | 改写为本地 JSON 备份 |
+| 任何 OkHttp / Retrofit / WebDAV / S3 引用 | 不联网 |
+| WebDAV/S3 配置文件 | 不联网 |
+| 应用市场白噪音相关代码 | 剥离 |
+| `<uses-permission android:name="android.permission.INTERNET" />` | 不联网 |
+| `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />` | 不联网 |
+| `<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />` | 改用 SAF |
 
-**预计删除**: ~70% 现有代码
+**预计删除**: ~20% 现有代码(主要是同步相关)
 
-### 5.2 改造清单(从现有工程中重写)
+### 5.2 重写清单(换皮)
 
 | 文件 | 改造点 |
 |---|---|
-| `SushiApp.kt` | 简化为初始化 Container |
-| `MainActivity.kt` | 单 Activity,无 NavHost |
-| `SushiDatabase.kt` | 3 张表(V1,V2) |
-| `SushiRepository.kt` | 仅保留 TimeRecord + Category + Settings |
-| `data/db/Migrations.kt` | 单一起始版本 |
-| `ui/theme/Color.kt` | 宋式极简色板 |
-| `ui/theme/Type.kt` | 思源宋/黑/楷体 + Roboto Mono |
-| `ui/theme/Theme.kt` | 浅色/深色/跟随系统 |
+| `ui/theme/Color.kt` | Material 3 baseline + 中国静态色 |
+| `ui/theme/Theme.kt` | Material 3 浅/深色主题 |
+| `ui/theme/Type.kt` | 思源黑体/霞鹜文楷 + Roboto Mono |
+| `ui/theme/Shape.kt`(新增) | Material 3 圆角 |
+| `ui/components/*` | 全部用 Material 3 组件重写 |
+| `ui/navigation/SushiNavHost.kt` | 改用 NavigationBar 5 Tab |
+| `MainActivity.kt` | 集成 NavHost |
+| `SushiApp.kt` | 初始化 SushiContainer |
+| `ui/celebration/LevelUpCelebration.kt` | 改克制版(无粒子) |
 
-### 5.3 新建清单(从零新增)
+### 5.3 新建清单
 
 | 文件 | 用途 |
 |---|---|
 | `SushiContainer.kt` | 顶层单例容器 |
+| `ui/theme/Shape.kt` | Material 3 形状 |
+| `ui/settings/SettingsScreen.kt` | 独立的设置页(从原 SyncScreen 拆出) |
+| `ui/settings/SettingsViewModel.kt` | 设置 ViewModel |
 | `util/SolarTermCalculator.kt` | 24 节气计算 |
 | `util/LunarConverter.kt` | 农历转换 |
-| `util/BackupManager.kt` | 备份/恢复(本地文件) |
-| `util/TimeFormatter.kt` | 时长格式化("2时35分") |
 | `util/SolarTermQuotes.kt` | 48 句节气古语 |
 | `data/model/SolarTerm.kt` | 节气枚举 |
 | `data/model/LunarDate.kt` | 农历数据类 |
-| `ui/components/SushiButton.kt` | 主按钮(朱砂色) |
-| `ui/components/SushiDialog.kt` | 模态框 |
-| `ui/components/SushiHeatmap.kt` | 365 天热力图 |
-| `ui/components/SushiCharts.kt` | 精简图表(饼/柱) |
-| `ui/home/HomeScreen.kt` | 主页 |
-| `ui/home/HomeViewModel.kt` | 主页 ViewModel |
-| `ui/history/HistoryScreen.kt` | 历史页 |
-| `ui/history/HistoryViewModel.kt` | 历史 ViewModel |
-| `ui/stats/StatsScreen.kt` | 统计页 |
-| `ui/stats/StatsViewModel.kt` | 统计 ViewModel |
-| `ui/settings/SettingsScreen.kt` | 设置页 |
-| `ui/settings/SettingsViewModel.kt` | 设置 ViewModel |
-| `assets/fonts/` | 思源字体子集(3 个) |
-| `assets/icons/` | Lucide 图标 |
-| `res/values/strings.xml` | 中文文案 |
-| `res/values-zh-rTW/strings.xml` | 繁体(可选) |
+| `data/repository/BackupManager.kt`(新写) | 本地 JSON 备份/恢复 |
+| `assets/fonts/SourceHanSansSC-Regular.otf` | 思源黑体 |
+| `assets/fonts/SourceHanSerifSC-Bold.otf` | 思源宋体 |
+| `assets/fonts/LXGWWenKai-Regular.ttf` | 霞鹜文楷 |
+| `res/values/strings.xml` | 全部中文字串 |
 | `res/drawable/ic_launcher_*.xml` | 应用图标 |
-| `res/xml/backup_rules.xml` | 备份规则 |
+
+### 5.4 保留清单(无需改动)
+- 全部 11 个 DAO
+- 全部 data/model
+- 全部 logic/ExperienceEngine
+- 全部业务 ViewModel(改为手动注入)
+- 全部 ui/focus、ui/skill、ui/goal 等业务屏幕(仅换主题)
 
 ---
 
@@ -371,75 +405,78 @@ CREATE TABLE settings (
 ### 6.1 总览
 | 阶段 | 周次 | 主题 | 交付物 |
 |---|---|---|---|
-| **P1** | Week 1 | 工程瘦身 + 核心数据 | 可编译运行的精简工程 |
-| **P2** | Week 2 | UI 与交互 | 三 Tab 完整可点击 |
-| **P3** | Week 3 | 节气、农历、备份 | 功能完整 |
-| **P4** | Week 4 | 打磨、测试、发布 | APK 上架 |
+| **P1** | Week 1 | 减负 + 容器 + 主题骨架 | 编译通过,旧屏可显示 |
+| **P2** | Week 2 | 5 Tab 导航 + Material 3 换皮 | 5 Tab 全通,Material 风格 |
+| **P3** | Week 3 | 中国本土化(节气/农历) + 备份 | 完整功能 |
+| **P4** | Week 4 | 打磨 + 性能 + 发布 | APK 上架 |
 
 ### 6.2 里程碑
-- **M1** (Day 7): 工程瘦身完成,APK < 10MB,主页可显示
-- **M2** (Day 14): 记录/历史/统计三 Tab 全通
-- **M3** (Day 21): 节气、农历、备份恢复可用
+- **M1** (Day 7): 减负完成,SushiContainer 启动,主题换皮,APK 跑通
+- **M2** (Day 14): 5 Tab 全部 Material 3 化,所有屏幕可点击
+- **M3** (Day 21): 节气、农历、本地备份全部可用
 - **M4** (Day 28): 上架至少 3 个应用市场
 
 ---
 
-## 7. 任务清单(周维度)
+## 7. 任务清单(28 天)
 
-### Week 1: 工程瘦身 + 核心数据
+### Week 1: 减负 + 容器 + 主题骨架
 
 | Day | 任务 | 验收 |
 |---|---|---|
 | 1 | 备份当前工程为 `archive-31features/` | 备份完成 |
-| 1 | 新建精简 `app/build.gradle.kts` | 依赖只剩核心 |
-| 1 | 移除 `di/`, `sync/` | 编译通过 |
-| 2 | 重写 `SushiDatabase.kt`(3 张表) | Migration OK |
-| 2 | 重写 `SushiRepository.kt` | 暴露基础 CRUD |
-| 3 | 新建 `SushiContainer.kt` 单例 | 可在 Activity 中获取 |
-| 3 | 重写 `SushiApp.kt`, `MainActivity.kt` | App 可启动 |
-| 4 | 新建 `theme/Color.kt` 极简色板 | 主题切换 |
-| 4 | 新建 `theme/Type.kt` 字体 | 字体渲染正确 |
-| 5 | 新建 `theme/Theme.kt` 浅/深色 | 主题正常 |
-| 5 | 新建 `ui/components/SushiButton.kt` | 按钮样式 |
-| 6 | 新建 `data/model/Category.kt`,`TimeRecord.kt` | 编译通过 |
-| 6 | 新建 `util/TimeFormatter.kt` | 单元测试通过 |
-| 7 | 新建主页空壳 `HomeScreen.kt` | 显示"开始"按钮 |
-| 7 | 打包 APK,记录大小 | APK < 8MB ✅ |
+| 1 | 删除 `di/` `sync/` 目录 | 编译报错清单 |
+| 1 | 创建 `SushiContainer.kt` 顶层单例 | 容器可初始化 |
+| 2 | 重写 `SushiApp.kt`,初始化 Container | App 启动无 Crash |
+| 2 | 改写 `MainActivity.kt`,集成 NavHost | 单 Activity 跑通 |
+| 3 | 重写 `ui/theme/Color.kt`(中国静态色) | 调色板可调 |
+| 3 | 重写 `ui/theme/Type.kt`(中文字体) | 字体渲染 |
+| 4 | 重写 `ui/theme/Theme.kt`(Material 3 主题) | 浅/深色切换 |
+| 4 | 新建 `ui/theme/Shape.kt` | 圆角标准化 |
+| 5 | 集成 Material Symbols Rounded | 图标正常 |
+| 5 | 移除 Hilt 引用,改用 Container | 编译通过 |
+| 6 | 移除 OkHttp/Retrofit 引用 | 编译通过 |
+| 6 | 移除网络权限 | Manifest 干净 |
+| 7 | 全工程编译,记录 APK 大小 | APK < 12MB |
 
-### Week 2: 核心 UI
+### Week 2: 5 Tab 导航 + Material 3 换皮
 
 | Day | 任务 | 验收 |
 |---|---|---|
-| 8 | 主页:实现"开始-暂停-继续-结束"流 | 可记录一次完整会话 |
-| 9 | 主页:接 8 大域分类选择弹窗 | 选择后保存 |
-| 9 | 主页:当日累计显示 | 数据正确 |
-| 10 | 历史页:月历视图 | 月份可切换 |
-| 11 | 历史页:时间轴列表 | 当日记录显示 |
-| 11 | 历史页:点击记录可编辑/删除 | 编辑弹窗正常 |
-| 12 | 统计页:日饼图 | 8 色正确 |
-| 12 | 统计页:周柱图 | 与上周对比 |
-| 13 | 统计页:月饼图 | 含节气标注 |
-| 13 | 统计页:年热力图 | 365 天色块 |
-| 14 | 设置页:6 项基础 | 全部可点击 |
-| 14 | 全流程联通测试 | 3 Tab 切换流畅 |
+| 8 | 新建 `ui/navigation/SushiNavHost.kt` 5 Tab | Tab 可切换 |
+| 8 | 主页 `HomeScreen.kt` 改写为 Material 3 风格 | 主页美观 |
+| 9 | 技能页 `SkillScreen.kt` 改写 | Material 3 卡片 |
+| 9 | 技能详情页 `SkillDetailScreen.kt` 新建 | 点击进入 |
+| 10 | 目标页 `GoalScreen.kt` 改写 | 目标卡片 |
+| 10 | 报告页 `ReportScreen.kt` 改写(保留图表) | 4 段切换 |
+| 11 | 我的页 `SettingsScreen.kt` 新建 | 列表样式 |
+| 11 | 成就页、复盘页、任务页全部 Material 化 | 风格统一 |
+| 12 | FAB 改造(ExtendedFAB) | 浮动按钮正确 |
+| 12 | ModalBottomSheet 替换 AlertDialog | 所有弹窗为底部弹出 |
+| 13 | LevelUpCelebration 改克制版(数字翻牌) | 升级动画 |
+| 13 | 12 边角 / 字体 / 颜色 全局统查 | 视觉一致 |
+| 14 | 5 Tab 全流程联调 | 切换流畅,无报错 |
 
-### Week 3: 节气、农历、备份
+### Week 3: 中国本土化 + 备份
 
 | Day | 任务 | 验收 |
 |---|---|---|
 | 15 | `SolarTermCalculator.kt`(2025-2050 节气) | 单元测试通过 |
-| 15 | `LunarConverter.kt`(农历转换算法) | 单元测试通过 |
+| 15 | `LunarConverter.kt`(农历转换) | 单元测试通过 |
 | 16 | `SolarTermQuotes.kt`(48 句古语) | 数据录入 |
-| 16 | 主页显示节气 + 农历 | 显示正确 |
-| 17 | `BackupManager.kt`(JSON 导出) | 导出文件可读 |
-| 18 | `BackupManager.kt`(JSON 导入) | 导入后可恢复 |
-| 19 | 设置页接备份/恢复 | 流程通 |
-| 19 | 设置页接"清空全部" | 二次确认弹窗 |
-| 20 | 主题模式 3 选(浅/深/跟随) | 切换即时生效 |
-| 20 | 默认分类设置 | 下次记录默认选中 |
+| 16 | 主页 AppBar 显示节气 + 农历 | 显示正确 |
+| 17 | 8 大域职业色用中国传统色命名 | 视觉调整 |
+| 17 | 古语用霞鹜文楷渲染 | 字体显示 |
+| 18 | 新建 `data/repository/BackupManager.kt`(本地) | JSON 导出 |
+| 18 | 设置页接"导出/导入" | 文件对话框 |
+| 19 | 设置页接"清空全部"(二次确认) | 二次弹窗 |
+| 19 | 设置页接主题切换 | 即时生效 |
+| 20 | CSV 导出(MediaStore 保留) | 导出成功 |
+| 20 | 概念解释卡 + 帮助中心正常 | 文案显示 |
+| 21 | Onboarding 流程跑通 | 首次启动 |
 | 21 | 全功能回归测试 | 无 P0/P1 Bug |
 
-### Week 4: 打磨、测试、发布
+### Week 4: 打磨 + 性能 + 发布
 
 | Day | 任务 | 验收 |
 |---|---|---|
@@ -482,12 +519,7 @@ CREATE TABLE settings (
 - **系统**: MIUI/EMUI/OriginOS/ColorOS/HyperOS
 
 ### 8.4 隐私与权限
-**目标: 0 权限**
-- ❌ 不申请网络权限
-- ❌ 不申请存储权限(用 SAF)
-- ❌ 不申请通知权限
-- ❌ 不申请位置权限
-- ❌ 不申请任何其他权限
+**目标: 0 权限**(详见 §2.3)
 
 ---
 
@@ -506,11 +538,11 @@ CREATE TABLE settings (
 
 ### 9.2 应用市场资料
 - **应用名**: 素时
-- **副标题**: 离线时间账本
+- **副标题**: 离线技能成长记录器
 - **类别**: 效率 / 工具
-- **图标**: 宣纸白底 + 朱砂"素"字
-- **截图**: 5 张(主页/历史/统计/设置/关于)
-- **描述**: 见 8.5
+- **图标**: 宣纸白底 + 青墨"素"字
+- **截图**: 5 张(主页/技能/目标/报告/我的)
+- **描述**: 见文档 §8.1
 - **隐私政策**: 一句话(无网络无收集)
 - **开发者**: 个人实名
 
@@ -556,13 +588,14 @@ CREATE TABLE settings (
 - 任何 AI 功能
 - 任何统计/追踪
 - 任何形式的广告位
+- **白噪音/在线音频**(违背离线原则)
 
 ### 10.3 应急预案
 | 情况 | 应对 |
 |---|---|
 | Android 大版本不兼容 | 暂停应用,等待社区 PR |
-| 国产系统故意限制 | 在仓库说明,不强行适配 |
-| 用户量暴增(可能性低) | 无服务器,无压力 |
+| 国产系统杀后台 | 计时器用前台 Service(已实现) |
+| 用户量暴增 | 无服务器,无压力 |
 | 收到收购意向 | 礼貌拒绝(纯公益承诺) |
 
 ### 10.4 退出策略
@@ -573,6 +606,46 @@ CREATE TABLE settings (
 
 ---
 
+## 附录 A: V1.0 与原 31 项的对照
+
+| 原 31 项 | V1.0 决策 | 改造方式 |
+|---|---|---|
+| 1 Streak | ✅ 保留 | 换 Material 3 卡片 |
+| 2 跨日归属 | ✅ 保留 | 不动 |
+| 3 年度热力图 | ✅ 保留 | 改 GitHub 风格 |
+| 4 趋势曲线 | ✅ 保留 | 改 Material 3 配色 |
+| 5 技能分布饼图 | ✅ 保留 | 同上 |
+| 6 成就系统(14) | ✅ 保留 | 列表静默化 |
+| 7 周/月目标 | ✅ 保留 | 卡片化 |
+| 8 升级庆祝 | ✅ 保留(克制化) | 数字翻牌 |
+| 9 周/月报 | ✅ 保留 | 4 段切换 |
+| 10 每日复盘 | ✅ 保留 | FullScreenDialog |
+| 11 暂停次数 | ✅ 保留 | 主页显示 |
+| 12 暂停原因 | ✅ 保留 | ModalBottomSheet |
+| 13 活跃时段 | ✅ 保留 | 柱图 |
+| 14 标签 | ✅ 保留 | Chip 组件 |
+| 15 周期任务 | ✅ 保留 | 不动 |
+| 16 任务优先级 | ✅ 保留 | 不动 |
+| 17 任务模板 | ✅ 保留 | 不动 |
+| 18 预估时长 | ✅ 保留 | 不动 |
+| 19 技能树 | ✅ 保留 | 2D 节点图 |
+| 20 职业专属任务 | ✅ 保留 | 不动 |
+| 21 技能毕业 | ✅ 保留 | 不动 |
+| 22 每日一句 | ✅ 保留(改节气) | 古语库 |
+| 23 深色模式 | ✅ 保留 | Material 3 |
+| 24 全屏专注 | ✅ 保留 | 不动 |
+| **25 白噪音** | ❌ **剥离** | 删除 |
+| **26 同步冲突** | ❌ **剥离** | 删除 |
+| 27 数据导入(本地) | ✅ 保留 | JSON |
+| 28 Onboarding | ✅ 保留 | 流程跑通 |
+| 29 概念解释 | ✅ 保留 | 卡片化 |
+| 30 帮助中心 | ✅ 保留 | 列表化 |
+| 31 CSV 导出 | ✅ 保留 | MediaStore |
+
+**总账**: 31 项 → **29 项保留 + 2 项剥离** ✅
+
+---
+
 ## 附录 B: 风险登记
 
 | # | 风险 | 概率 | 影响 | 应对 |
@@ -580,25 +653,26 @@ CREATE TABLE settings (
 | 1 | 节气/农历算法不准 | 中 | 中 | 复用成熟开源算法 |
 | 2 | 国产系统杀后台 | 高 | 低 | 计时用前台 Service |
 | 3 | R8 误删反射 | 中 | 高 | 保留必要 keep 规则 |
-| 4 | 用户找不到时间入口 | 中 | 中 | 主按钮足够大,文案明确 |
+| 4 | 用户找不到时间入口 | 中 | 中 | FAB 足够大,文案明确 |
 | 5 | 数据丢失 | 低 | 高 | 鼓励用户定期备份 |
 | 6 | 应用市场审核不通过 | 中 | 中 | 不收费,无敏感内容 |
+| 7 | Material 3 主题换皮遗漏 | 高 | 低 | Week 2 统查 |
 
 ---
 
 ## 附录 C: 资源清单
 
 ### C.1 字体(开源)
-- 思源宋体(Source Han Serif) — SIL OFL
-- 思源黑体(Source Han Sans) — SIL OFL
-- 方正楷体 — 需找替代(如霞鹜文楷,SIL OFL)
+- 思源黑体(Source Han Sans SC) — SIL OFL
+- 思源宋体(Source Han Serif SC) — SIL OFL(备用)
+- 霞鹜文楷(LXGW WenKai) — SIL OFL
 - Roboto Mono — Apache 2.0
 
 ### C.2 图标
-- Lucide Icons — MIT
+- Material Symbols Rounded — Apache 2.0
 
 ### C.3 节气古语
-- 来自《二十四节气歌》及古人诗词,公共领域
+- 24 节气经典古诗词,公共领域
 
 ### C.4 农历算法
 - 寿星天文历 — 开源
@@ -606,4 +680,4 @@ CREATE TABLE settings (
 
 ---
 
-**文档结束。** 请审阅 `DOCUMENT.md` 和 `DEV_PLAN.md`,如确认无误,即可启动 V1.0 开发。
+**文档结束。** 请审阅 [DOCUMENT.md](file:///workspace/sushi/DOCUMENT.md) 和本文档,如确认无误,即可启动 V1.0 开发。
