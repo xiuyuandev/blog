@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class Task(
     @PrimaryKey val id: String,
     val name: String,
-    val linkedSkillIds: List<String>,
+    val linkedSkillId: String,  // 单技能绑定
     val createdAt: Long,
     val isCompleted: Boolean = false
 )

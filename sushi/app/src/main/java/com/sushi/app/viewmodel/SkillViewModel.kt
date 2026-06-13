@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.sushi.app.data.model.*
 import com.sushi.app.data.repository.SushiRepository
 import com.sushi.app.logic.ExperienceEngine
+import com.sushi.app.logic.SettlementResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -15,7 +16,9 @@ data class SkillUiState(
     val skills: List<SkillDisplay> = emptyList(),
     val allSkills: List<Skill> = emptyList(),
     val selectedSkill: SkillDetail? = null,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val showManualInject: Boolean = false,
+    val manualInjectResult: SettlementResult.Success? = null
 )
 
 data class SkillDisplay(
@@ -32,7 +35,8 @@ data class SkillDetail(
     val tierLabel: String,
     val professions: List<Profession>,
     val unlockedAffixes: List<Affix>,
-    val lockedAffixes: List<Affix>
+    val lockedAffixes: List<Affix>,
+    val historyRecords: List<TimeRecord> = emptyList()
 )
 
 @HiltViewModel
@@ -96,11 +100,14 @@ class SkillViewModel @Inject constructor(
             val unlocked = affixes.filter { level >= it.requiredSkillLevel }
             val locked = affixes.filter { level < it.requiredSkillLevel }
 
+            // 获取该技能的历史记录
+            val historyRecords = repository.getRecordsBySkillId(skillId).first()
+
             _uiState.update {
                 it.copy(
                     selectedSkill = SkillDetail(
                         skill, level, progress, tier.label,
-                        professions, unlocked, locked
+                        professions, unlocked, locked, historyRecords
                     )
                 )
             }
@@ -108,7 +115,7 @@ class SkillViewModel @Inject constructor(
     }
 
     fun clearSelectedSkill() {
-        _uiState.update { it.copy(selectedSkill = null) }
+        _uiState.update { it.copy(selectedSkill = null, showManualInject = false, manualInjectResult = null) }
     }
 
     fun addProfessionToSkill(skillId: String, professionId: String) {
@@ -129,5 +136,50 @@ class SkillViewModel @Inject constructor(
             )
             repository.updateSkill(updated)
         }
+    }
+
+    fun showManualInject() {
+        _uiState.update { it.copy(showManualInject = true) }
+    }
+
+    fun hideManualInject() {
+        _uiState.update { it.copy(showManualInject = false) }
+    }
+
+    fun manualInject(
+        skillId: String,
+        netDurationMin: Int,
+        startDateTime: Long,
+        endDateTime: Long,
+        description: String
+    ) {
+        viewModelScope.launch {
+            val result = experienceEngine.manualInject(
+                skillId = skillId,
+                netDurationMin = netDurationMin,
+                startDateTime = startDateTime,
+                endDateTime = endDateTime,
+                description = description
+            )
+            when (result) {
+                is SettlementResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            showManualInject = false,
+                            manualInjectResult = result
+                        )
+                    }
+                    // 刷新技能详情
+                    selectSkill(skillId)
+                }
+                is SettlementResult.Error -> {
+                    _uiState.update { it.copy(showManualInject = false) }
+                }
+            }
+        }
+    }
+
+    fun dismissManualInjectResult() {
+        _uiState.update { it.copy(manualInjectResult = null) }
     }
 }

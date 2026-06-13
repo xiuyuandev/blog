@@ -9,13 +9,16 @@ interface TimeRecordDao {
     @Query("SELECT * FROM TimeRecord ORDER BY timestamp DESC")
     fun getAllRecords(): Flow<List<TimeRecord>>
 
-    @Query("SELECT * FROM TimeRecord WHERE timestamp BETWEEN :startOfDay AND :endOfDay ORDER BY timestamp ASC")
+    @Query("SELECT * FROM TimeRecord WHERE startDateTime BETWEEN :startOfDay AND :endOfDay ORDER BY startDateTime ASC")
     fun getRecordsByDate(startOfDay: Long, endOfDay: Long): Flow<List<TimeRecord>>
+
+    @Query("SELECT * FROM TimeRecord WHERE skillId = :skillId ORDER BY timestamp DESC")
+    fun getRecordsBySkillId(skillId: String): Flow<List<TimeRecord>>
 
     @Query("SELECT * FROM TimeRecord WHERE taskId = :taskId ORDER BY timestamp DESC")
     fun getRecordsByTaskId(taskId: String): Flow<List<TimeRecord>>
 
-    @Query("SELECT SUM(netDurationMin) FROM TimeRecord WHERE timestamp BETWEEN :startTime AND :endTime")
+    @Query("SELECT SUM(netDurationMin) FROM TimeRecord WHERE startDateTime BETWEEN :startTime AND :endTime")
     suspend fun getTotalNetDuration(startTime: Long, endTime: Long): Int?
 
     @Query("SELECT SUM(netDurationMin) FROM TimeRecord")

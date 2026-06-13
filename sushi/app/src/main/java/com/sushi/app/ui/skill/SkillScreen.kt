@@ -1,8 +1,7 @@
 package com.sushi.app.ui.skill
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,24 +19,38 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Affix
 import com.sushi.app.data.model.Profession
 import com.sushi.app.data.model.SkillCategory
+import com.sushi.app.data.model.TimeRecord
+import com.sushi.app.logic.LevelUpEvent
+import com.sushi.app.logic.SettlementResult
 import com.sushi.app.ui.theme.AmberGold
 import com.sushi.app.ui.theme.BronzeCopper
+import com.sushi.app.ui.theme.Cinnabar
 import com.sushi.app.ui.theme.Ink
 import com.sushi.app.ui.theme.InkFaint
 import com.sushi.app.ui.theme.InkLight
@@ -48,6 +62,9 @@ import com.sushi.app.viewmodel.SkillDetail
 import com.sushi.app.viewmodel.SkillDisplay
 import com.sushi.app.viewmodel.SkillUiState
 import com.sushi.app.viewmodel.SkillViewModel
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun SkillScreen(
@@ -72,7 +89,8 @@ fun SkillScreen(
                             uiState.selectedSkill!!.skill.id,
                             professionId
                         )
-                    }
+                    },
+                    onManualInject = viewModel::showManualInject
                 )
             }
             else -> {
@@ -98,6 +116,31 @@ fun SkillScreen(
                 )
             }
         }
+    }
+
+    // 手动注入弹窗
+    if (uiState.showManualInject && uiState.selectedSkill != null) {
+        ManualInjectDialog(
+            skillName = uiState.selectedSkill!!.skill.name,
+            onConfirm = { minutes, startDt, endDt, desc ->
+                viewModel.manualInject(
+                    skillId = uiState.selectedSkill!!.skill.id,
+                    netDurationMin = minutes,
+                    startDateTime = startDt,
+                    endDateTime = endDt,
+                    description = desc
+                )
+            },
+            onDismiss = viewModel::hideManualInject
+        )
+    }
+
+    // 手动注入结果
+    uiState.manualInjectResult?.let { result ->
+        SettlementResultDialog(
+            result = result,
+            onDismiss = viewModel::dismissManualInjectResult
+        )
     }
 }
 
@@ -215,9 +258,7 @@ private fun SkillCard(
         ) {
             Text(
                 text = display.skill.name,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontFamily = FontFamily.SansSerif
-                ),
+                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.SansSerif),
                 color = Ink
             )
             Row(
@@ -226,9 +267,7 @@ private fun SkillCard(
             ) {
                 Text(
                     text = "${display.level}",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontFamily = FontFamily.Serif
-                    ),
+                    style = MaterialTheme.typography.headlineLarge.copy(fontFamily = FontFamily.Serif),
                     color = Ink
                 )
                 Text(
@@ -272,7 +311,8 @@ private fun SkillDetailContent(
     detail: SkillDetail,
     onBack: () -> Unit,
     onAddProfession: (String) -> Unit,
-    onRemoveProfession: (String) -> Unit
+    onRemoveProfession: (String) -> Unit,
+    onManualInject: () -> Unit
 ) {
     val tierColor = tierColorFor(detail.tierLabel)
 
@@ -282,7 +322,7 @@ private fun SkillDetailContent(
             .background(Paper)
             .verticalScroll(rememberScrollState())
     ) {
-        // Back button area
+        // 返回按钮
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -309,16 +349,14 @@ private fun SkillDetailContent(
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Level and tier
+            // 等级与材质
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
                     text = "${detail.level}",
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontFamily = FontFamily.Serif
-                    ),
+                    style = MaterialTheme.typography.displayLarge.copy(fontFamily = FontFamily.Serif),
                     color = Ink
                 )
                 Text(
@@ -329,16 +367,14 @@ private fun SkillDetailContent(
                 )
             }
 
-            // Skill name
+            // 技能名
             Text(
                 text = detail.skill.name,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontFamily = FontFamily.SansSerif
-                ),
+                style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.SansSerif),
                 color = Ink
             )
 
-            // Experience progress
+            // 经验进度条
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "经验值",
@@ -372,7 +408,19 @@ private fun SkillDetailContent(
                 }
             }
 
-            // Professions
+            // 手动注入按钮
+            OutlinedButton(
+                onClick = onManualInject,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "+ 手动注入时间",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Cinnabar
+                )
+            }
+
+            // 关联职业
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "关联职业",
@@ -390,7 +438,6 @@ private fun SkillDetailContent(
                             onRemove = { onRemoveProfession(profession.id) }
                         )
                     }
-                    // Add button
                     Box(
                         modifier = Modifier
                             .background(Linen)
@@ -405,7 +452,7 @@ private fun SkillDetailContent(
                 }
             }
 
-            // Affix tree
+            // 词条树
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "词条",
@@ -413,22 +460,12 @@ private fun SkillDetailContent(
                     color = InkLight
                 )
 
-                // Unlocked affixes
                 detail.unlockedAffixes.forEach { affix ->
-                    AffixItem(
-                        affix = affix,
-                        isUnlocked = true,
-                        tierColor = tierColor
-                    )
+                    AffixItem(affix = affix, isUnlocked = true, tierColor = tierColor)
                 }
 
-                // Locked affixes
                 detail.lockedAffixes.forEach { affix ->
-                    AffixItem(
-                        affix = affix,
-                        isUnlocked = false,
-                        tierColor = tierColor
-                    )
+                    AffixItem(affix = affix, isUnlocked = false, tierColor = tierColor)
                 }
 
                 if (detail.unlockedAffixes.isEmpty() && detail.lockedAffixes.isEmpty()) {
@@ -440,7 +477,73 @@ private fun SkillDetailContent(
                 }
             }
 
+            // 历史记录
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "历史记录",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = InkLight
+                )
+
+                if (detail.historyRecords.isEmpty()) {
+                    Text(
+                        text = "暂无记录",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = InkFaint
+                    )
+                } else {
+                    detail.historyRecords.forEach { record ->
+                        HistoryRecordItem(record = record)
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun HistoryRecordItem(record: TimeRecord) {
+    val dateFormat = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
+    val startText = dateFormat.format(record.startDateTime)
+    val endText = dateFormat.format(record.endDateTime)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Linen)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "${record.netDurationMin}分钟纯时间",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink
+            )
+            if (record.isManualEntry) {
+                Text(
+                    text = "手动",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Cinnabar
+                )
+            }
+        }
+        Text(
+            text = "$startText → $endText",
+            style = MaterialTheme.typography.bodySmall,
+            color = InkFaint
+        )
+        if (record.description.isNotBlank()) {
+            Text(
+                text = record.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = InkLight
+            )
         }
     }
 }
@@ -517,6 +620,283 @@ private fun AffixItem(
             )
         }
     }
+}
+
+/**
+ * 手动注入时间弹窗
+ */
+@Composable
+private fun ManualInjectDialog(
+    skillName: String,
+    onConfirm: (Int, Long, Long, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var minutes by remember { mutableIntStateOf(30) }
+    var description by remember { mutableStateOf("") }
+    var startDateTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    var endDateTime by remember { mutableStateOf(System.currentTimeMillis() + 30 * 60 * 1000L) }
+
+    val startCal = remember { Calendar.getInstance().apply { timeInMillis = startDateTime } }
+    val endCal = remember { Calendar.getInstance().apply { timeInMillis = endDateTime } }
+
+    val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "注入纯时间 → $skillName",
+                style = MaterialTheme.typography.headlineSmall,
+                color = Ink
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // 纯时间分钟数
+                Text(
+                    text = "纯时间（分钟）",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = InkLight
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { minutes = (minutes - 5).coerceAtLeast(1) }
+                    ) { Text("-5") }
+                    Text(
+                        text = "$minutes",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.Serif),
+                        color = Ink,
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    OutlinedButton(
+                        onClick = { minutes += 5 }
+                    ) { Text("+5") }
+                }
+
+                // 开始时间
+                Text(
+                    text = "开始时间",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = InkLight
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // 日期选择
+                    OutlinedButton(
+                        onClick = {
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, day ->
+                                    startCal.set(year, month, day)
+                                    startDateTime = startCal.timeInMillis
+                                    endDateTime = startDateTime + minutes * 60 * 1000L
+                                },
+                                startCal.get(Calendar.YEAR),
+                                startCal.get(Calendar.MONTH),
+                                startCal.get(Calendar.DAY_OF_MONTH)
+                            ).show()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(dateFormat.format(startDateTime), color = Ink)
+                    }
+                    // 时间选择
+                    OutlinedButton(
+                        onClick = {
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    startCal.set(Calendar.HOUR_OF_DAY, hour)
+                                    startCal.set(Calendar.MINUTE, minute)
+                                    startDateTime = startCal.timeInMillis
+                                    endDateTime = startDateTime + minutes * 60 * 1000L
+                                },
+                                startCal.get(Calendar.HOUR_OF_DAY),
+                                startCal.get(Calendar.MINUTE),
+                                true
+                            ).show()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(timeFormat.format(startDateTime), color = Ink)
+                    }
+                }
+
+                // 结束时间
+                Text(
+                    text = "结束时间",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = InkLight
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, day ->
+                                    endCal.set(year, month, day)
+                                    endDateTime = endCal.timeInMillis
+                                },
+                                endCal.get(Calendar.YEAR),
+                                endCal.get(Calendar.MONTH),
+                                endCal.get(Calendar.DAY_OF_MONTH)
+                            ).show()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(dateFormat.format(endDateTime), color = Ink)
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    endCal.set(Calendar.HOUR_OF_DAY, hour)
+                                    endCal.set(Calendar.MINUTE, minute)
+                                    endDateTime = endCal.timeInMillis
+                                },
+                                endCal.get(Calendar.HOUR_OF_DAY),
+                                endCal.get(Calendar.MINUTE),
+                                true
+                            ).show()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(timeFormat.format(endDateTime), color = Ink)
+                    }
+                }
+
+                // 做了什么
+                Text(
+                    text = "做了什么",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = InkLight
+                )
+                TextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    placeholder = { Text("记录你做了什么…", color = InkFaint) },
+                    singleLine = false,
+                    maxLines = 3,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Paper,
+                        unfocusedContainerColor = Paper,
+                        cursorColor = Ink,
+                        focusedIndicatorColor = Cinnabar,
+                        unfocusedIndicatorColor = InkFaint
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(minutes, startDateTime, endDateTime, description)
+                },
+                enabled = minutes > 0
+            ) {
+                Text(text = "确认注入", color = Cinnabar)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "取消", color = InkLight)
+            }
+        },
+        containerColor = Paper
+    )
+}
+
+@Composable
+private fun SettlementResultDialog(
+    result: SettlementResult.Success,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "时间已注入",
+                style = MaterialTheme.typography.headlineSmall,
+                color = Ink
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (result.levelUpEvents.isNotEmpty()) {
+                    result.levelUpEvents.forEach { event ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = event.skillName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Ink
+                            )
+                            Text(
+                                text = "LV ${event.oldLevel} → ${event.newLevel}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Cinnabar
+                            )
+                        }
+                    }
+                }
+
+                if (result.unlockedAffixes.isNotEmpty()) {
+                    Text(
+                        text = "解锁词条",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = InkLight
+                    )
+                    result.unlockedAffixes.forEach { affix ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(Cinnabar)
+                            )
+                            Text(
+                                text = affix.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Ink
+                            )
+                        }
+                    }
+                }
+
+                if (result.levelUpEvents.isEmpty() && result.unlockedAffixes.isEmpty()) {
+                    Text(
+                        text = "纯时间已记录",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = InkLight
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "好的", color = Cinnabar)
+            }
+        },
+        containerColor = Paper
+    )
 }
 
 private fun tierColorFor(tierLabel: String): Color = when (tierLabel) {

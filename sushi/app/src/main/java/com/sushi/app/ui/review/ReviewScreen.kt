@@ -40,7 +40,9 @@ import com.sushi.app.ui.theme.Linen
 import com.sushi.app.ui.theme.Paper
 import com.sushi.app.viewmodel.ReviewUiState
 import com.sushi.app.viewmodel.ReviewViewModel
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
 @Composable
 fun ReviewScreen(
@@ -261,12 +263,9 @@ private fun TimelineSection(
 
 @Composable
 private fun TimelineEntry(record: TimeRecord) {
-    val cal = remember(record.timestamp) {
-        Calendar.getInstance().apply { timeInMillis = record.timestamp }
-    }
-    val hour = cal.get(Calendar.HOUR_OF_DAY)
-    val minute = cal.get(Calendar.MINUTE)
-    val timeText = "%02d:%02d".format(hour, minute)
+    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val startText = timeFormat.format(record.startDateTime)
+    val endText = timeFormat.format(record.endDateTime)
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -295,7 +294,7 @@ private fun TimelineEntry(record: TimeRecord) {
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
-                text = timeText,
+                text = "$startText → $endText",
                 style = MaterialTheme.typography.labelLarge,
                 color = Ink
             )
@@ -304,11 +303,13 @@ private fun TimelineEntry(record: TimeRecord) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = Ink
             )
-            Text(
-                text = "原始 ${record.rawDurationMin}分钟",
-                style = MaterialTheme.typography.bodySmall,
-                color = InkFaint
-            )
+            if (record.description.isNotBlank()) {
+                Text(
+                    text = record.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = InkLight
+                )
+            }
         }
     }
 }

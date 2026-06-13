@@ -16,10 +16,14 @@ data class FocusUiState(
     val elapsedSeconds: Int = 0,
     val currentTaskId: String? = null,
     val currentTaskName: String? = null,
+    val currentSkillId: String? = null,
     val activeTasks: List<Task> = emptyList(),
+    val allSkills: List<Skill> = emptyList(),
     val showSettlement: Boolean = false,
     val rawDurationMin: Int = 0,
     val netDurationMin: Int = 0,
+    val description: String = "",
+    val startDateTime: Long = System.currentTimeMillis(),
     val settlementResult: SettlementResult.Success? = null,
     val isCreatingTask: Boolean = false
 )
@@ -39,16 +43,23 @@ class FocusViewModel @Inject constructor(
                 _uiState.update { it.copy(activeTasks = tasks) }
             }
         }
+        viewModelScope.launch {
+            repository.getAllSkills().collect { skills ->
+                _uiState.update { it.copy(allSkills = skills) }
+            }
+        }
     }
 
-    fun startFocus(taskId: String, taskName: String) {
+    fun startFocus(taskId: String, taskName: String, skillId: String) {
         _uiState.update {
             it.copy(
                 isFocusing = true,
                 currentTaskId = taskId,
                 currentTaskName = taskName,
+                currentSkillId = skillId,
                 elapsedSeconds = 0,
-                showSettlement = false
+                showSettlement = false,
+                startDateTime = System.currentTimeMillis()
             )
         }
     }
@@ -60,12 +71,14 @@ class FocusViewModel @Inject constructor(
     fun stopFocus() {
         val elapsed = _uiState.value.elapsedSeconds
         val rawMin = elapsed / 60
+        val now = System.currentTimeMillis()
         _uiState.update {
             it.copy(
                 isFocusing = false,
                 showSettlement = true,
                 rawDurationMin = rawMin,
-                netDurationMin = rawMin // 默认纯时间等于原始时间
+                netDurationMin = rawMin,
+                description = ""
             )
         }
     }
@@ -80,15 +93,27 @@ class FocusViewModel @Inject constructor(
         _uiState.update { it.copy(netDurationMin = minutes.coerceAtLeast(0)) }
     }
 
+    fun updateDescription(text: String) {
+        _uiState.update { it.copy(description = text) }
+    }
+
     fun confirmSettlement() {
         val state = _uiState.value
         val taskId = state.currentTaskId ?: return
+        val skillId = state.currentSkillId ?: return
+
+        val now = System.currentTimeMillis()
+        val startDt = state.startDateTime
+        val endDt = now
 
         viewModelScope.launch {
             val result = experienceEngine.settleTime(
                 taskId = taskId,
                 rawDurationMin = state.rawDurationMin,
-                netDurationMin = state.netDurationMin
+                netDurationMin = state.netDurationMin,
+                startDateTime = startDt,
+                endDateTime = endDt,
+                description = state.description.ifBlank { state.currentTaskName ?: "" }
             )
 
             when (result) {
@@ -101,7 +126,6 @@ class FocusViewModel @Inject constructor(
                     }
                 }
                 is SettlementResult.Error -> {
-                    // 处理错误
                     _uiState.update { it.copy(showSettlement = false) }
                 }
             }
@@ -114,7 +138,9 @@ class FocusViewModel @Inject constructor(
                 settlementResult = null,
                 currentTaskId = null,
                 currentTaskName = null,
-                elapsedSeconds = 0
+                currentSkillId = null,
+                elapsedSeconds = 0,
+                description = ""
             )
         }
     }
@@ -127,12 +153,12 @@ class FocusViewModel @Inject constructor(
         _uiState.update { it.copy(isCreatingTask = false) }
     }
 
-    fun createTask(name: String, linkedSkillIds: List<String>) {
+    fun createTask(name: String, linkedSkillId: String) {
         viewModelScope.launch {
             val task = Task(
                 id = java.util.UUID.randomUUID().toString(),
                 name = name,
-                linkedSkillIds = linkedSkillIds,
+                linkedSkillId = linkedSkillId,
                 createdAt = System.currentTimeMillis()
             )
             repository.insertTask(task)

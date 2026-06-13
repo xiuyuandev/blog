@@ -75,8 +75,10 @@ fun FocusScreen(
             SettlementDialog(
                 rawDurationMin = uiState.rawDurationMin,
                 netDurationMin = uiState.netDurationMin,
+                description = uiState.description,
                 onNetDurationChange = viewModel::setNetDuration,
                 onAdjustNetDuration = viewModel::adjustNetDuration,
+                onDescriptionChange = viewModel::updateDescription,
                 onConfirm = viewModel::confirmSettlement,
                 onCancel = viewModel::dismissSettlementResult
             )
@@ -92,8 +94,11 @@ fun FocusScreen(
         else -> {
             TaskSelectionContent(
                 activeTasks = uiState.activeTasks,
+                allSkills = uiState.allSkills,
                 isCreatingTask = uiState.isCreatingTask,
-                onSelectTask = viewModel::startFocus,
+                onSelectTask = { task, skillId ->
+                    viewModel.startFocus(task.id, task.name, skillId)
+                },
                 onShowCreateTask = viewModel::showCreateTask,
                 onHideCreateTask = viewModel::hideCreateTask,
                 onCreateTask = viewModel::createTask
@@ -105,11 +110,12 @@ fun FocusScreen(
 @Composable
 private fun TaskSelectionContent(
     activeTasks: List<Task>,
+    allSkills: List<Skill>,
     isCreatingTask: Boolean,
-    onSelectTask: (String, String) -> Unit,
+    onSelectTask: (Task, String) -> Unit,
     onShowCreateTask: () -> Unit,
     onHideCreateTask: () -> Unit,
-    onCreateTask: (String, List<String>) -> Unit
+    onCreateTask: (String, String) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -139,9 +145,11 @@ private fun TaskSelectionContent(
                 )
             } else {
                 activeTasks.forEach { task ->
+                    val skillName = allSkills.find { it.id == task.linkedSkillId }?.name ?: ""
                     TaskCard(
                         task = task,
-                        onClick = { onSelectTask(task.id, task.name) }
+                        skillName = skillName,
+                        onClick = { onSelectTask(task, task.linkedSkillId) }
                     )
                 }
             }
@@ -163,6 +171,7 @@ private fun TaskSelectionContent(
 
     if (isCreatingTask) {
         CreateTaskDialog(
+            allSkills = allSkills,
             onDismiss = onHideCreateTask,
             onCreate = onCreateTask
         )
@@ -172,6 +181,7 @@ private fun TaskSelectionContent(
 @Composable
 private fun TaskCard(
     task: Task,
+    skillName: String,
     onClick: () -> Unit
 ) {
     Column(
@@ -187,11 +197,11 @@ private fun TaskCard(
             style = MaterialTheme.typography.bodyLarge,
             color = Ink
         )
-        if (task.linkedSkillIds.isNotEmpty()) {
+        if (skillName.isNotBlank()) {
             Text(
-                text = task.linkedSkillIds.joinToString("  "),
+                text = skillName,
                 style = MaterialTheme.typography.bodySmall,
-                color = InkLight
+                color = Cinnabar
             )
         }
     }
@@ -199,10 +209,12 @@ private fun TaskCard(
 
 @Composable
 private fun CreateTaskDialog(
+    allSkills: List<Skill>,
     onDismiss: () -> Unit,
-    onCreate: (String, List<String>) -> Unit
+    onCreate: (String, String) -> Unit
 ) {
     var taskName by remember { mutableStateOf("") }
+    var selectedSkillId by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -218,12 +230,7 @@ private fun CreateTaskDialog(
                 TextField(
                     value = taskName,
                     onValueChange = { taskName = it },
-                    placeholder = {
-                        Text(
-                            text = "任务名称",
-                            color = InkFaint
-                        )
-                    },
+                    placeholder = { Text("任务名称", color = InkFaint) },
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Paper,
@@ -233,16 +240,51 @@ private fun CreateTaskDialog(
                         unfocusedIndicatorColor = InkFaint
                     )
                 )
+
+                Text(
+                    text = "绑定技能",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = InkLight
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    allSkills.forEach { skill ->
+                        val isSelected = selectedSkillId == skill.id
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(if (isSelected) Linen else Paper)
+                                .clickable { selectedSkillId = skill.id }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) Cinnabar else InkFaint)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = skill.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isSelected) Ink else InkLight
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (taskName.isNotBlank()) {
-                        onCreate(taskName.trim(), emptyList())
+                    if (taskName.isNotBlank() && selectedSkillId.isNotBlank()) {
+                        onCreate(taskName.trim(), selectedSkillId)
                     }
                 },
-                enabled = taskName.isNotBlank()
+                enabled = taskName.isNotBlank() && selectedSkillId.isNotBlank()
             ) {
                 Text(text = "创建", color = Cinnabar)
             }
@@ -339,8 +381,10 @@ private fun formatElapsedTime(totalSeconds: Int): String {
 private fun SettlementDialog(
     rawDurationMin: Int,
     netDurationMin: Int,
+    description: String,
     onNetDurationChange: (Int) -> Unit,
     onAdjustNetDuration: (Int) -> Unit,
+    onDescriptionChange: (String) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -398,9 +442,30 @@ private fun SettlementDialog(
                 }
 
                 Text(
-                    text = "$netDurationMin",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = Ink,
+                    text = "$netDurationMin 分钟",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Ink
+                )
+
+                // 描述输入
+                Text(
+                    text = "做了什么",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = InkLight
+                )
+                TextField(
+                    value = description,
+                    onValueChange = onDescriptionChange,
+                    placeholder = { Text("记录你做了什么…", color = InkFaint) },
+                    singleLine = false,
+                    maxLines = 3,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Paper,
+                        unfocusedContainerColor = Paper,
+                        cursorColor = Ink,
+                        focusedIndicatorColor = Cinnabar,
+                        unfocusedIndicatorColor = InkFaint
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }

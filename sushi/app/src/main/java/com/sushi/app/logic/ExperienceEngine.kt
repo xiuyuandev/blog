@@ -12,14 +12,11 @@ import javax.inject.Singleton
  * 等级算法：Level = totalExp / 120
  * 当前级进度：Progress = totalExp % 120
  *
- * 经验流转逻辑（4.3节）：
- * 1. 获取任务绑定的技能（1~2个）
- * 2. 若绑定1个技能：该技能 totalExp += netDurationMin
- *    若绑定2个技能：两个技能各自 totalExp += (netDurationMin / 2)（向下取整）
- * 3. 职业经验共振：技能经验增加后，遍历该技能的 linkedProfessionIds，
- *    每个关联职业的 totalExp += netDurationMin（100%等比注入，不平分）
- * 4. 属性面板计算：遍历所有技能，检查其当前等级是否满足任何 Affix 的 requiredSkillLevel。
- *    若满足，将该 Affix 的 bonusAttributes 累加到用户总面板属性中。
+ * 经验流转逻辑：
+ * 1. 任务绑定单个技能，纯时间全额注入该技能
+ * 2. 技能经验增加后，职业经验共振：遍历该技能的 linkedProfessionIds，
+ *    每个关联职业的 totalExp += netDurationMin（100%等比注入）
+ * 3. 属性面板计算：遍历所有技能，检查其当前等级是否满足任何 Affix 的 requiredSkillLevel
  */
 @Singleton
 class ExperienceEngine @Inject constructor(
@@ -29,19 +26,10 @@ class ExperienceEngine @Inject constructor(
         const val EXP_PER_LEVEL = 120
     }
 
-    /**
-     * 计算等级
-     */
     fun calculateLevel(totalExp: Int): Int = totalExp / EXP_PER_LEVEL
 
-    /**
-     * 计算当前级进度
-     */
     fun calculateProgress(totalExp: Int): Int = totalExp % EXP_PER_LEVEL
 
-    /**
-     * 视觉等级区间映射
-     */
     fun getVisualTier(level: Int): VisualTier {
         return when {
             level < 10 -> VisualTier.RAW_STONE
@@ -52,79 +40,122 @@ class ExperienceEngine @Inject constructor(
     }
 
     /**
-     * 核心经验流转：结算一次纯时间记录
-     *
-     * @param taskId 任务ID
-     * @param rawDurationMin 原始时长（分钟）
-     * @param netDurationMin 纯时间（分钟）
-     * @return SettlementResult 结算结果，包含升级信息、解锁词条等
+     * 通过任务结算纯时间
      */
-    suspend fun settleTime(taskId: String, rawDurationMin: Int, netDurationMin: Int): SettlementResult {
-        val task = repository.getTaskById(taskId) ?: return SettlementResult.Error("任务不存在")
+    suspend fun settleTime(
+        taskId: String,
+        rawDurationMin: Int,
+        netDurationMin: Int,
+        startDateTime: Long,
+        endDateTime: Long,
+        description: String
+    ): SettlementResult {
+        val task = repository.getTaskById(taskId)
+            ?: return SettlementResult.Error("任务不存在")
 
-        // 1. 获取任务绑定的技能
-        val linkedSkillIds = task.linkedSkillIds
-        if (linkedSkillIds.isEmpty()) {
-            return SettlementResult.Error("任务未绑定任何技能")
-        }
+        val skillId = task.linkedSkillId
+        val skill = repository.getSkillById(skillId)
+            ?: return SettlementResult.Error("关联技能不存在")
 
-        val skillExpGain = if (linkedSkillIds.size == 1) {
-            netDurationMin
-        } else {
-            netDurationMin / 2 // 一心二用，纯度下降
-        }
+        return injectExpToSkill(
+            skillId = skillId,
+            netDurationMin = netDurationMin,
+            taskId = taskId,
+            rawDurationMin = rawDurationMin,
+            startDateTime = startDateTime,
+            endDateTime = endDateTime,
+            description = description,
+            isManualEntry = false
+        )
+    }
+
+    /**
+     * 手动向技能注入时间
+     */
+    suspend fun manualInject(
+        skillId: String,
+        netDurationMin: Int,
+        startDateTime: Long,
+        endDateTime: Long,
+        description: String
+    ): SettlementResult {
+        val skill = repository.getSkillById(skillId)
+            ?: return SettlementResult.Error("技能不存在")
+
+        return injectExpToSkill(
+            skillId = skillId,
+            netDurationMin = netDurationMin,
+            taskId = null,
+            rawDurationMin = netDurationMin,
+            startDateTime = startDateTime,
+            endDateTime = endDateTime,
+            description = description,
+            isManualEntry = true
+        )
+    }
+
+    /**
+     * 核心经验注入逻辑
+     */
+    private suspend fun injectExpToSkill(
+        skillId: String,
+        netDurationMin: Int,
+        taskId: String?,
+        rawDurationMin: Int,
+        startDateTime: Long,
+        endDateTime: Long,
+        description: String,
+        isManualEntry: Boolean
+    ): SettlementResult {
+        val skill = repository.getSkillById(skillId) ?: return SettlementResult.Error("技能不存在")
+        val oldLevel = calculateLevel(skill.totalExp)
+        val newExp = skill.totalExp + netDurationMin
+        val newLevel = calculateLevel(newExp)
+
+        repository.updateSkillExp(skillId, newExp)
 
         val levelUpEvents = mutableListOf<LevelUpEvent>()
         val unlockedAffixes = mutableListOf<Affix>()
 
-        // 2. 技能经验分配
-        for (skillId in linkedSkillIds) {
-            val skill = repository.getSkillById(skillId) ?: continue
-            val oldLevel = calculateLevel(skill.totalExp)
-            val newExp = skill.totalExp + skillExpGain
-            val newLevel = calculateLevel(newExp)
-
-            repository.updateSkillExp(skillId, newExp)
-
-            // 检测升级
-            if (newLevel > oldLevel) {
-                levelUpEvents.add(
-                    LevelUpEvent(
-                        skillId = skillId,
-                        skillName = skill.name,
-                        oldLevel = oldLevel,
-                        newLevel = newLevel
-                    )
+        if (newLevel > oldLevel) {
+            levelUpEvents.add(
+                LevelUpEvent(
+                    skillId = skillId,
+                    skillName = skill.name,
+                    oldLevel = oldLevel,
+                    newLevel = newLevel
                 )
-
-                // 检查是否解锁新词条
-                val affixes = repository.getAffixesBySkillIds(listOf(skillId))
-                for (affix in affixes) {
-                    if (affix.requiredSkillLevel in (oldLevel + 1)..newLevel) {
-                        unlockedAffixes.add(affix)
-                    }
+            )
+            val affixes = repository.getAffixesBySkillIds(listOf(skillId))
+            for (affix in affixes) {
+                if (affix.requiredSkillLevel in (oldLevel + 1)..newLevel) {
+                    unlockedAffixes.add(affix)
                 }
-            }
-
-            // 3. 职业经验共振
-            for (professionId in skill.linkedProfessionIds) {
-                val profession = repository.getProfessionById(professionId) ?: continue
-                val newProfessionExp = profession.totalExp + netDurationMin // 100%等比注入
-                repository.updateProfessionExp(professionId, newProfessionExp)
             }
         }
 
-        // 4. 插入时间记录
+        // 职业经验共振
+        for (professionId in skill.linkedProfessionIds) {
+            val profession = repository.getProfessionById(professionId) ?: continue
+            val newProfessionExp = profession.totalExp + netDurationMin
+            repository.updateProfessionExp(professionId, newProfessionExp)
+        }
+
+        // 插入时间记录
         val record = TimeRecord(
             id = java.util.UUID.randomUUID().toString(),
+            skillId = skillId,
             taskId = taskId,
             rawDurationMin = rawDurationMin,
             netDurationMin = netDurationMin,
+            startDateTime = startDateTime,
+            endDateTime = endDateTime,
+            description = description,
+            isManualEntry = isManualEntry,
             timestamp = System.currentTimeMillis()
         )
         repository.insertTimeRecord(record)
 
-        // 5. 计算更新后的属性面板
         val attributes = recalculateAttributes()
 
         return SettlementResult.Success(
@@ -135,10 +166,6 @@ class ExperienceEngine @Inject constructor(
         )
     }
 
-    /**
-     * 重新计算用户属性面板
-     * 遍历所有技能，检查其当前等级是否满足任何 Affix 的 requiredSkillLevel
-     */
     suspend fun recalculateAttributes(): Map<AttributeType, Int> {
         val attributes = mutableMapOf<AttributeType, Int>(
             AttributeType.PHYSIQUE to 0,
@@ -148,8 +175,8 @@ class ExperienceEngine @Inject constructor(
             AttributeType.DOMINION to 0
         )
 
-        val allSkills = getAllSkillsSync()
-        val allAffixList = getAllAffixesSync()
+        val allSkills = repository.getAllSkills().first()
+        val allAffixList = repository.getAllAffixes().first()
 
         for (skill in allSkills) {
             val level = calculateLevel(skill.totalExp)
@@ -164,31 +191,19 @@ class ExperienceEngine @Inject constructor(
 
         return attributes
     }
-
-    private suspend fun getAllSkillsSync(): List<Skill> =
-        repository.getAllSkills().first()
-
-    private suspend fun getAllAffixesSync(): List<Affix> =
-        repository.getAllAffixes().first()
 }
 
-/**
- * 视觉等级区间
- */
 enum class VisualTier(
     val label: String,
     val colorHex: String,
     val glowHex: String?
 ) {
-    RAW_STONE("原石", "#757575", null),           // 1-9
-    BRONZE("青铜", "#B87333", null),               // 10-29
-    RED_GOLD("赤金", "#FFBF00", "#FFBF0040"),      // 30-99
-    OBSIDIAN("黑曜石", "#1A1A1A", "#00FF7F")       // 100+
+    RAW_STONE("原石", "#757575", null),
+    BRONZE("青铜", "#B87333", null),
+    RED_GOLD("赤金", "#FFBF00", "#FFBF0040"),
+    OBSIDIAN("黑曜石", "#1A1A1A", "#00FF7F")
 }
 
-/**
- * 结算结果
- */
 sealed class SettlementResult {
     data class Success(
         val timeRecord: TimeRecord,
@@ -200,9 +215,6 @@ sealed class SettlementResult {
     data class Error(val message: String) : SettlementResult()
 }
 
-/**
- * 升级事件
- */
 data class LevelUpEvent(
     val skillId: String,
     val skillName: String,

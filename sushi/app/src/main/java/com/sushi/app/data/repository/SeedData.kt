@@ -221,42 +221,42 @@ class SeedData @Inject constructor() {
         Task(
             id = "task_deep_reading",
             name = "深度阅读",
-            linkedSkillIds = listOf("skill_reading"),
+            linkedSkillId = "skill_reading",
             createdAt = System.currentTimeMillis(),
             isCompleted = false
         ),
         Task(
             id = "task_code_practice",
             name = "编程实践",
-            linkedSkillIds = listOf("skill_programming"),
+            linkedSkillId = "skill_programming",
             createdAt = System.currentTimeMillis(),
             isCompleted = false
         ),
         Task(
             id = "task_morning_meditation",
             name = "晨间冥想",
-            linkedSkillIds = listOf("skill_meditation"),
+            linkedSkillId = "skill_meditation",
             createdAt = System.currentTimeMillis(),
             isCompleted = false
         ),
         Task(
             id = "task_write_journal",
             name = "写日记",
-            linkedSkillIds = listOf("skill_writing"),
+            linkedSkillId = "skill_writing",
             createdAt = System.currentTimeMillis(),
             isCompleted = false
         ),
         Task(
             id = "task_workout",
             name = "健身训练",
-            linkedSkillIds = listOf("skill_exercise"),
+            linkedSkillId = "skill_exercise",
             createdAt = System.currentTimeMillis(),
             isCompleted = false
         ),
         Task(
-            id = "task_code_and_read",
-            name = "技术文档阅读+实践",
-            linkedSkillIds = listOf("skill_programming", "skill_reading"),
+            id = "task_language_study",
+            name = "外语学习",
+            linkedSkillId = "skill_language",
             createdAt = System.currentTimeMillis(),
             isCompleted = false
         )

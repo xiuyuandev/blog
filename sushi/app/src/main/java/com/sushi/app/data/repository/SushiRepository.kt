@@ -51,6 +51,8 @@ class SushiRepository @Inject constructor(
     fun getAllRecords(): Flow<List<TimeRecord>> = timeRecordDao.getAllRecords()
     fun getRecordsByDate(startOfDay: Long, endOfDay: Long): Flow<List<TimeRecord>> =
         timeRecordDao.getRecordsByDate(startOfDay, endOfDay)
+    fun getRecordsBySkillId(skillId: String): Flow<List<TimeRecord>> =
+        timeRecordDao.getRecordsBySkillId(skillId)
     fun getRecordsByTaskId(taskId: String): Flow<List<TimeRecord>> =
         timeRecordDao.getRecordsByTaskId(taskId)
     suspend fun getTotalNetDuration(startTime: Long, endTime: Long): Int =
