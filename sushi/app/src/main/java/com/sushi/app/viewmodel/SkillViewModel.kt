@@ -18,7 +18,11 @@ data class SkillUiState(
     val selectedSkill: SkillDetail? = null,
     val isLoading: Boolean = true,
     val showManualInject: Boolean = false,
-    val manualInjectResult: SettlementResult.Success? = null
+    val manualInjectResult: SettlementResult.Success? = null,
+    val isCreatingSkill: Boolean = false,
+    val showAddProfessionDialog: Boolean = false,
+    val availableProfessions: List<Profession> = emptyList(),
+    val categoryStats: Map<SkillCategory, Int> = emptyMap()
 )
 
 data class SkillDisplay(
@@ -62,12 +66,16 @@ class SkillViewModel @Inject constructor(
                     SkillDisplay(skill, level, progress, tier.label)
                 }
 
+                val categoryStats = skills.groupBy { it.category }
+                    .mapValues { (_, skillsInCategory) -> skillsInCategory.sumOf { it.totalExp } }
+
                 _uiState.update { state ->
                     val filtered = displays.filter { it.skill.category == state.selectedCategory }
                     state.copy(
                         allSkills = skills,
                         skills = filtered,
-                        isLoading = false
+                        isLoading = false,
+                        categoryStats = categoryStats
                     )
                 }
             }.collect()
@@ -118,6 +126,60 @@ class SkillViewModel @Inject constructor(
         _uiState.update { it.copy(selectedSkill = null, showManualInject = false, manualInjectResult = null) }
     }
 
+    // Fix #6: Delete skill
+    fun deleteSkill(skillId: String) {
+        viewModelScope.launch {
+            repository.deleteSkill(skillId)
+            _uiState.update { it.copy(selectedSkill = null) }
+        }
+    }
+
+    // Fix #9: Edit skill name
+    fun updateSkillName(skillId: String, name: String) {
+        viewModelScope.launch {
+            repository.updateSkillName(skillId, name)
+            // Refresh selected skill if it's the one being edited
+            if (_uiState.value.selectedSkill?.skill?.id == skillId) {
+                selectSkill(skillId)
+            }
+        }
+    }
+
+    // Fix #11: Create custom skill
+    fun showCreateSkill() {
+        _uiState.update { it.copy(isCreatingSkill = true) }
+    }
+
+    fun hideCreateSkill() {
+        _uiState.update { it.copy(isCreatingSkill = false) }
+    }
+
+    fun createSkill(name: String, category: SkillCategory) {
+        viewModelScope.launch {
+            val skill = Skill(
+                id = java.util.UUID.randomUUID().toString(),
+                name = name,
+                category = category
+            )
+            repository.insertSkill(skill)
+            _uiState.update { it.copy(isCreatingSkill = false) }
+        }
+    }
+
+    // Fix #23: Add profession to skill (interactive)
+    fun showAddProfessionDialog() {
+        viewModelScope.launch {
+            val professions = repository.getAllProfessions().first()
+            val currentIds = _uiState.value.selectedSkill?.professions?.map { it.id } ?: emptyList()
+            val available = professions.filter { it.id !in currentIds }
+            _uiState.update { it.copy(showAddProfessionDialog = true, availableProfessions = available) }
+        }
+    }
+
+    fun hideAddProfessionDialog() {
+        _uiState.update { it.copy(showAddProfessionDialog = false, availableProfessions = emptyList()) }
+    }
+
     fun addProfessionToSkill(skillId: String, professionId: String) {
         viewModelScope.launch {
             val skill = repository.getSkillById(skillId) ?: return@launch
@@ -125,6 +187,7 @@ class SkillViewModel @Inject constructor(
                 linkedProfessionIds = skill.linkedProfessionIds + professionId
             )
             repository.updateSkill(updated)
+            experienceEngine.recalculateProfessionExp(professionId)
         }
     }
 
@@ -135,6 +198,33 @@ class SkillViewModel @Inject constructor(
                 linkedProfessionIds = skill.linkedProfessionIds.filter { it != professionId }
             )
             repository.updateSkill(updated)
+            experienceEngine.recalculateProfessionExp(professionId)
+        }
+    }
+
+    fun addProfessionToSelectedSkill(professionId: String) {
+        val skillId = _uiState.value.selectedSkill?.skill?.id ?: return
+        viewModelScope.launch {
+            val skill = repository.getSkillById(skillId) ?: return@launch
+            val updated = skill.copy(
+                linkedProfessionIds = skill.linkedProfessionIds + professionId
+            )
+            repository.updateSkill(updated)
+            experienceEngine.recalculateProfessionExp(professionId)
+            selectSkill(skillId)
+            _uiState.update { it.copy(showAddProfessionDialog = false, availableProfessions = emptyList()) }
+        }
+    }
+
+    // Fix #13: Delete time record
+    fun deleteTimeRecord(recordId: String) {
+        viewModelScope.launch {
+            repository.deleteTimeRecord(recordId)
+            // Refresh selected skill if viewing
+            val skillId = _uiState.value.selectedSkill?.skill?.id
+            if (skillId != null) {
+                selectSkill(skillId)
+            }
         }
     }
 

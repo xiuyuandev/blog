@@ -27,7 +27,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -104,25 +110,26 @@ fun SkillScreen(
                 SkillDetailContent(
                     detail = uiState.selectedSkill!!,
                     onBack = viewModel::clearSelectedSkill,
-                    onAddProfession = { professionId ->
-                        viewModel.addProfessionToSkill(
-                            uiState.selectedSkill!!.skill.id,
-                            professionId
-                        )
-                    },
+                    onAddProfession = viewModel::showAddProfessionDialog,
                     onRemoveProfession = { professionId ->
                         viewModel.removeProfessionFromSkill(
                             uiState.selectedSkill!!.skill.id,
                             professionId
                         )
                     },
-                    onManualInject = viewModel::showManualInject
+                    onManualInject = viewModel::showManualInject,
+                    onDeleteSkill = { viewModel.deleteSkill(uiState.selectedSkill!!.skill.id) },
+                    onEditSkillName = { newName ->
+                        viewModel.updateSkillName(uiState.selectedSkill!!.skill.id, newName)
+                    },
+                    onDeleteTimeRecord = viewModel::deleteTimeRecord
                 )
             } else {
                 SkillListContent(
                     uiState = uiState,
                     onSelectCategory = viewModel::selectCategory,
-                    onSelectSkill = viewModel::selectSkill
+                    onSelectSkill = viewModel::selectSkill,
+                    onCreateSkill = viewModel::showCreateSkill
                 )
             }
         }
@@ -165,67 +172,115 @@ fun SkillScreen(
             onDismiss = viewModel::dismissManualInjectResult
         )
     }
+
+    // Fix #11: Create skill dialog
+    if (uiState.isCreatingSkill) {
+        CreateSkillDialog(
+            onConfirm = { name, category ->
+                viewModel.createSkill(name, category)
+            },
+            onDismiss = viewModel::hideCreateSkill
+        )
+    }
+
+    // Fix #23: Add profession dialog
+    if (uiState.showAddProfessionDialog) {
+        AddProfessionDialog(
+            availableProfessions = uiState.availableProfessions,
+            onSelect = { professionId ->
+                viewModel.addProfessionToSelectedSkill(professionId)
+            },
+            onDismiss = viewModel::hideAddProfessionDialog
+        )
+    }
 }
 
 @Composable
 private fun SkillListContent(
     uiState: SkillUiState,
     onSelectCategory: (SkillCategory) -> Unit,
-    onSelectSkill: (String) -> Unit
+    onSelectSkill: (String) -> Unit,
+    onCreateSkill: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Paper)
-    ) {
-        CategoryTabs(
-            selectedCategory = uiState.selectedCategory,
-            onSelectCategory = onSelectCategory
-        )
-
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
+                .background(Paper)
         ) {
-            if (uiState.skills.isEmpty() && !uiState.isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 64.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+            CategoryTabs(
+                selectedCategory = uiState.selectedCategory,
+                onSelectCategory = onSelectCategory
+            )
+
+            // Fix #16: Category stats bar
+            CategoryStatsBar(
+                selectedCategory = uiState.selectedCategory,
+                categoryStats = uiState.categoryStats
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
+                verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
+            ) {
+                if (uiState.skills.isEmpty() && !uiState.isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 64.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "◎",
-                            style = MaterialTheme.typography.displaySmall,
-                            color = InkFaintest
-                        )
-                        Text(
-                            text = "暂无技能",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = InkFaint
-                        )
-                        Text(
-                            text = "在当前分类下还没有技能",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = InkFaintest
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+                        ) {
+                            Text(
+                                text = "◎",
+                                style = MaterialTheme.typography.displaySmall,
+                                color = InkFaintest
+                            )
+                            Text(
+                                text = "暂无技能",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = InkFaint
+                            )
+                            Text(
+                                text = "在当前分类下还没有技能",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = InkFaintest
+                            )
+                        }
+                    }
+                } else {
+                    uiState.skills.forEach { display ->
+                        SkillCard(
+                            display = display,
+                            onClick = { onSelectSkill(display.skill.id) }
                         )
                     }
                 }
-            } else {
-                uiState.skills.forEach { display ->
-                    SkillCard(
-                        display = display,
-                        onClick = { onSelectSkill(display.skill.id) }
-                    )
-                }
             }
+        }
+
+        // Fix #11: FAB for creating skill
+        FloatingActionButton(
+            onClick = onCreateSkill,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = SushiSpacing.xl, bottom = SushiSpacing.xl),
+            containerColor = Cinnabar,
+            contentColor = Paper,
+            shape = CircleShape
+        ) {
+            Text(
+                text = "+",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
         }
     }
 }
@@ -287,6 +342,47 @@ private fun CategoryTabs(
                         .background(animatedIndicatorColor)
                 )
             }
+        }
+    }
+}
+
+// Fix #16: Category stats bar
+@Composable
+private fun CategoryStatsBar(
+    selectedCategory: SkillCategory,
+    categoryStats: Map<SkillCategory, Int>
+) {
+    val totalExp = categoryStats[selectedCategory] ?: 0
+    val categoryLabel = when (selectedCategory) {
+        SkillCategory.COGNITION -> "认知"
+        SkillCategory.CREATION -> "造物"
+        SkillCategory.FUNCTION -> "功能"
+        SkillCategory.STRATEGY -> "策略"
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(PaperWarm)
+            .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.sm)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "${categoryLabel}总经验",
+                style = MaterialTheme.typography.labelMedium,
+                color = InkLight
+            )
+            Text(
+                text = "$totalExp Exp",
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = Ink
+            )
         }
     }
 }
@@ -385,11 +481,23 @@ private fun SkillCard(
 private fun SkillDetailContent(
     detail: SkillDetail,
     onBack: () -> Unit,
-    onAddProfession: (String) -> Unit,
+    onAddProfession: () -> Unit,
     onRemoveProfession: (String) -> Unit,
-    onManualInject: () -> Unit
+    onManualInject: () -> Unit,
+    onDeleteSkill: () -> Unit,
+    onEditSkillName: (String) -> Unit,
+    onDeleteTimeRecord: (String) -> Unit
 ) {
     val tierColor = tierColorFor(detail.tierLabel)
+
+    // Fix #6: Delete skill confirmation dialog state
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    // Fix #9: Edit skill name dialog state
+    var showEditNameDialog by remember { mutableStateOf(false) }
+
+    // Fix #13: Delete time record confirmation dialog state
+    var recordToDelete by remember { mutableStateOf<TimeRecord?>(null) }
 
     Column(
         modifier = Modifier
@@ -463,10 +571,12 @@ private fun SkillDetailContent(
                 }
             }
 
+            // Fix #9: Skill name is tappable to edit
             Text(
                 text = detail.skill.name,
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.SansSerif),
-                color = Ink
+                color = Ink,
+                modifier = Modifier.clickable { showEditNameDialog = true }
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -553,12 +663,13 @@ private fun SkillDetailContent(
                             onRemove = { onRemoveProfession(profession.id) }
                         )
                     }
+                    // Fix #23: "+" button calls showAddProfessionDialog
                     Box(
                         modifier = Modifier
                             .clip(PillShape)
                             .shadow(0.5.dp, PillShape)
                             .background(Linen)
-                            .clickable { onAddProfession("") }
+                            .clickable { onAddProfession() }
                             .padding(horizontal = 14.dp, vertical = 6.dp)
                     ) {
                         Text(
@@ -661,18 +772,190 @@ private fun SkillDetailContent(
                     }
                 } else {
                     detail.historyRecords.forEach { record ->
-                        HistoryRecordItem(record = record)
+                        // Fix #13: HistoryRecordItem with delete button
+                        HistoryRecordItem(
+                            record = record,
+                            onDelete = { recordToDelete = record }
+                        )
                     }
                 }
+            }
+
+            // Fix #6: Delete skill button
+            Button(
+                onClick = { showDeleteConfirm = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFD32F2F),
+                    contentColor = Color.White
+                ),
+                shape = CardShape
+            ) {
+                Text(
+                    text = "删除技能",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
             }
 
             Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
         }
     }
+
+    // Fix #6: Delete skill confirmation dialog
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            shape = DialogShape,
+            title = {
+                Text(
+                    text = "确认删除",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Ink
+                )
+            },
+            text = {
+                Text(
+                    text = "确定要删除技能「${detail.skill.name}」吗？此操作不可撤销。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = InkLight
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDeleteSkill()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD32F2F),
+                        contentColor = Color.White
+                    ),
+                    shape = CardShape
+                ) {
+                    Text(text = "删除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(text = "取消", color = InkLight)
+                }
+            },
+            containerColor = Paper
+        )
+    }
+
+    // Fix #9: Edit skill name dialog
+    if (showEditNameDialog) {
+        var editName by remember { mutableStateOf(detail.skill.name) }
+
+        AlertDialog(
+            onDismissRequest = { showEditNameDialog = false },
+            shape = DialogShape,
+            title = {
+                Text(
+                    text = "编辑技能名称",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Ink
+                )
+            },
+            text = {
+                TextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    singleLine = true,
+                    shape = CardShapeSmall,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Paper,
+                        unfocusedContainerColor = Paper,
+                        cursorColor = Ink,
+                        focusedIndicatorColor = Cinnabar,
+                        unfocusedIndicatorColor = InkFaint
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (editName.isNotBlank()) {
+                            onEditSkillName(editName.trim())
+                        }
+                        showEditNameDialog = false
+                    },
+                    enabled = editName.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Cinnabar,
+                        contentColor = Paper,
+                        disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
+                        disabledContentColor = Paper.copy(alpha = 0.5f)
+                    ),
+                    shape = CardShape
+                ) {
+                    Text(text = "确认")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditNameDialog = false }) {
+                    Text(text = "取消", color = InkLight)
+                }
+            },
+            containerColor = Paper
+        )
+    }
+
+    // Fix #13: Delete time record confirmation dialog
+    recordToDelete?.let { record ->
+        AlertDialog(
+            onDismissRequest = { recordToDelete = null },
+            shape = DialogShape,
+            title = {
+                Text(
+                    text = "确认删除",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Ink
+                )
+            },
+            text = {
+                Text(
+                    text = "确定要删除这条 ${record.netDurationMin} 分钟的时间记录吗？此操作不可撤销。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = InkLight
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteTimeRecord(record.id)
+                        recordToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFD32F2F),
+                        contentColor = Color.White
+                    ),
+                    shape = CardShape
+                ) {
+                    Text(text = "删除")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { recordToDelete = null }) {
+                    Text(text = "取消", color = InkLight)
+                }
+            },
+            containerColor = Paper
+        )
+    }
 }
 
 @Composable
-private fun HistoryRecordItem(record: TimeRecord) {
+private fun HistoryRecordItem(
+    record: TimeRecord,
+    onDelete: () -> Unit
+) {
     val dateFormat = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
 
     Column(
@@ -695,19 +978,34 @@ private fun HistoryRecordItem(record: TimeRecord) {
                 ),
                 color = Ink
             )
-            if (record.isManualEntry) {
-                Box(
-                    modifier = Modifier
-                        .clip(PillShape)
-                        .background(Cinnabar.copy(alpha = 0.1f))
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "手动",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Cinnabar
-                    )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+            ) {
+                if (record.isManualEntry) {
+                    Box(
+                        modifier = Modifier
+                            .clip(PillShape)
+                            .background(Cinnabar.copy(alpha = 0.1f))
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "手动",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Cinnabar
+                        )
+                    }
                 }
+                // Fix #13: Delete icon button
+                Text(
+                    text = "✕",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFFD32F2F),
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .clickable(onClick = onDelete)
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                )
             }
         }
         Text(
@@ -816,6 +1114,207 @@ private fun AffixItem(
             }
         }
     }
+}
+
+// Fix #11: Create skill dialog
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateSkillDialog(
+    onConfirm: (String, SkillCategory) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    val categories = listOf(
+        SkillCategory.COGNITION to "认知",
+        SkillCategory.CREATION to "造物",
+        SkillCategory.FUNCTION to "功能",
+        SkillCategory.STRATEGY to "策略"
+    )
+    var selectedCategoryIndex by remember { mutableIntStateOf(0) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = DialogShape,
+        title = {
+            Text(
+                text = "创建新技能",
+                style = MaterialTheme.typography.headlineSmall,
+                color = Ink
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)) {
+                Text(
+                    text = "技能名称",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = InkLight
+                )
+                TextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = { Text("输入技能名称…", color = InkFaint) },
+                    singleLine = true,
+                    shape = CardShapeSmall,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Paper,
+                        unfocusedContainerColor = Paper,
+                        cursorColor = Ink,
+                        focusedIndicatorColor = Cinnabar,
+                        unfocusedIndicatorColor = InkFaint
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "分类",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = InkLight
+                )
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    TextField(
+                        value = categories[selectedCategoryIndex].second,
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        shape = CardShapeSmall,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Paper,
+                            unfocusedContainerColor = Paper,
+                            focusedIndicatorColor = Cinnabar,
+                            unfocusedIndicatorColor = InkFaint
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        categories.forEachIndexed { index, (_, label) ->
+                            DropdownMenuItem(
+                                text = { Text(text = label, color = Ink) },
+                                onClick = {
+                                    selectedCategoryIndex = index
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(name.trim(), categories[selectedCategoryIndex].first)
+                    }
+                },
+                enabled = name.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Cinnabar,
+                    contentColor = Paper,
+                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
+                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                ),
+                shape = CardShape
+            ) {
+                Text(
+                    text = "创建",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "取消", color = InkLight)
+            }
+        },
+        containerColor = Paper
+    )
+}
+
+// Fix #23: Add profession dialog
+@Composable
+private fun AddProfessionDialog(
+    availableProfessions: List<Profession>,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = DialogShape,
+        title = {
+            Text(
+                text = "添加关联职业",
+                style = MaterialTheme.typography.headlineSmall,
+                color = Ink
+            )
+        },
+        text = {
+            if (availableProfessions.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = SushiSpacing.lg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "◎",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = InkFaintest
+                        )
+                        Text(
+                            text = "没有可添加的职业",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InkFaint
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+                ) {
+                    availableProfessions.forEach { profession ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(CardShapeSmall)
+                                .background(Linen)
+                                .clickable { onSelect(profession.id) }
+                                .padding(horizontal = SushiSpacing.md, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = profession.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Ink
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "取消", color = InkLight)
+            }
+        },
+        containerColor = Paper
+    )
 }
 
 @Composable

@@ -19,8 +19,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -79,7 +83,9 @@ fun ProfessionScreen(
             if (hasDetail && uiState.selectedProfession != null) {
                 ProfessionDetailContent(
                     detail = uiState.selectedProfession!!,
-                    onBack = viewModel::clearSelectedProfession
+                    onBack = viewModel::clearSelectedProfession,
+                    onDeleteProfession = { viewModel.deleteProfession(it) },
+                    onUpdateProfessionName = { id, name -> viewModel.updateProfessionName(id, name) }
                 )
             } else {
                 ProfessionListContent(
@@ -285,9 +291,13 @@ private fun ProfessionCard(
 @Composable
 private fun ProfessionDetailContent(
     detail: ProfessionDetail,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onDeleteProfession: (String) -> Unit,
+    onUpdateProfessionName: (String, String) -> Unit
 ) {
     val tierColor = tierColorFor(detail.tierLabel)
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showEditName by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -360,13 +370,17 @@ private fun ProfessionDetailContent(
                 }
             }
 
-            // Profession name
+            // Profession name — tappable to edit
             Text(
                 text = detail.profession.name,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontFamily = FontFamily.SansSerif
                 ),
-                color = Ink
+                color = Ink,
+                modifier = Modifier
+                    .clip(CardShapeSmall)
+                    .clickable { showEditName = true }
+                    .padding(vertical = 2.dp)
             )
 
             Divider(
@@ -459,9 +473,244 @@ private fun ProfessionDetailContent(
                 }
             }
 
+            Divider(
+                color = InkFaintest,
+                thickness = 1.dp
+            )
+
+            // Affixes section
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+                Text(
+                    text = "词条",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = InkLight
+                )
+
+                if (detail.unlockedAffixes.isEmpty() && detail.lockedAffixes.isEmpty()) {
+                    Text(
+                        text = "暂无词条",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = InkFaint
+                    )
+                } else {
+                    detail.unlockedAffixes.forEach { affix ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(1.dp, CardShapeSmall)
+                                .clip(CardShapeSmall)
+                                .background(Linen)
+                                .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "已解锁",
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = affix.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Ink
+                                )
+                                if (affix.description.isNotBlank()) {
+                                    Text(
+                                        text = affix.description,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = InkLight
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    detail.lockedAffixes.forEach { affix ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(1.dp, CardShapeSmall)
+                                .clip(CardShapeSmall)
+                                .background(PaperWarm)
+                                .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "未解锁",
+                                tint = InkFaint,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = affix.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = InkFaint
+                                )
+                                Text(
+                                    text = "需要技能等级 ${affix.requiredSkillLevel}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = InkFaint
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Delete profession button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(CardShapeSmall)
+                    .background(Color(0xFFFFEBEE))
+                    .clickable { showDeleteConfirm = true }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "删除职业",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = Color(0xFFD32F2F)
+                )
+            }
+
             Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
         }
     }
+
+    // Delete confirmation dialog
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            shape = DialogShape,
+            title = {
+                Text(
+                    text = "删除职业",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontFamily = FontFamily.Serif
+                    ),
+                    color = Ink
+                )
+            },
+            text = {
+                Text(
+                    text = "确定要删除「${detail.profession.name}」吗？此操作不可撤销。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = InkLight
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDeleteProfession(detail.profession.id)
+                    }
+                ) {
+                    Text(
+                        text = "删除",
+                        color = Color(0xFFD32F2F)
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(
+                        text = "取消",
+                        color = InkLight
+                    )
+                }
+            },
+            containerColor = Paper
+        )
+    }
+
+    // Edit name dialog
+    if (showEditName) {
+        EditProfessionNameDialog(
+            currentName = detail.profession.name,
+            onConfirm = { newName ->
+                showEditName = false
+                onUpdateProfessionName(detail.profession.id, newName)
+            },
+            onDismiss = { showEditName = false }
+        )
+    }
+}
+
+@Composable
+private fun EditProfessionNameDialog(
+    currentName: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(currentName) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = DialogShape,
+        title = {
+            Text(
+                text = "编辑职业名称",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontFamily = FontFamily.Serif
+                ),
+                color = Ink
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = {
+                    Text(
+                        text = "职业名称",
+                        color = InkFaint
+                    )
+                },
+                singleLine = true,
+                shape = CardShapeSmall,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Cinnabar,
+                    unfocusedBorderColor = InkLight,
+                    focusedTextColor = Ink,
+                    unfocusedTextColor = Ink,
+                    cursorColor = Cinnabar,
+                    focusedContainerColor = PaperWarm,
+                    unfocusedContainerColor = PaperWarm
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onConfirm(name.trim())
+                    }
+                }
+            ) {
+                Text(
+                    text = "确认",
+                    color = Cinnabar
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "取消",
+                    color = InkLight
+                )
+            }
+        },
+        containerColor = Paper
+    )
 }
 
 @Composable

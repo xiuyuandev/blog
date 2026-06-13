@@ -30,7 +30,9 @@ data class ProfessionDetail(
     val progress: Int,
     val tierLabel: String,
     val totalPureTimeMin: Int,
-    val coreSkills: List<SkillWithProgress>
+    val coreSkills: List<SkillWithProgress>,
+    val unlockedAffixes: List<Affix> = emptyList(),
+    val lockedAffixes: List<Affix> = emptyList()
 )
 
 data class SkillWithProgress(
@@ -85,11 +87,25 @@ class ProfessionViewModel @Inject constructor(
                     SkillWithProgress(skill, sLevel, sProgress)
                 }
 
+            // Get affixes for all core skills
+            val allAffixes = repository.getAllAffixes().first()
+            val coreSkillIds = coreSkills.map { it.skill.id }.toSet()
+            val relevantAffixes = allAffixes.filter { it.requiredSkillId in coreSkillIds }
+            val unlockedAffixes = relevantAffixes.filter { affix ->
+                val skill = coreSkills.find { it.skill.id == affix.requiredSkillId }
+                skill != null && skill.level >= affix.requiredSkillLevel
+            }
+            val lockedAffixes = relevantAffixes.filter { affix ->
+                val skill = coreSkills.find { it.skill.id == affix.requiredSkillId }
+                skill == null || skill.level < affix.requiredSkillLevel
+            }
+
             _uiState.update {
                 it.copy(
                     selectedProfession = ProfessionDetail(
                         profession, level, progress, tier.label,
-                        profession.totalExp, coreSkills
+                        profession.totalExp, coreSkills,
+                        unlockedAffixes, lockedAffixes
                     )
                 )
             }
@@ -116,6 +132,23 @@ class ProfessionViewModel @Inject constructor(
             )
             repository.insertProfession(profession)
             _uiState.update { it.copy(isCreating = false) }
+        }
+    }
+
+    fun deleteProfession(professionId: String) {
+        viewModelScope.launch {
+            repository.deleteProfession(professionId)
+            _uiState.update { it.copy(selectedProfession = null) }
+        }
+    }
+
+    fun updateProfessionName(professionId: String, name: String) {
+        viewModelScope.launch {
+            repository.updateProfessionName(professionId, name)
+            // Refresh selected profession if it's the one being edited
+            if (_uiState.value.selectedProfession?.profession?.id == professionId) {
+                selectProfession(professionId)
+            }
         }
     }
 }

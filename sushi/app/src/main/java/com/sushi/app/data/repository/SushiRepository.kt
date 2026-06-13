@@ -16,6 +16,7 @@ class SushiRepository @Inject constructor(
 ) {
     // Skills
     fun getAllSkills(): Flow<List<Skill>> = skillDao.getAllSkills()
+    suspend fun getAllSkillsSync(): List<Skill> = skillDao.getAllSkillsSync()
     fun getSkillsByCategory(category: SkillCategory): Flow<List<Skill>> =
         skillDao.getSkillsByCategory(category.name)
     suspend fun getSkillById(id: String): Skill? = skillDao.getSkillById(id)
@@ -28,6 +29,7 @@ class SushiRepository @Inject constructor(
 
     // Professions
     fun getAllProfessions(): Flow<List<Profession>> = professionDao.getAllProfessions()
+    suspend fun getAllProfessionsSync(): List<Profession> = professionDao.getAllProfessionsSync()
     suspend fun getProfessionById(id: String): Profession? = professionDao.getProfessionById(id)
     suspend fun insertProfession(profession: Profession) = professionDao.insert(profession)
     suspend fun insertProfessions(professions: List<Profession>) = professionDao.insertAll(professions)
@@ -35,6 +37,7 @@ class SushiRepository @Inject constructor(
 
     // Affixes
     fun getAllAffixes(): Flow<List<Affix>> = affixDao.getAllAffixes()
+    suspend fun getAllAffixesSync(): List<Affix> = affixDao.getAllAffixesSync()
     fun getAffixesBySkillId(skillId: String): Flow<List<Affix>> = affixDao.getAffixesBySkillId(skillId)
     suspend fun getAffixesBySkillIds(skillIds: List<String>): List<Affix> =
         if (skillIds.isEmpty()) emptyList() else affixDao.getAffixesBySkillIds(skillIds)
@@ -43,12 +46,15 @@ class SushiRepository @Inject constructor(
     // Tasks
     fun getActiveTasks(): Flow<List<Task>> = taskDao.getActiveTasks()
     fun getAllTasks(): Flow<List<Task>> = taskDao.getAllTasks()
+    suspend fun getAllTasksSync(): List<Task> = taskDao.getAllTasksSync()
     suspend fun getTaskById(id: String): Task? = taskDao.getTaskById(id)
     suspend fun insertTask(task: Task) = taskDao.insert(task)
+    suspend fun insertAllTasks(tasks: List<Task>) = taskDao.insertAll(tasks)
     suspend fun markTaskCompleted(id: String) = taskDao.markCompleted(id)
 
     // TimeRecords
     fun getAllRecords(): Flow<List<TimeRecord>> = timeRecordDao.getAllRecords()
+    suspend fun getAllRecordsSync(): List<TimeRecord> = timeRecordDao.getAllRecordsSync()
     fun getRecordsByDate(startOfDay: Long, endOfDay: Long): Flow<List<TimeRecord>> =
         timeRecordDao.getRecordsByDate(startOfDay, endOfDay)
     fun getRecordsBySkillId(skillId: String): Flow<List<TimeRecord>> =
@@ -60,5 +66,38 @@ class SushiRepository @Inject constructor(
     suspend fun getTotalNetDurationAll(): Int =
         timeRecordDao.getTotalNetDurationAll() ?: 0
     suspend fun insertTimeRecord(record: TimeRecord) = timeRecordDao.insert(record)
+    suspend fun insertAllTimeRecords(records: List<TimeRecord>) = timeRecordDao.insertAll(records)
     suspend fun getTimeRecordCount(): Int = timeRecordDao.getCount()
+
+    // Delete operations
+    suspend fun deleteSkill(id: String) = skillDao.deleteById(id)
+    suspend fun deleteTask(id: String) = taskDao.deleteById(id)
+    suspend fun deleteProfession(id: String) = professionDao.deleteById(id)
+    suspend fun deleteTimeRecord(id: String) = timeRecordDao.deleteById(id)
+    suspend fun deleteAffix(id: String) = affixDao.deleteById(id)
+
+    // Task reactivation and completed tasks
+    fun getCompletedTasks(): Flow<List<Task>> = taskDao.getCompletedTasks()
+    suspend fun reactivateTask(id: String) = taskDao.reactivate(id)
+
+    // TimeRecord update
+    suspend fun updateTimeRecord(record: TimeRecord) = timeRecordDao.update(record)
+
+    // Profession name update
+    suspend fun updateProfessionName(id: String, name: String) = professionDao.updateName(id, name)
+
+    // Total pure time from TimeRecord (not from skill exp)
+    suspend fun getTotalPureTimeMin(): Int = timeRecordDao.getTotalNetDurationAll() ?: 0
+
+    // Skill name update
+    suspend fun updateSkillName(id: String, name: String) {
+        val skill = skillDao.getSkillById(id) ?: return
+        skillDao.update(skill.copy(name = name))
+    }
+
+    // Skill category update
+    suspend fun updateSkillCategory(id: String, category: SkillCategory) {
+        val skill = skillDao.getSkillById(id) ?: return
+        skillDao.update(skill.copy(category = category))
+    }
 }

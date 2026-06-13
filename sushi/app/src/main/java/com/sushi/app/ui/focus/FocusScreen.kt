@@ -85,6 +85,7 @@ fun FocusScreen(
         uiState.settlementResult != null -> {
             SettlementResultDialog(
                 result = uiState.settlementResult!!,
+                taskCompleted = uiState.settlementResult != null && uiState.currentTaskId != null,
                 onDismiss = viewModel::dismissSettlementResult
             )
         }
@@ -110,20 +111,29 @@ fun FocusScreen(
                     FocusTimerContent(
                         taskName = uiState.currentTaskName ?: "",
                         elapsedSeconds = uiState.elapsedSeconds,
+                        isPaused = uiState.isPaused,
                         onTick = viewModel::updateElapsedTime,
+                        onPause = viewModel::pauseFocus,
+                        onResume = viewModel::resumeFocus,
                         onStop = viewModel::stopFocus
                     )
                 } else {
                     TaskSelectionContent(
                         activeTasks = uiState.activeTasks,
+                        completedTasks = uiState.completedTasks,
                         allSkills = uiState.allSkills,
                         isCreatingTask = uiState.isCreatingTask,
                         onSelectTask = { task, skillId ->
                             viewModel.startFocus(task.id, task.name, skillId)
                         },
+                        onStartFocusBySkill = { skillId, skillName ->
+                            viewModel.startFocusBySkill(skillId, skillName)
+                        },
                         onShowCreateTask = viewModel::showCreateTask,
                         onHideCreateTask = viewModel::hideCreateTask,
-                        onCreateTask = viewModel::createTask
+                        onCreateTask = viewModel::createTask,
+                        onReactivateTask = viewModel::reactivateTask,
+                        onDeleteTask = viewModel::deleteTask
                     )
                 }
             }
@@ -134,13 +144,20 @@ fun FocusScreen(
 @Composable
 private fun TaskSelectionContent(
     activeTasks: List<Task>,
+    completedTasks: List<Task>,
     allSkills: List<Skill>,
     isCreatingTask: Boolean,
     onSelectTask: (Task, String) -> Unit,
+    onStartFocusBySkill: (String, String) -> Unit,
     onShowCreateTask: () -> Unit,
     onHideCreateTask: () -> Unit,
-    onCreateTask: (String, String) -> Unit
+    onCreateTask: (String, String) -> Unit,
+    onReactivateTask: (String) -> Unit,
+    onDeleteTask: (String) -> Unit
 ) {
+    // Fix #19: Tabs for 任务/技能/已完成
+    var selectedTab by remember { mutableStateOf(0) } // 0=任务, 1=技能, 2=已完成
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -161,58 +178,147 @@ private fun TaskSelectionContent(
 
             Spacer(modifier = Modifier.height(SushiSpacing.sm))
 
-            if (activeTasks.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
-                    ) {
-                        Text(
-                            text = "暂无进行中的任务",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = InkLight
-                        )
-                        Text(
-                            text = "点击下方按钮创建一个新任务吧",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = InkFaint
-                        )
+            // Tab row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(CardShape)
+                    .background(Paper),
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                TabItem(
+                    text = "任务",
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    modifier = Modifier.weight(1f)
+                )
+                TabItem(
+                    text = "技能",
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    modifier = Modifier.weight(1f)
+                )
+                TabItem(
+                    text = "已完成",
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(SushiSpacing.sm))
+
+            when (selectedTab) {
+                0 -> {
+                    // 任务 tab
+                    if (activeTasks.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+                            ) {
+                                Text(
+                                    text = "暂无进行中的任务",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = InkLight
+                                )
+                                Text(
+                                    text = "点击下方按钮创建一个新任务吧",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = InkFaint
+                                )
+                            }
+                        }
+                    } else {
+                        activeTasks.forEach { task ->
+                            val skillName = allSkills.find { it.id == task.linkedSkillId }?.name ?: ""
+                            TaskCard(
+                                task = task,
+                                skillName = skillName,
+                                onClick = { onSelectTask(task, task.linkedSkillId) }
+                            )
+                        }
                     }
                 }
-            } else {
-                activeTasks.forEach { task ->
-                    val skillName = allSkills.find { it.id == task.linkedSkillId }?.name ?: ""
-                    TaskCard(
-                        task = task,
-                        skillName = skillName,
-                        onClick = { onSelectTask(task, task.linkedSkillId) }
-                    )
+                1 -> {
+                    // 技能 tab (Fix #19)
+                    if (allSkills.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "暂无技能",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = InkLight
+                            )
+                        }
+                    } else {
+                        allSkills.forEach { skill ->
+                            SkillCard(
+                                skill = skill,
+                                onClick = { onStartFocusBySkill(skill.id, skill.name) }
+                            )
+                        }
+                    }
+                }
+                2 -> {
+                    // 已完成 tab (Fix #3/#8)
+                    if (completedTasks.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "暂无已完成的任务",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = InkLight
+                            )
+                        }
+                    } else {
+                        completedTasks.forEach { task ->
+                            val skillName = allSkills.find { it.id == task.linkedSkillId }?.name ?: ""
+                            CompletedTaskCard(
+                                task = task,
+                                skillName = skillName,
+                                onReactivate = { onReactivateTask(task.id) },
+                                onDelete = { onDeleteTask(task.id) }
+                            )
+                        }
+                    }
                 }
             }
         }
 
-        Button(
-            onClick = onShowCreateTask,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = SushiSpacing.xxxl)
-                .shadow(2.dp, CardShape),
-            shape = CardShape,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Cinnabar,
-                contentColor = Paper
-            )
-        ) {
-            Text(
-                text = "+ 新任务",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+        // Only show "新任务" button when on 任务 tab
+        if (selectedTab == 0) {
+            Button(
+                onClick = onShowCreateTask,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = SushiSpacing.xxxl)
+                    .shadow(2.dp, CardShape),
+                shape = CardShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Cinnabar,
+                    contentColor = Paper
+                )
+            ) {
+                Text(
+                    text = "+ 新任务",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 
@@ -221,6 +327,30 @@ private fun TaskSelectionContent(
             allSkills = allSkills,
             onDismiss = onHideCreateTask,
             onCreate = onCreateTask
+        )
+    }
+}
+
+@Composable
+private fun TabItem(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(CardShapeSmall)
+            .background(if (selected) Cinnabar else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(vertical = SushiSpacing.sm),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) Paper else InkLight
         )
     }
 }
@@ -252,6 +382,93 @@ private fun TaskCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = Cinnabar
             )
+        }
+    }
+}
+
+@Composable
+private fun SkillCard(
+    skill: Skill,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(1.dp, CardShape)
+            .clip(CardShape)
+            .background(Paper)
+            .clickable(onClick = onClick)
+            .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+    ) {
+        Text(
+            text = skill.name,
+            style = MaterialTheme.typography.bodyLarge,
+            color = Ink
+        )
+        Text(
+            text = skill.category.name,
+            style = MaterialTheme.typography.bodySmall,
+            color = Cinnabar
+        )
+    }
+}
+
+@Composable
+private fun CompletedTaskCard(
+    task: Task,
+    skillName: String,
+    onReactivate: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(1.dp, CardShape)
+            .clip(CardShape)
+            .background(Paper)
+            .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+    ) {
+        Text(
+            text = task.name,
+            style = MaterialTheme.typography.bodyLarge,
+            color = InkLight
+        )
+        if (skillName.isNotBlank()) {
+            Text(
+                text = skillName,
+                style = MaterialTheme.typography.bodySmall,
+                color = CinnabarFaint
+            )
+        }
+        Spacer(modifier = Modifier.height(SushiSpacing.xs))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+        ) {
+            OutlinedButton(
+                onClick = onReactivate,
+                shape = CardShapeSmall,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = PaperWarm,
+                    contentColor = InkLight
+                ),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = "重新激活")
+            }
+            OutlinedButton(
+                onClick = onDelete,
+                shape = CardShapeSmall,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = PaperWarm,
+                    contentColor = Cinnabar
+                ),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = "删除")
+            }
         }
     }
 }
@@ -364,15 +581,20 @@ private fun CreateTaskDialog(
 private fun FocusTimerContent(
     taskName: String,
     elapsedSeconds: Int,
+    isPaused: Boolean,
     onTick: (Int) -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
     onStop: () -> Unit
 ) {
     LaunchedEffect(Unit) {
         var seconds = elapsedSeconds
         while (true) {
             delay(1000)
-            seconds++
-            onTick(seconds)
+            if (!isPaused) {
+                seconds++
+                onTick(seconds)
+            }
         }
     }
 
@@ -400,7 +622,7 @@ private fun FocusTimerContent(
             verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)
         ) {
             Text(
-                text = "专注中",
+                text = if (isPaused) "已暂停" else "专注中",
                 style = MaterialTheme.typography.labelLarge,
                 color = Cinnabar,
                 fontWeight = FontWeight.Medium
@@ -460,28 +682,57 @@ private fun FocusTimerContent(
                         .size(24.dp)
                         .clip(CircleShape)
                         .background(Cinnabar.copy(alpha = 0.15f))
-                        .alpha(breathingAlpha)
+                        .alpha(if (isPaused) 0.3f else breathingAlpha)
                 )
                 Box(
                     modifier = Modifier
                         .size(12.dp)
                         .clip(CircleShape)
                         .background(Cinnabar)
-                        .alpha(breathingAlpha)
+                        .alpha(if (isPaused) 0.3f else breathingAlpha)
                 )
             }
 
             Spacer(modifier = Modifier.height(SushiSpacing.lg))
 
-            OutlinedButton(
-                onClick = onStop,
-                shape = CardShape,
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Paper,
-                    contentColor = Cinnabar
-                )
+            // Fix #21: Pause/Resume + Stop buttons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.md)
             ) {
-                Text(text = "停止")
+                if (isPaused) {
+                    OutlinedButton(
+                        onClick = onResume,
+                        shape = CardShape,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Paper,
+                            contentColor = Cinnabar
+                        )
+                    ) {
+                        Text(text = "继续")
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = onPause,
+                        shape = CardShape,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Paper,
+                            contentColor = InkLight
+                        )
+                    ) {
+                        Text(text = "暂停")
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = onStop,
+                    shape = CardShape,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Paper,
+                        contentColor = Cinnabar
+                    )
+                ) {
+                    Text(text = "停止")
+                }
             }
         }
     }
@@ -607,8 +858,15 @@ private fun SettlementDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(text = "确认结算", color = Cinnabar)
+            // Fix #22: Disable confirm button when netDurationMin <= 0
+            TextButton(
+                onClick = onConfirm,
+                enabled = netDurationMin > 0
+            ) {
+                Text(
+                    text = "确认结算",
+                    color = if (netDurationMin > 0) Cinnabar else InkFaint
+                )
             }
         },
         dismissButton = {
@@ -623,6 +881,7 @@ private fun SettlementDialog(
 @Composable
 private fun SettlementResultDialog(
     result: SettlementResult.Success,
+    taskCompleted: Boolean,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -637,6 +896,32 @@ private fun SettlementResultDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
+                // Fix #20: Show task completed message
+                if (taskCompleted) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(CardShapeSmall)
+                            .background(CinnabarFaint)
+                            .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(Cinnabar)
+                        )
+                        Text(
+                            text = "任务已完成",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Ink,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
                 if (result.levelUpEvents.isNotEmpty()) {
                     result.levelUpEvents.forEach { event ->
                         LevelUpItem(event = event)
@@ -677,7 +962,7 @@ private fun SettlementResultDialog(
                     }
                 }
 
-                if (result.levelUpEvents.isEmpty() && result.unlockedAffixes.isEmpty()) {
+                if (!taskCompleted && result.levelUpEvents.isEmpty() && result.unlockedAffixes.isEmpty()) {
                     Text(
                         text = "纯时间已记录",
                         style = MaterialTheme.typography.bodyMedium,

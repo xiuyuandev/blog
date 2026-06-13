@@ -15,7 +15,9 @@ data class PanelUiState(
     val totalPureTimeMin: Int = 0,
     val attributes: Map<AttributeType, Int> = emptyMap(),
     val unlockedAffixes: List<Affix> = emptyList(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val selectedProfessionId: String? = null,
+    val allProfessions: List<Profession> = emptyList()
 )
 
 @HiltViewModel
@@ -35,14 +37,19 @@ class PanelViewModel @Inject constructor(
             combine(
                 repository.getAllProfessions(),
                 repository.getAllSkills(),
-                repository.getAllAffixes()
-            ) { professions, skills, affixes ->
-                // 找到经验最高的职业作为核心职业
-                val mainProfession = professions.maxByOrNull { it.totalExp }
-                val professionName = mainProfession?.name ?: "游侠"
+                repository.getAllAffixes(),
+                repository.getAllRecords()
+            ) { professions, skills, affixes, records ->
+                // 根据用户选择或经验最高决定核心职业
+                val selectedProfession = if (_uiState.value.selectedProfessionId != null) {
+                    professions.find { it.id == _uiState.value.selectedProfessionId }
+                } else {
+                    professions.maxByOrNull { it.totalExp }
+                }
+                val professionName = selectedProfession?.name ?: "游侠"
 
-                // 计算总纯时间
-                val totalPureTime = skills.sumOf { it.totalExp }
+                // Fix #2: 从 TimeRecord 汇总计算总纯时间，而非技能经验
+                val totalPureTime = records.sumOf { it.netDurationMin }
 
                 // 计算属性面板
                 val attributes = calculateAttributes(skills, affixes)
@@ -60,6 +67,7 @@ class PanelViewModel @Inject constructor(
                         totalPureTimeMin = totalPureTime,
                         attributes = attributes,
                         unlockedAffixes = unlockedAffixes,
+                        allProfessions = professions,
                         isLoading = false
                     )
                 }
@@ -91,6 +99,10 @@ class PanelViewModel @Inject constructor(
         }
 
         return attributes
+    }
+
+    fun selectProfession(professionId: String) {
+        _uiState.update { it.copy(selectedProfessionId = professionId) }
     }
 
     /**

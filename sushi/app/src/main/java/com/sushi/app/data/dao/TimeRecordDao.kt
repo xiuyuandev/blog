@@ -9,6 +9,12 @@ interface TimeRecordDao {
     @Query("SELECT * FROM TimeRecord ORDER BY timestamp DESC")
     fun getAllRecords(): Flow<List<TimeRecord>>
 
+    @Query("SELECT * FROM TimeRecord")
+    suspend fun getAllRecordsSync(): List<TimeRecord>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(records: List<TimeRecord>)
+
     @Query("SELECT * FROM TimeRecord WHERE startDateTime BETWEEN :startOfDay AND :endOfDay ORDER BY startDateTime ASC")
     fun getRecordsByDate(startOfDay: Long, endOfDay: Long): Flow<List<TimeRecord>>
 
@@ -29,4 +35,13 @@ interface TimeRecordDao {
 
     @Query("SELECT COUNT(*) FROM TimeRecord")
     suspend fun getCount(): Int
+
+    @Query("DELETE FROM TimeRecord WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Update
+    suspend fun update(record: TimeRecord)
+
+    @Query("DELETE FROM TimeRecord WHERE timestamp < :beforeTimestamp")
+    suspend fun deleteOlderThan(beforeTimestamp: Long)
 }

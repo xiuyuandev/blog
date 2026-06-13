@@ -9,6 +9,9 @@ interface AffixDao {
     @Query("SELECT * FROM Affix")
     fun getAllAffixes(): Flow<List<Affix>>
 
+    @Query("SELECT * FROM Affix")
+    suspend fun getAllAffixesSync(): List<Affix>
+
     @Query("SELECT * FROM Affix WHERE requiredSkillId = :skillId")
     fun getAffixesBySkillId(skillId: String): Flow<List<Affix>>
 
@@ -20,4 +23,10 @@ interface AffixDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(affix: Affix)
+
+    @Query("SELECT * FROM Affix WHERE id = :id")
+    suspend fun getAffixById(id: String): Affix?
+
+    @Query("DELETE FROM Affix WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

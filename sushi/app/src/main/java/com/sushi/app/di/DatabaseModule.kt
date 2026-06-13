@@ -22,7 +22,8 @@ object DatabaseModule {
             context,
             SushiDatabase::class.java,
             "sushi_database"
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(SushiDatabase.MIGRATION_1_2)
+            .fallbackToDestructiveMigration().build()
     }
 
     @Provides

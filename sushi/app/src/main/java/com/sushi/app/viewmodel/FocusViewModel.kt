@@ -18,6 +18,7 @@ data class FocusUiState(
     val currentTaskName: String? = null,
     val currentSkillId: String? = null,
     val activeTasks: List<Task> = emptyList(),
+    val completedTasks: List<Task> = emptyList(),
     val allSkills: List<Skill> = emptyList(),
     val showSettlement: Boolean = false,
     val rawDurationMin: Int = 0,
@@ -25,7 +26,8 @@ data class FocusUiState(
     val description: String = "",
     val startDateTime: Long = System.currentTimeMillis(),
     val settlementResult: SettlementResult.Success? = null,
-    val isCreatingTask: Boolean = false
+    val isCreatingTask: Boolean = false,
+    val isPaused: Boolean = false
 )
 
 @HiltViewModel
@@ -41,6 +43,11 @@ class FocusViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getActiveTasks().collect { tasks ->
                 _uiState.update { it.copy(activeTasks = tasks) }
+            }
+        }
+        viewModelScope.launch {
+            repository.getCompletedTasks().collect { tasks ->
+                _uiState.update { it.copy(completedTasks = tasks) }
             }
         }
         viewModelScope.launch {
@@ -64,6 +71,21 @@ class FocusViewModel @Inject constructor(
         }
     }
 
+    // Fix #19: Support direct skill timing (no task required)
+    fun startFocusBySkill(skillId: String, skillName: String) {
+        _uiState.update {
+            it.copy(
+                isFocusing = true,
+                currentTaskId = null,
+                currentTaskName = skillName,
+                currentSkillId = skillId,
+                elapsedSeconds = 0,
+                showSettlement = false,
+                startDateTime = System.currentTimeMillis()
+            )
+        }
+    }
+
     fun updateElapsedTime(seconds: Int) {
         _uiState.update { it.copy(elapsedSeconds = seconds) }
     }
@@ -71,7 +93,6 @@ class FocusViewModel @Inject constructor(
     fun stopFocus() {
         val elapsed = _uiState.value.elapsedSeconds
         val rawMin = elapsed / 60
-        val now = System.currentTimeMillis()
         _uiState.update {
             it.copy(
                 isFocusing = false,
@@ -97,27 +118,51 @@ class FocusViewModel @Inject constructor(
         _uiState.update { it.copy(description = text) }
     }
 
+    // Fix #21: Pause support
+    fun pauseFocus() {
+        _uiState.update { it.copy(isPaused = true) }
+    }
+
+    // Fix #21: Resume support
+    fun resumeFocus() {
+        _uiState.update { it.copy(isPaused = false) }
+    }
+
+    // Fix #22: Manual inject validation; Fix #8/#20: direct skill timing & auto-complete
     fun confirmSettlement() {
         val state = _uiState.value
-        val taskId = state.currentTaskId ?: return
+        if (state.netDurationMin <= 0) return
         val skillId = state.currentSkillId ?: return
 
-        val now = System.currentTimeMillis()
         val startDt = state.startDateTime
-        val endDt = now
+        val endDt = System.currentTimeMillis()
 
         viewModelScope.launch {
-            val result = experienceEngine.settleTime(
-                taskId = taskId,
-                rawDurationMin = state.rawDurationMin,
-                netDurationMin = state.netDurationMin,
-                startDateTime = startDt,
-                endDateTime = endDt,
-                description = state.description.ifBlank { state.currentTaskName ?: "" }
-            )
+            val result = if (state.currentTaskId != null) {
+                experienceEngine.settleTime(
+                    taskId = state.currentTaskId,
+                    rawDurationMin = state.rawDurationMin,
+                    netDurationMin = state.netDurationMin,
+                    startDateTime = startDt,
+                    endDateTime = endDt,
+                    description = state.description.ifBlank { state.currentTaskName ?: "" }
+                )
+            } else {
+                experienceEngine.manualInject(
+                    skillId = skillId,
+                    netDurationMin = state.netDurationMin,
+                    startDateTime = startDt,
+                    endDateTime = endDt,
+                    description = state.description.ifBlank { state.currentTaskName ?: "" }
+                )
+            }
 
             when (result) {
                 is SettlementResult.Success -> {
+                    // Fix #20: Auto-complete the task after settlement
+                    if (state.currentTaskId != null) {
+                        repository.markTaskCompleted(state.currentTaskId)
+                    }
                     _uiState.update {
                         it.copy(
                             settlementResult = result,
@@ -176,6 +221,20 @@ class FocusViewModel @Inject constructor(
             )
             repository.insertTask(task)
             _uiState.update { it.copy(isCreatingTask = false) }
+        }
+    }
+
+    // Fix #3: Task reactivation
+    fun reactivateTask(taskId: String) {
+        viewModelScope.launch {
+            repository.reactivateTask(taskId)
+        }
+    }
+
+    // Fix #8: Delete task
+    fun deleteTask(taskId: String) {
+        viewModelScope.launch {
+            repository.deleteTask(taskId)
         }
     }
 }

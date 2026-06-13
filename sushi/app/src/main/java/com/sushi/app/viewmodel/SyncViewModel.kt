@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.sushi.app.sync.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -19,7 +20,11 @@ data class SyncUiState(
     val isExporting: Boolean = false,
     val isImporting: Boolean = false,
     val statusMessage: String = "",
-    val lastSyncTime: String = ""
+    val lastSyncTime: String = "",
+    val showPullConfirmation: Boolean = false,
+    val showImportConfirmation: Boolean = false,
+    val pendingImportJson: String? = null,
+    val lastPushTimestamp: Long = 0L,
 )
 
 @HiltViewModel
@@ -63,7 +68,7 @@ class SyncViewModel @Inject constructor(
     }
 
     fun testConnection() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isTesting = true, statusMessage = "") }
             val config = syncConfigManager.getConfig()
 
@@ -92,7 +97,7 @@ class SyncViewModel @Inject constructor(
     }
 
     fun pushToCloud() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isPushing = true, statusMessage = "") }
             val config = syncConfigManager.getConfig()
 
@@ -121,7 +126,8 @@ class SyncViewModel @Inject constructor(
                         lastSyncTime = if (result is SyncResult.Success) {
                             java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.getDefault())
                                 .format(java.util.Date())
-                        } else it.lastSyncTime
+                        } else it.lastSyncTime,
+                        lastPushTimestamp = if (result is SyncResult.Success) System.currentTimeMillis() else it.lastPushTimestamp
                     )
                 }
             } catch (e: Exception) {
@@ -132,8 +138,8 @@ class SyncViewModel @Inject constructor(
         }
     }
 
-    fun pullFromCloud() {
-        viewModelScope.launch {
+    fun pullFromCloud(merge: Boolean = false) {
+        viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(isPulling = true, statusMessage = "") }
             val config = syncConfigManager.getConfig()
 
@@ -151,11 +157,20 @@ class SyncViewModel @Inject constructor(
 
             when (result) {
                 is SyncResult.Success -> {
-                    val importResult = backupManager.importFromJson(result.message)
+                    val importResult = if (merge) {
+                        try {
+                            backupManager.mergeFromJson(result.message)
+                            Result.success(Unit)
+                        } catch (e: Exception) {
+                            Result.failure(e)
+                        }
+                    } else {
+                        backupManager.importFromJson(result.message)
+                    }
                     _uiState.update {
                         it.copy(
                             isPulling = false,
-                            statusMessage = if (importResult.isSuccess) "拉取成功，数据已恢复" else "拉取失败: 数据解析错误",
+                            statusMessage = if (importResult.isSuccess) "拉取成功（${if (merge) "合并" else "覆盖"}）" else "拉取失败: 数据解析错误",
                             lastSyncTime = if (importResult.isSuccess) {
                                 java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.getDefault())
                                     .format(java.util.Date())
@@ -214,19 +229,66 @@ class SyncViewModel @Inject constructor(
                     String(ist.readBytes(), Charsets.UTF_8)
                 } ?: throw Exception("无法读取文件")
 
-                val result = backupManager.importFromJson(json)
-                _uiState.update {
-                    it.copy(
-                        isImporting = false,
-                        statusMessage = if (result.isSuccess) "导入成功" else "导入失败: 数据格式错误"
-                    )
+                val isValid = backupManager.validateJson(json)
+                if (!isValid) {
+                    _uiState.update { it.copy(isImporting = false, statusMessage = "无效的备份文件格式") }
+                    return@launch
                 }
+
+                // Show preview instead of importing directly
+                _uiState.update { it.copy(isImporting = false) }
+                requestImport(json)
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isImporting = false, statusMessage = "导入失败: ${e.message}")
+                    it.copy(isImporting = false, statusMessage = "读取文件失败: ${e.message}")
                 }
             }
         }
+    }
+
+    fun requestPull() {
+        _uiState.update { it.copy(showPullConfirmation = true) }
+    }
+
+    fun confirmPull() {
+        _uiState.update { it.copy(showPullConfirmation = false) }
+        pullFromCloud(merge = false)
+    }
+
+    fun confirmPullMerge() {
+        _uiState.update { it.copy(showPullConfirmation = false) }
+        pullFromCloud(merge = true)
+    }
+
+    fun cancelPull() {
+        _uiState.update { it.copy(showPullConfirmation = false) }
+    }
+
+    fun requestImport(json: String) {
+        _uiState.update { it.copy(showImportConfirmation = true, pendingImportJson = json) }
+    }
+
+    fun confirmImport() {
+        val json = _uiState.value.pendingImportJson ?: return
+        _uiState.update { it.copy(showImportConfirmation = false, pendingImportJson = null) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isImporting = true) }
+            try {
+                val isValid = backupManager.validateJson(json)
+                if (!isValid) {
+                    _uiState.update { it.copy(isImporting = false, statusMessage = "无效的备份文件格式") }
+                    return@launch
+                }
+                backupManager.importFromJson(json)
+                _uiState.update { it.copy(isImporting = false, statusMessage = "导入成功") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isImporting = false, statusMessage = "导入失败: ${e.message}") }
+            }
+        }
+    }
+
+    fun cancelImport() {
+        _uiState.update { it.copy(showImportConfirmation = false, pendingImportJson = null) }
     }
 
     fun clearStatusMessage() {

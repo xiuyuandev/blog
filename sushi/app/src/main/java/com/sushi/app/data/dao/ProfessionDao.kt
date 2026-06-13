@@ -9,6 +9,9 @@ interface ProfessionDao {
     @Query("SELECT * FROM Profession")
     fun getAllProfessions(): Flow<List<Profession>>
 
+    @Query("SELECT * FROM Profession")
+    suspend fun getAllProfessionsSync(): List<Profession>
+
     @Query("SELECT * FROM Profession WHERE id = :id")
     suspend fun getProfessionById(id: String): Profession?
 
@@ -23,4 +26,10 @@ interface ProfessionDao {
 
     @Query("UPDATE Profession SET totalExp = :totalExp WHERE id = :id")
     suspend fun updateExp(id: String, totalExp: Int)
+
+    @Query("DELETE FROM Profession WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("UPDATE Profession SET name = :name WHERE id = :id")
+    suspend fun updateName(id: String, name: String)
 }

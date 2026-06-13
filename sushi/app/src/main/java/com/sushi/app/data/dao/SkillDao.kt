@@ -9,6 +9,9 @@ interface SkillDao {
     @Query("SELECT * FROM Skill")
     fun getAllSkills(): Flow<List<Skill>>
 
+    @Query("SELECT * FROM Skill")
+    suspend fun getAllSkillsSync(): List<Skill>
+
     @Query("SELECT * FROM Skill WHERE id = :id")
     suspend fun getSkillById(id: String): Skill?
 
@@ -29,4 +32,7 @@ interface SkillDao {
 
     @Query("UPDATE Skill SET linkedProfessionIds = :professionIds WHERE id = :id")
     suspend fun updateLinkedProfessions(id: String, professionIds: List<String>)
+
+    @Query("DELETE FROM Skill WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

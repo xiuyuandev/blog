@@ -82,4 +82,84 @@ class BackupManager @Inject constructor(
             false
         }
     }
+
+    /**
+     * 智能合并：将云端数据与本地数据合并。
+     * 相同 ID 的实体，根据策略选择保留哪个版本。
+     * Skills/Professions：保留 totalExp 更高的。
+     * Tasks：已完成的优先。
+     * TimeRecords：保留 timestamp 更新的。
+     * Affixes：云端版本优先。
+     */
+    suspend fun mergeFromJson(json: String) {
+        val cloudData = gson.fromJson(json, BackupData::class.java)
+            ?: throw IllegalArgumentException("Invalid backup format")
+
+        val localSkills = repository.getAllSkillsSync()
+        val localProfessions = repository.getAllProfessionsSync()
+        val localAffixes = repository.getAllAffixesSync()
+        val localTasks = repository.getAllTasksSync()
+        val localRecords = repository.getAllRecordsSync()
+
+        val mergedSkills = mergeById(
+            localSkills, cloudData.skills, { it.id },
+            { local, cloud -> if (cloud.totalExp >= local.totalExp) cloud else local }
+        )
+        val mergedProfessions = mergeById(
+            localProfessions, cloudData.professions, { it.id },
+            { local, cloud -> if (cloud.totalExp >= local.totalExp) cloud else local }
+        )
+        val mergedAffixes = mergeById(
+            localAffixes, cloudData.affixes, { it.id },
+            { _, cloud -> cloud }
+        )
+        val mergedTasks = mergeById(
+            localTasks, cloudData.tasks, { it.id },
+            { local, cloud -> if (cloud.isCompleted && !local.isCompleted) cloud else local }
+        )
+        val mergedRecords = mergeById(
+            localRecords, cloudData.timeRecords, { it.id },
+            { local, cloud -> if (cloud.timestamp >= local.timestamp) cloud else local }
+        )
+
+        repository.insertSkills(mergedSkills)
+        repository.insertProfessions(mergedProfessions)
+        repository.insertAffixes(mergedAffixes)
+        repository.insertAllTasks(mergedTasks)
+        repository.insertAllTimeRecords(mergedRecords)
+    }
+
+    /**
+     * 按 ID 合并两个列表，冲突时使用 resolve 函数决定保留哪个。
+     */
+    private fun <T> mergeById(
+        localList: List<T>,
+        cloudList: List<T>,
+        getId: (T) -> String,
+        resolve: (local: T, cloud: T) -> T
+    ): List<T> {
+        val localMap = localList.associateBy(getId)
+        val cloudMap = cloudList.associateBy(getId)
+        val allIds = localMap.keys + cloudMap.keys
+        return allIds.mapNotNull { id ->
+            val local = localMap[id]
+            val cloud = cloudMap[id]
+            when {
+                local != null && cloud != null -> resolve(local, cloud)
+                local != null -> local
+                cloud != null -> cloud
+                else -> null
+            }
+        }
+    }
+
+    /**
+     * 版本迁移：根据备份数据版本号进行迁移。
+     */
+    fun migrateBackup(data: BackupData): BackupData {
+        return when (data.version) {
+            1 -> data // 当前版本，无需迁移
+            else -> data
+        }
+    }
 }

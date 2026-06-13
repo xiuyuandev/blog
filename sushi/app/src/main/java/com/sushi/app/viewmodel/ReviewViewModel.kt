@@ -16,6 +16,7 @@ data class ReviewUiState(
     val recordsByDate: List<TimeRecord> = emptyList(),
     val weeklyTotalMin: Int = 0,
     val monthlyTotalMin: Int = 0,
+    val totalPureTimeMin: Int = 0,
     val datesWithRecords: Set<Long> = emptySet(),
     val isLoading: Boolean = true
 )
@@ -69,6 +70,8 @@ class ReviewViewModel @Inject constructor(
                 }
             }
         }
+
+        loadTotalPureTime()
     }
 
     fun selectDate(timestamp: Long) {
@@ -110,6 +113,13 @@ class ReviewViewModel @Inject constructor(
 
             val total = repository.getTotalNetDuration(monthStart, monthEnd)
             _uiState.update { it.copy(monthlyTotalMin = total, isLoading = false) }
+        }
+    }
+
+    private fun loadTotalPureTime() {
+        viewModelScope.launch {
+            val total = repository.getTotalPureTimeMin()
+            _uiState.update { it.copy(totalPureTimeMin = total) }
         }
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -35,6 +36,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.sync.S3Config
@@ -162,7 +165,7 @@ fun SyncScreen(
                     isTesting = uiState.isTesting,
                     lastSyncTime = uiState.lastSyncTime,
                     onPush = viewModel::pushToCloud,
-                    onPull = viewModel::pullFromCloud,
+                    onPull = viewModel::requestPull,
                     onTest = viewModel::testConnection
                 )
             }
@@ -200,6 +203,79 @@ fun SyncScreen(
                     }
                 }
             }
+        }
+
+        // 拉取确认对话框
+        if (uiState.showPullConfirmation) {
+            AlertDialog(
+                onDismissRequest = { viewModel.cancelPull() },
+                title = { Text("确认拉取") },
+                text = {
+                    Column {
+                        Text("从云端拉取数据，请选择同步方式：")
+                        Spacer(modifier = Modifier.height(SushiSpacing.md))
+                        Text(
+                            "覆盖：云端数据替换本地数据",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InkLight
+                        )
+                        Text(
+                            "合并：保留双方独有数据，冲突时取较新/较高值",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InkLight
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.confirmPull() }) {
+                        Text("覆盖拉取", color = Cinnabar)
+                    }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = { viewModel.confirmPullMerge() }) {
+                            Text("合并拉取")
+                        }
+                        TextButton(onClick = { viewModel.cancelPull() }) {
+                            Text("取消")
+                        }
+                    }
+                }
+            )
+        }
+
+        // 导入预览对话框
+        if (uiState.showImportConfirmation) {
+            AlertDialog(
+                onDismissRequest = { viewModel.cancelImport() },
+                title = { Text("确认导入") },
+                text = {
+                    Column {
+                        Text("即将导入备份数据，将覆盖本地所有数据。")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("预览:", style = MaterialTheme.typography.labelMedium)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val preview = uiState.pendingImportJson?.take(200) ?: ""
+                        Text(
+                            text = preview + if ((uiState.pendingImportJson?.length ?: 0) > 200) "..." else "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InkLight,
+                            maxLines = 5,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.confirmImport() }) {
+                        Text("确认导入", color = Cinnabar)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.cancelImport() }) {
+                        Text("取消")
+                    }
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(SushiSpacing.xxxl))

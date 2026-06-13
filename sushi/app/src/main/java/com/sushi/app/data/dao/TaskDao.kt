@@ -12,6 +12,12 @@ interface TaskDao {
     @Query("SELECT * FROM Task ORDER BY createdAt DESC")
     fun getAllTasks(): Flow<List<Task>>
 
+    @Query("SELECT * FROM Task")
+    suspend fun getAllTasksSync(): List<Task>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(tasks: List<Task>)
+
     @Query("SELECT * FROM Task WHERE id = :id")
     suspend fun getTaskById(id: String): Task?
 
@@ -23,4 +29,13 @@ interface TaskDao {
 
     @Query("UPDATE Task SET isCompleted = 1 WHERE id = :id")
     suspend fun markCompleted(id: String)
+
+    @Query("SELECT * FROM Task WHERE isCompleted = 1 ORDER BY createdAt DESC")
+    fun getCompletedTasks(): Flow<List<Task>>
+
+    @Query("DELETE FROM Task WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("UPDATE Task SET isCompleted = 0 WHERE id = :id")
+    suspend fun reactivate(id: String)
 }

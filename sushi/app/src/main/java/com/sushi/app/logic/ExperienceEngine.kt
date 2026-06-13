@@ -1,6 +1,7 @@
 package com.sushi.app.logic
 
 import com.sushi.app.data.model.*
+import com.sushi.app.data.model.SkillCategory
 import com.sushi.app.data.repository.SushiRepository
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -27,6 +28,13 @@ class ExperienceEngine @Inject constructor(
     }
 
     fun calculateLevel(totalExp: Int): Int = totalExp / EXP_PER_LEVEL
+
+    private val categoryPrimaryAttribute = mapOf(
+        SkillCategory.COGNITION to AttributeType.INTELLECT,
+        SkillCategory.CREATION to AttributeType.CREATION,
+        SkillCategory.FUNCTION to AttributeType.PHYSIQUE,
+        SkillCategory.STRATEGY to AttributeType.INSIGHT
+    )
 
     fun calculateProgress(totalExp: Int): Int = totalExp % EXP_PER_LEVEL
 
@@ -178,6 +186,13 @@ class ExperienceEngine @Inject constructor(
         val allSkills = repository.getAllSkills().first()
         val allAffixList = repository.getAllAffixes().first()
 
+        // Base attributes: each skill contributes its level to its category's primary attribute
+        for (skill in allSkills) {
+            val level = calculateLevel(skill.totalExp)
+            val primaryAttr = categoryPrimaryAttribute[skill.category] ?: continue
+            attributes[primaryAttr] = (attributes[primaryAttr] ?: 0) + level
+        }
+
         for (skill in allSkills) {
             val level = calculateLevel(skill.totalExp)
             for (affix in allAffixList) {
@@ -190,6 +205,19 @@ class ExperienceEngine @Inject constructor(
         }
 
         return attributes
+    }
+
+    /**
+     * Recalculate profession totalExp from its linked skills' totalExp sum.
+     * Call this when skills are added/removed from a profession.
+     */
+    suspend fun recalculateProfessionExp(professionId: String) {
+        val profession = repository.getProfessionById(professionId) ?: return
+        val allSkills = repository.getAllSkills().first()
+        val linkedSkillExp = allSkills
+            .filter { professionId in it.linkedProfessionIds }
+            .sumOf { it.totalExp }
+        repository.updateProfessionExp(professionId, linkedSkillExp)
     }
 }
 

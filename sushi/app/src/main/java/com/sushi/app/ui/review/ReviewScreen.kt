@@ -101,6 +101,7 @@ fun ReviewScreen(
         }
 
         StatisticsSection(
+            totalPureTimeMin = uiState.totalPureTimeMin,
             weeklyTotalMin = uiState.weeklyTotalMin,
             monthlyTotalMin = uiState.monthlyTotalMin
         )
@@ -551,6 +552,7 @@ private fun TimelineEntry(record: TimeRecord, isLast: Boolean) {
 
 @Composable
 private fun StatisticsSection(
+    totalPureTimeMin: Int,
     weeklyTotalMin: Int,
     monthlyTotalMin: Int
 ) {
@@ -574,6 +576,30 @@ private fun StatisticsSection(
             style = MaterialTheme.typography.headlineSmall,
             color = Ink
         )
+
+        // Total pure time — Fix #24
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(CardShapeSmall)
+                .background(CinnabarFaint)
+                .padding(SushiSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+        ) {
+            Text(
+                text = "总累计纯时间",
+                style = MaterialTheme.typography.labelLarge,
+                color = InkLight
+            )
+            Text(
+                text = if (totalPureTimeMin > 0) formatDuration(totalPureTimeMin) else "暂无数据",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontFamily = SerifFontFamily,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = if (totalPureTimeMin > 0) Cinnabar else InkFaint
+            )
+        }
 
         // Weekly stats
         Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
