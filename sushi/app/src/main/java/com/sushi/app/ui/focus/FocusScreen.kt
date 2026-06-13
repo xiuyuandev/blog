@@ -41,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,6 +110,7 @@ fun FocusScreen(
             ) { isFocusing ->
                 if (isFocusing) {
                     FocusTimerContent(
+                        taskId = uiState.currentTaskId ?: uiState.currentSkillId ?: "",
                         taskName = uiState.currentTaskName ?: "",
                         elapsedSeconds = uiState.elapsedSeconds,
                         isPaused = uiState.isPaused,
@@ -579,6 +581,7 @@ private fun CreateTaskDialog(
 
 @Composable
 private fun FocusTimerContent(
+    taskId: String,
     taskName: String,
     elapsedSeconds: Int,
     isPaused: Boolean,
@@ -587,11 +590,14 @@ private fun FocusTimerContent(
     onResume: () -> Unit,
     onStop: () -> Unit
 ) {
-    LaunchedEffect(Unit) {
+    // Fix #6: 用 taskId 作为 key，切换任务时旧协程会被取消
+    // Fix #1: 使用 rememberUpdatedState 让协程能响应 isPaused 变化
+    val isPausedState by rememberUpdatedState(isPaused)
+    LaunchedEffect(taskId) {
         var seconds = elapsedSeconds
         while (true) {
             delay(1000)
-            if (!isPaused) {
+            if (!isPausedState) {
                 seconds++
                 onTick(seconds)
             }

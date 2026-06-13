@@ -69,10 +69,37 @@ class SushiRepository @Inject constructor(
     suspend fun insertAllTimeRecords(records: List<TimeRecord>) = timeRecordDao.insertAll(records)
     suspend fun getTimeRecordCount(): Int = timeRecordDao.getCount()
 
+    // Fix #5: 清空所有表（用于"覆盖"导入）
+    suspend fun clearAllTables() {
+        // 注意顺序：先删依赖项
+        timeRecordDao.deleteAll()
+        affixDao.deleteAll()
+        taskDao.deleteAll()
+        skillDao.deleteAll()
+        professionDao.deleteAll()
+    }
+
     // Delete operations
-    suspend fun deleteSkill(id: String) = skillDao.deleteById(id)
+    suspend fun deleteSkill(id: String) {
+        // Fix #3: 删除技能时清理关联数据
+        timeRecordDao.deleteBySkillId(id)
+        affixDao.deleteBySkillId(id)
+        taskDao.deleteActiveBySkillId(id)
+        skillDao.deleteById(id)
+    }
     suspend fun deleteTask(id: String) = taskDao.deleteById(id)
-    suspend fun deleteProfession(id: String) = professionDao.deleteById(id)
+
+    // Fix #4: 删除职业时清理所有技能中对该职业的引用
+    suspend fun deleteProfession(id: String) {
+        val allSkills = skillDao.getAllSkillsSync()
+        for (skill in allSkills) {
+            if (id in skill.linkedProfessionIds) {
+                val updated = skill.linkedProfessionIds.filter { it != id }
+                skillDao.updateLinkedProfessions(skill.id, updated)
+            }
+        }
+        professionDao.deleteById(id)
+    }
     suspend fun deleteTimeRecord(id: String) = timeRecordDao.deleteById(id)
     suspend fun deleteAffix(id: String) = affixDao.deleteById(id)
 

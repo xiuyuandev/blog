@@ -1339,7 +1339,8 @@ private fun ManualInjectDialog(
     val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-    val estimatedExp = minutes * 10
+    // Fix #2: 1分钟纯时间 = 1 Exp，修正计算
+    val estimatedExp = minutes
 
     AlertDialog(
         onDismissRequest = onDismiss,

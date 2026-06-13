@@ -33,6 +33,9 @@ interface SkillDao {
     @Query("UPDATE Skill SET linkedProfessionIds = :professionIds WHERE id = :id")
     suspend fun updateLinkedProfessions(id: String, professionIds: List<String>)
 
+    @Query("DELETE FROM Skill")
+    suspend fun deleteAll()
+
     @Query("DELETE FROM Skill WHERE id = :id")
     suspend fun deleteById(id: String)
 }

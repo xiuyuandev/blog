@@ -25,9 +25,12 @@ abstract class SushiDatabase : RoomDatabase() {
     abstract fun timeRecordDao(): TimeRecordDao
 
     companion object {
+        // Fix #11: v1→v2 主要是 DAO 方法签名/返回类型变更，无 schema 变更。
+        // 保持占位迁移以确保已有用户的数据库能从 v1 顺利升到 v2，
+        // Room 会重新编译所有预编译 SQL 声明。
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                // No schema changes, just DAO method additions
+                // Schema 无变更，此迁移为兼容性占位
             }
         }
     }

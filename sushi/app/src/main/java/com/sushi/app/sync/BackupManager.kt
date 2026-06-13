@@ -53,12 +53,15 @@ class BackupManager @Inject constructor(
 
     /**
      * 从 JSON 字符串导入数据（覆盖现有数据）
+     * Fix #5: 真正的"覆盖"——先清空所有表，再插入备份数据
      */
     suspend fun importFromJson(json: String): Result<Unit> {
         return try {
             val backup = gson.fromJson(json, BackupData::class.java)
+                ?: return Result.failure(IllegalArgumentException("无效的备份数据"))
 
-            // 批量插入，使用 REPLACE 策略覆盖
+            // 真正清空后插入
+            repository.clearAllTables()
             repository.insertSkills(backup.skills)
             if (backup.professions.isNotEmpty()) repository.insertProfessions(backup.professions)
             if (backup.affixes.isNotEmpty()) repository.insertAffixes(backup.affixes)

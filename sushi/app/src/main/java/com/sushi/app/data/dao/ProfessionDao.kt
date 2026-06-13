@@ -27,6 +27,9 @@ interface ProfessionDao {
     @Query("UPDATE Profession SET totalExp = :totalExp WHERE id = :id")
     suspend fun updateExp(id: String, totalExp: Int)
 
+    @Query("DELETE FROM Profession")
+    suspend fun deleteAll()
+
     @Query("DELETE FROM Profession WHERE id = :id")
     suspend fun deleteById(id: String)
 

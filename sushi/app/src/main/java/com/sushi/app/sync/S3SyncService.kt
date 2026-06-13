@@ -32,6 +32,8 @@ class S3SyncService @Inject constructor() : SyncService {
         private const val SERVICE = "s3"
         private const val AWS4_REQUEST = "aws4_request"
         private const val ALGORITHM = "AWS4-HMAC-SHA256"
+        // Fix #15: 备份文件大小上限 10 MB，防止恶意/异常大文件 OOM
+        private const val MAX_BACKUP_SIZE = 10L * 1024 * 1024
     }
 
     override suspend fun push(jsonContent: String): SyncResult {
@@ -126,7 +128,17 @@ class S3SyncService @Inject constructor() : SyncService {
 
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
+                // Fix #15: 检查 Content-Length，超过限制直接拒绝
+                val contentLength = response.body?.contentLength() ?: -1L
+                if (contentLength > MAX_BACKUP_SIZE) {
+                    response.close()
+                    return SyncResult.Error("备份文件过大 (${contentLength / 1024} KB)，已超过 10 MB 限制")
+                }
+
                 val body = response.body?.string() ?: return SyncResult.Error("拉取失败: 响应为空")
+                if (body.length.toLong() > MAX_BACKUP_SIZE) {
+                    return SyncResult.Error("备份文件过大，已超过 10 MB 限制")
+                }
                 SyncResult.Success(body)
             } else if (response.code == 404) {
                 SyncResult.Error("云端暂无备份数据")

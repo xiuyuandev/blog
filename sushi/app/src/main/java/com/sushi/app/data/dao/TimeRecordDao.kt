@@ -36,8 +36,15 @@ interface TimeRecordDao {
     @Query("SELECT COUNT(*) FROM TimeRecord")
     suspend fun getCount(): Int
 
+    @Query("DELETE FROM TimeRecord")
+    suspend fun deleteAll()
+
     @Query("DELETE FROM TimeRecord WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    // Fix #3: 删除技能时清理关联的 TimeRecord
+    @Query("DELETE FROM TimeRecord WHERE skillId = :skillId")
+    suspend fun deleteBySkillId(skillId: String)
 
     @Update
     suspend fun update(record: TimeRecord)

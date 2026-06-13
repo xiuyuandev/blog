@@ -27,6 +27,13 @@ interface AffixDao {
     @Query("SELECT * FROM Affix WHERE id = :id")
     suspend fun getAffixById(id: String): Affix?
 
+    @Query("DELETE FROM Affix")
+    suspend fun deleteAll()
+
     @Query("DELETE FROM Affix WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    // Fix #3: 删除技能时清理关联的 Affix
+    @Query("DELETE FROM Affix WHERE requiredSkillId = :skillId")
+    suspend fun deleteBySkillId(skillId: String)
 }

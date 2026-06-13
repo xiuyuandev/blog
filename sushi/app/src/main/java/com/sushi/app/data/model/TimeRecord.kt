@@ -12,7 +12,7 @@ data class TimeRecord(
     val netDurationMin: Int,     // 纯时间
     val startDateTime: Long,     // 开始时间
     val endDateTime: Long,       // 结束时间
-    val description: String,     // 做了什么
+    val description: String = "",  // 做了什么，Fix #9: 默认空字符串避免空指针
     val isManualEntry: Boolean = false,  // 是否手动注入
-    val timestamp: Long          // 记录创建时间
+    val timestamp: Long = System.currentTimeMillis()  // 记录创建时间
 )

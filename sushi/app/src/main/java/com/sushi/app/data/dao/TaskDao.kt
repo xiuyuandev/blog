@@ -33,8 +33,15 @@ interface TaskDao {
     @Query("SELECT * FROM Task WHERE isCompleted = 1 ORDER BY createdAt DESC")
     fun getCompletedTasks(): Flow<List<Task>>
 
+    @Query("DELETE FROM Task")
+    suspend fun deleteAll()
+
     @Query("DELETE FROM Task WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    // Fix #3: 删除技能时清理关联的 Task（完成任务保留历史未完成删除）
+    @Query("DELETE FROM Task WHERE linkedSkillId = :skillId AND isCompleted = 0")
+    suspend fun deleteActiveBySkillId(skillId: String)
 
     @Query("UPDATE Task SET isCompleted = 0 WHERE id = :id")
     suspend fun reactivate(id: String)

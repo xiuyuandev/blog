@@ -34,7 +34,7 @@ class ReviewViewModel @Inject constructor(
     private val _selectedDate = MutableStateFlow(System.currentTimeMillis())
 
     init {
-        // 监听所有记录，更新有记录的日期集合
+        // Fix #12: 监听所有记录，实时计算 totalPureTimeMin + datesWithRecords
         viewModelScope.launch {
             repository.getAllRecords().collect { records ->
                 val dates = records.map { record ->
@@ -46,7 +46,16 @@ class ReviewViewModel @Inject constructor(
                         set(Calendar.MILLISECOND, 0)
                     }.timeInMillis
                 }.toSet()
-                _uiState.update { it.copy(datesWithRecords = dates) }
+
+                // Fix #12: 实时计算总纯时间
+                val totalPureTime = records.sumOf { it.netDurationMin }
+
+                _uiState.update {
+                    it.copy(
+                        datesWithRecords = dates,
+                        totalPureTimeMin = totalPureTime
+                    )
+                }
             }
         }
 
@@ -70,8 +79,6 @@ class ReviewViewModel @Inject constructor(
                 }
             }
         }
-
-        loadTotalPureTime()
     }
 
     fun selectDate(timestamp: Long) {
@@ -113,13 +120,6 @@ class ReviewViewModel @Inject constructor(
 
             val total = repository.getTotalNetDuration(monthStart, monthEnd)
             _uiState.update { it.copy(monthlyTotalMin = total, isLoading = false) }
-        }
-    }
-
-    private fun loadTotalPureTime() {
-        viewModelScope.launch {
-            val total = repository.getTotalPureTimeMin()
-            _uiState.update { it.copy(totalPureTimeMin = total) }
         }
     }
 }

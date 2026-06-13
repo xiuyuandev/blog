@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class SyncUiState(
@@ -68,20 +69,22 @@ class SyncViewModel @Inject constructor(
     }
 
     fun testConnection() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             _uiState.update { it.copy(isTesting = true, statusMessage = "") }
-            val config = syncConfigManager.getConfig()
+            val config = withContext(Dispatchers.IO) { syncConfigManager.getConfig() }
 
-            val result = when (config.provider) {
-                SyncProvider.WEBDAV -> {
-                    webDavSyncService.setConfig(config.webDavConfig)
-                    webDavSyncService.testConnection()
+            val result = withContext(Dispatchers.IO) {
+                when (config.provider) {
+                    SyncProvider.WEBDAV -> {
+                        webDavSyncService.setConfig(config.webDavConfig)
+                        webDavSyncService.testConnection()
+                    }
+                    SyncProvider.S3 -> {
+                        s3SyncService.setConfig(config.s3Config)
+                        s3SyncService.testConnection()
+                    }
+                    else -> SyncResult.Error("请先选择同步方式")
                 }
-                SyncProvider.S3 -> {
-                    s3SyncService.setConfig(config.s3Config)
-                    s3SyncService.testConnection()
-                }
-                else -> SyncResult.Error("请先选择同步方式")
             }
 
             _uiState.update {
@@ -97,23 +100,26 @@ class SyncViewModel @Inject constructor(
     }
 
     fun pushToCloud() {
-        viewModelScope.launch(Dispatchers.IO) {
+        // Fix #14: UI 更新在 Main 线程执行，网络 IO 在 IO 线程
+        viewModelScope.launch {
             _uiState.update { it.copy(isPushing = true, statusMessage = "") }
-            val config = syncConfigManager.getConfig()
+            val config = withContext(Dispatchers.IO) { syncConfigManager.getConfig() }
 
             try {
-                val json = backupManager.exportToJson()
-
-                val result = when (config.provider) {
-                    SyncProvider.WEBDAV -> {
-                        webDavSyncService.setConfig(config.webDavConfig)
-                        webDavSyncService.push(json)
+                val (result, pushTime) = withContext(Dispatchers.IO) {
+                    val json = backupManager.exportToJson()
+                    val r = when (config.provider) {
+                        SyncProvider.WEBDAV -> {
+                            webDavSyncService.setConfig(config.webDavConfig)
+                            webDavSyncService.push(json)
+                        }
+                        SyncProvider.S3 -> {
+                            s3SyncService.setConfig(config.s3Config)
+                            s3SyncService.push(json)
+                        }
+                        else -> SyncResult.Error("请先选择同步方式")
                     }
-                    SyncProvider.S3 -> {
-                        s3SyncService.setConfig(config.s3Config)
-                        s3SyncService.push(json)
-                    }
-                    else -> SyncResult.Error("请先选择同步方式")
+                    r to System.currentTimeMillis()
                 }
 
                 _uiState.update {
@@ -127,7 +133,7 @@ class SyncViewModel @Inject constructor(
                             java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.getDefault())
                                 .format(java.util.Date())
                         } else it.lastSyncTime,
-                        lastPushTimestamp = if (result is SyncResult.Success) System.currentTimeMillis() else it.lastPushTimestamp
+                        lastPushTimestamp = if (result is SyncResult.Success) pushTime else it.lastPushTimestamp
                     )
                 }
             } catch (e: Exception) {
@@ -139,33 +145,38 @@ class SyncViewModel @Inject constructor(
     }
 
     fun pullFromCloud(merge: Boolean = false) {
-        viewModelScope.launch(Dispatchers.IO) {
+        // Fix #14: UI 更新在 Main 线程
+        viewModelScope.launch {
             _uiState.update { it.copy(isPulling = true, statusMessage = "") }
-            val config = syncConfigManager.getConfig()
+            val config = withContext(Dispatchers.IO) { syncConfigManager.getConfig() }
 
-            val result = when (config.provider) {
-                SyncProvider.WEBDAV -> {
-                    webDavSyncService.setConfig(config.webDavConfig)
-                    webDavSyncService.pull()
+            val result = withContext(Dispatchers.IO) {
+                when (config.provider) {
+                    SyncProvider.WEBDAV -> {
+                        webDavSyncService.setConfig(config.webDavConfig)
+                        webDavSyncService.pull()
+                    }
+                    SyncProvider.S3 -> {
+                        s3SyncService.setConfig(config.s3Config)
+                        s3SyncService.pull()
+                    }
+                    else -> SyncResult.Error("请先选择同步方式")
                 }
-                SyncProvider.S3 -> {
-                    s3SyncService.setConfig(config.s3Config)
-                    s3SyncService.pull()
-                }
-                else -> SyncResult.Error("请先选择同步方式")
             }
 
             when (result) {
                 is SyncResult.Success -> {
-                    val importResult = if (merge) {
-                        try {
-                            backupManager.mergeFromJson(result.message)
-                            Result.success(Unit)
-                        } catch (e: Exception) {
-                            Result.failure(e)
+                    val importResult = withContext(Dispatchers.IO) {
+                        if (merge) {
+                            try {
+                                backupManager.mergeFromJson(result.message)
+                                Result.success(Unit)
+                            } catch (e: Exception) {
+                                Result.failure(e)
+                            }
+                        } else {
+                            backupManager.importFromJson(result.message)
                         }
-                    } else {
-                        backupManager.importFromJson(result.message)
                     }
                     _uiState.update {
                         it.copy(

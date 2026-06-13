@@ -25,9 +25,7 @@ class SushiApp : Application() {
 
     private fun seedIfFirstLaunch() {
         appScope.launch {
-            val count = repository.getTimeRecordCount()
-            // 如果时间记录为空且技能也为空，说明是首次启动
-            // 使用简单检查：如果没有任何技能数据则预置
+            // Fix #7: 真正判断首次启动——通过查询预置技能是否存在
             try {
                 val skills = seedData.seedSkills()
                 val existingSkill = repository.getSkillById(skills.first().id)
@@ -37,6 +35,14 @@ class SushiApp : Application() {
                     repository.insertAffixes(seedData.seedAffixes())
                     for (task in seedData.seedTasks()) {
                         repository.insertTask(task)
+                    }
+                    // Fix #10: 预置后同步职业经验值（按关联技能求和）
+                    val professions = seedData.seedProfessions()
+                    for (profession in professions) {
+                        val linkedExp = skills
+                            .filter { profession.id in it.linkedProfessionIds }
+                            .sumOf { it.totalExp }
+                        repository.updateProfessionExp(profession.id, linkedExp)
                     }
                 }
             } catch (_: Exception) {
