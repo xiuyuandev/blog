@@ -87,6 +87,14 @@ class PanelViewModel @Inject constructor(
             AttributeType.DOMINION to 0
         )
 
+        // Base attributes: each skill contributes its level to its category's primary attribute
+        for (skill in skills) {
+            val level = experienceEngine.calculateLevel(skill.totalExp)
+            val primaryAttr = categoryPrimaryAttribute[skill.category] ?: continue
+            attributes[primaryAttr] = (attributes[primaryAttr] ?: 0) + level
+        }
+
+        // Affix bonuses
         for (skill in skills) {
             val level = experienceEngine.calculateLevel(skill.totalExp)
             for (affix in affixes) {
@@ -99,6 +107,15 @@ class PanelViewModel @Inject constructor(
         }
 
         return attributes
+    }
+
+    companion object {
+        private val categoryPrimaryAttribute = mapOf(
+            SkillCategory.COGNITION to AttributeType.INTELLECT,
+            SkillCategory.CREATION to AttributeType.CREATION,
+            SkillCategory.FUNCTION to AttributeType.PHYSIQUE,
+            SkillCategory.STRATEGY to AttributeType.INSIGHT
+        )
     }
 
     fun selectProfession(professionId: String) {
