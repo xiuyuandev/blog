@@ -132,6 +132,19 @@ class FocusViewModel @Inject constructor(
         }
     }
 
+    fun dismissSettlement() {
+        _uiState.update {
+            it.copy(
+                showSettlement = false,
+                currentTaskId = null,
+                currentTaskName = null,
+                currentSkillId = null,
+                elapsedSeconds = 0,
+                description = ""
+            )
+        }
+    }
+
     fun dismissSettlementResult() {
         _uiState.update {
             it.copy(

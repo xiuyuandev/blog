@@ -37,7 +37,7 @@ class SushiRepository @Inject constructor(
     fun getAllAffixes(): Flow<List<Affix>> = affixDao.getAllAffixes()
     fun getAffixesBySkillId(skillId: String): Flow<List<Affix>> = affixDao.getAffixesBySkillId(skillId)
     suspend fun getAffixesBySkillIds(skillIds: List<String>): List<Affix> =
-        affixDao.getAffixesBySkillIds(skillIds)
+        if (skillIds.isEmpty()) emptyList() else affixDao.getAffixesBySkillIds(skillIds)
     suspend fun insertAffixes(affixes: List<Affix>) = affixDao.insertAll(affixes)
 
     // Tasks

@@ -22,7 +22,7 @@ object DatabaseModule {
             context,
             SushiDatabase::class.java,
             "sushi_database"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides

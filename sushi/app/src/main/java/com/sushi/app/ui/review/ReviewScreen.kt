@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -30,7 +29,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.sushi.app.data.model.SkillCategory
 import com.sushi.app.data.model.TimeRecord
 import com.sushi.app.ui.theme.Cinnabar
 import com.sushi.app.ui.theme.Ink
@@ -70,8 +68,8 @@ fun ReviewScreen(
         )
 
         StatisticsSection(
-            weeklyStats = uiState.weeklyStats,
-            monthlyStats = uiState.monthlyStats
+            weeklyTotalMin = uiState.weeklyTotalMin,
+            monthlyTotalMin = uiState.monthlyTotalMin
         )
     }
 }
@@ -316,8 +314,8 @@ private fun TimelineEntry(record: TimeRecord) {
 
 @Composable
 private fun StatisticsSection(
-    weeklyStats: Map<SkillCategory, Int>,
-    monthlyStats: Map<SkillCategory, Int>
+    weeklyTotalMin: Int,
+    monthlyTotalMin: Int
 ) {
     Column(
         modifier = Modifier
@@ -333,82 +331,31 @@ private fun StatisticsSection(
         )
 
         // Weekly stats
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = "本周纯时间",
                 style = MaterialTheme.typography.labelLarge,
                 color = InkLight
             )
-            StatsContent(stats = weeklyStats)
+            Text(
+                text = if (weeklyTotalMin > 0) "${weeklyTotalMin}分钟" else "暂无数据",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (weeklyTotalMin > 0) Ink else InkFaint
+            )
         }
 
         // Monthly stats
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = "本月纯时间",
                 style = MaterialTheme.typography.labelLarge,
                 color = InkLight
             )
-            StatsContent(stats = monthlyStats)
-        }
-    }
-}
-
-@Composable
-private fun StatsContent(stats: Map<SkillCategory, Int>) {
-    if (stats.isEmpty()) {
-        val totalWeekly = stats.values.sum()
-        Text(
-            text = if (totalWeekly > 0) "${totalWeekly}分钟" else "暂无数据",
-            style = MaterialTheme.typography.bodyMedium,
-            color = InkFaint
-        )
-    } else {
-        val maxValue = stats.values.maxOrNull()?.coerceAtLeast(1) ?: 1
-        val categoryLabels = mapOf(
-            SkillCategory.COGNITION to "认知",
-            SkillCategory.CREATION to "造物",
-            SkillCategory.FUNCTION to "功能",
-            SkillCategory.STRATEGY to "策略"
-        )
-        val categoryColors = mapOf(
-            SkillCategory.COGNITION to Ink,
-            SkillCategory.CREATION to Cinnabar,
-            SkillCategory.FUNCTION to InkLight,
-            SkillCategory.STRATEGY to InkFaint
-        )
-
-        stats.forEach { (category, minutes) ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = categoryLabels[category] ?: category.name,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = InkLight,
-                    modifier = Modifier.width(36.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(8.dp)
-                        .background(Paper)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction = (minutes.toFloat() / maxValue).coerceIn(0f, 1f))
-                            .height(8.dp)
-                            .background(categoryColors[category] ?: Ink)
-                    )
-                }
-                Text(
-                    text = "${minutes}m",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = InkLight
-                )
-            }
+            Text(
+                text = if (monthlyTotalMin > 0) "${monthlyTotalMin}分钟" else "暂无数据",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (monthlyTotalMin > 0) Ink else InkFaint
+            )
         }
     }
 }

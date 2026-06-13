@@ -75,12 +75,7 @@ class ProfessionViewModel @Inject constructor(
             val progress = experienceEngine.calculateProgress(profession.totalExp)
             val tier = experienceEngine.getVisualTier(level)
 
-            // 找到关联的技能
-            val allSkills = mutableListOf<Skill>()
-            repository.getAllSkills().collect { list ->
-                allSkills.clear()
-                allSkills.addAll(list)
-            }
+            val allSkills = repository.getAllSkills().first()
 
             val coreSkills = allSkills
                 .filter { professionId in it.linkedProfessionIds }

@@ -14,8 +14,8 @@ import javax.inject.Inject
 data class ReviewUiState(
     val selectedDate: Long = System.currentTimeMillis(),
     val recordsByDate: List<TimeRecord> = emptyList(),
-    val weeklyStats: Map<SkillCategory, Int> = emptyMap(),
-    val monthlyStats: Map<SkillCategory, Int> = emptyMap(),
+    val weeklyTotalMin: Int = 0,
+    val monthlyTotalMin: Int = 0,
     val datesWithRecords: Set<Long> = emptySet(),
     val isLoading: Boolean = true
 )
@@ -29,51 +29,52 @@ class ReviewViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ReviewUiState())
     val uiState: StateFlow<ReviewUiState> = _uiState.asStateFlow()
 
-    init {
-        loadDatesWithRecords()
-        selectDate(System.currentTimeMillis())
-    }
+    // 用 selectedDate Flow 驱动记录查询，避免 collect 累积
+    private val _selectedDate = MutableStateFlow(System.currentTimeMillis())
 
-    private fun loadDatesWithRecords() {
+    init {
+        // 监听所有记录，更新有记录的日期集合
         viewModelScope.launch {
             repository.getAllRecords().collect { records ->
                 val dates = records.map { record ->
-                    // 将 timestamp 转换为当天 0 点的时间戳
-                    val cal = Calendar.getInstance().apply {
-                        timeInMillis = record.timestamp
+                    Calendar.getInstance().apply {
+                        timeInMillis = record.startDateTime
                         set(Calendar.HOUR_OF_DAY, 0)
                         set(Calendar.MINUTE, 0)
                         set(Calendar.SECOND, 0)
                         set(Calendar.MILLISECOND, 0)
-                    }
-                    cal.timeInMillis
+                    }.timeInMillis
                 }.toSet()
                 _uiState.update { it.copy(datesWithRecords = dates) }
+            }
+        }
+
+        // 监听 selectedDate 变化，查询对应日期的记录
+        viewModelScope.launch {
+            _selectedDate.flatMapLatest { timestamp ->
+                val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
+                cal.set(Calendar.HOUR_OF_DAY, 0)
+                cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+                val startOfDay = cal.timeInMillis
+
+                cal.add(Calendar.DAY_OF_MONTH, 1)
+                val endOfDay = cal.timeInMillis
+
+                repository.getRecordsByDate(startOfDay, endOfDay)
+            }.collect { records ->
+                _uiState.update {
+                    it.copy(recordsByDate = records, selectedDate = _selectedDate.value)
+                }
             }
         }
     }
 
     fun selectDate(timestamp: Long) {
-        val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        val startOfDay = cal.timeInMillis
-
-        cal.add(Calendar.DAY_OF_MONTH, 1)
-        val endOfDay = cal.timeInMillis
-
-        viewModelScope.launch {
-            repository.getRecordsByDate(startOfDay, endOfDay).collect { records ->
-                _uiState.update {
-                    it.copy(selectedDate = timestamp, recordsByDate = records)
-                }
-            }
-        }
-
-        loadWeeklyStats(startOfDay)
-        loadMonthlyStats(startOfDay)
+        _selectedDate.value = timestamp
+        loadWeeklyStats(timestamp)
+        loadMonthlyStats(timestamp)
     }
 
     private fun loadWeeklyStats(referenceTime: Long) {
@@ -90,8 +91,7 @@ class ReviewViewModel @Inject constructor(
             val weekEnd = cal.timeInMillis
 
             val total = repository.getTotalNetDuration(weekStart, weekEnd)
-            // 简化：按分类统计需要更复杂的查询，这里先展示总计
-            _uiState.update { it.copy(weeklyStats = mapOf(), isLoading = false) }
+            _uiState.update { it.copy(weeklyTotalMin = total, isLoading = false) }
         }
     }
 
@@ -109,7 +109,7 @@ class ReviewViewModel @Inject constructor(
             val monthEnd = cal.timeInMillis
 
             val total = repository.getTotalNetDuration(monthStart, monthEnd)
-            _uiState.update { it.copy(monthlyStats = mapOf(), isLoading = false) }
+            _uiState.update { it.copy(monthlyTotalMin = total, isLoading = false) }
         }
     }
 }

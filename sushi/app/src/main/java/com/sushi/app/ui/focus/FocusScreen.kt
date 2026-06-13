@@ -80,7 +80,7 @@ fun FocusScreen(
                 onAdjustNetDuration = viewModel::adjustNetDuration,
                 onDescriptionChange = viewModel::updateDescription,
                 onConfirm = viewModel::confirmSettlement,
-                onCancel = viewModel::dismissSettlementResult
+                onCancel = viewModel::dismissSettlement
             )
         }
         uiState.isFocusing -> {

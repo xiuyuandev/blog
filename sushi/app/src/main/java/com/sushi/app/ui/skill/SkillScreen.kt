@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -39,7 +40,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Affix
@@ -286,14 +289,14 @@ private fun SkillCard(
                 modifier = Modifier
                     .weight(1f)
                     .height(6.dp)
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp))
+                    .clip(RoundedCornerShape(3.dp))
                     .background(Paper)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(display.progress / 120f)
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp))
+                        .clip(RoundedCornerShape(3.dp))
                         .background(tierColor.copy(alpha = 0.55f))
                 )
             }
@@ -389,14 +392,14 @@ private fun SkillDetailContent(
                         modifier = Modifier
                             .weight(1f)
                             .height(8.dp)
-                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .background(Linen)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .fillMaxWidth(detail.progress / 120f)
-                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(4.dp))
                                 .background(tierColor.copy(alpha = 0.55f))
                         )
                     }
@@ -635,7 +638,14 @@ private fun ManualInjectDialog(
     var minutes by remember { mutableIntStateOf(30) }
     var description by remember { mutableStateOf("") }
     var startDateTime by remember { mutableStateOf(System.currentTimeMillis()) }
-    var endDateTime by remember { mutableStateOf(System.currentTimeMillis() + 30 * 60 * 1000L) }
+
+    // endDateTime 由 startDateTime + minutes 推导，minutes 变化时自动更新
+    var endDateTime by remember { mutableStateOf(startDateTime + 30 * 60 * 1000L) }
+
+    // 当 minutes 变化时同步更新 endDateTime
+    LaunchedEffect(minutes, startDateTime) {
+        endDateTime = startDateTime + minutes * 60 * 1000L
+    }
 
     val startCal = remember { Calendar.getInstance().apply { timeInMillis = startDateTime } }
     val endCal = remember { Calendar.getInstance().apply { timeInMillis = endDateTime } }
@@ -672,7 +682,7 @@ private fun ManualInjectDialog(
                         style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.Serif),
                         color = Ink,
                         modifier = Modifier.weight(1f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
                     OutlinedButton(
                         onClick = { minutes += 5 }

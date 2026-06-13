@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -226,14 +227,14 @@ private fun ProfessionCard(
                 modifier = Modifier
                     .weight(1f)
                     .height(6.dp)
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp))
+                    .clip(RoundedCornerShape(3.dp))
                     .background(Paper)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(display.progress / 120f)
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp))
+                        .clip(RoundedCornerShape(3.dp))
                         .background(tierColor.copy(alpha = 0.55f))
                 )
             }
@@ -349,14 +350,14 @@ private fun ProfessionDetailContent(
                         modifier = Modifier
                             .weight(1f)
                             .height(8.dp)
-                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .background(Linen)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .fillMaxWidth(detail.progress / 120f)
-                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(4.dp))
                                 .background(tierColor.copy(alpha = 0.55f))
                         )
                     }
@@ -434,14 +435,14 @@ private fun CoreSkillItem(
                 modifier = Modifier
                     .weight(1f)
                     .height(4.dp)
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                    .clip(RoundedCornerShape(2.dp))
                     .background(Paper)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(skillWithProgress.progress / 120f)
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(2.dp))
+                        .clip(RoundedCornerShape(2.dp))
                         .background(tierColor.copy(alpha = 0.55f))
                 )
             }
@@ -528,8 +529,8 @@ private fun tierColorFor(tierLabel: String): Color = when (tierLabel) {
 }
 
 private fun tierLabelForLevel(level: Int): String = when {
-    level >= 40 -> "黑曜石"
-    level >= 25 -> "赤金"
+    level >= 100 -> "黑曜石"
+    level >= 30 -> "赤金"
     level >= 10 -> "青铜"
     else -> "原石"
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Badge
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.HourglassTop
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
@@ -31,7 +32,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object Focus : Screen("focus", "专注", Icons.Outlined.HourglassTop)
     data object Skill : Screen("skill", "技能", Icons.Outlined.AutoStories)
     data object Profession : Screen("profession", "职业", Icons.Outlined.Badge)
-    data object Review : Screen("review", "复盘", Icons.Outlined.HourglassTop)
+    data object Review : Screen("review", "复盘", Icons.Outlined.CalendarMonth)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
