@@ -42,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -79,6 +80,7 @@ import com.sushi.app.ui.theme.InkLight
 import com.sushi.app.ui.theme.Linen
 import com.sushi.app.ui.theme.Paper
 import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.util.HapticType
 import com.sushi.app.util.rememberHaptic
@@ -113,7 +115,7 @@ fun FocusScreen(
         )
     }
 
-    // 升级庆祝（升级时全屏动效）
+    // 升级庆祝（升级时全屏动效）- 在结算对话框显示后弹出
     val levelUpEvent = uiState.settlementResult?.levelUpEvents?.firstOrNull()
     if (levelUpEvent != null && !uiState.showGraduationHint) {
         LevelUpCelebration(
@@ -228,7 +230,7 @@ private fun TaskSelectionContent(
     onStartFocusBySkill: (String, String) -> Unit,
     onShowCreateTask: () -> Unit,
     onHideCreateTask: () -> Unit,
-    onCreateTask: (String, String) -> Unit,
+    onCreateTask: (name: String, skillId: String, priority: Int, isTemplate: Boolean, estimatedMin: Int?) -> Unit,
     onReactivateTask: (String) -> Unit,
     onDeleteTask: (String) -> Unit
 ) {
@@ -604,10 +606,13 @@ private fun CompletedTaskCard(
 private fun CreateTaskDialog(
     allSkills: List<Skill>,
     onDismiss: () -> Unit,
-    onCreate: (String, String) -> Unit
+    onCreate: (name: String, skillId: String, priority: Int, isTemplate: Boolean, estimatedMin: Int?) -> Unit
 ) {
     var taskName by rememberSaveable { mutableStateOf("") }
     var selectedSkillId by rememberSaveable { mutableStateOf("") }
+    var priority by rememberSaveable { mutableIntStateOf(0) }
+    var isTemplate by rememberSaveable { mutableStateOf(false) }
+    var estimatedMinText by rememberSaveable { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -637,6 +642,80 @@ private fun CreateTaskDialog(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
+
+                // #15 估算时长
+                TextField(
+                    value = estimatedMinText,
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                            estimatedMinText = newValue
+                        }
+                    },
+                    placeholder = { Text("估算时长（分钟，可选）", color = InkFaint) },
+                    singleLine = true,
+                    shape = CardShapeSmall,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = PaperWarm,
+                        unfocusedContainerColor = PaperWarm,
+                        cursorColor = Ink,
+                        focusedIndicatorColor = Cinnabar,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // #15 优先级
+                Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)) {
+                    Text(
+                        text = "优先级",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = InkLight
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(0 to "普通", 1 to "重要", 2 to "紧急").forEach { (level, label) ->
+                            val isSelected = priority == level
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(PillShape)
+                                    .background(if (isSelected) Cinnabar else PaperWarm)
+                                    .clickable { priority = level }
+                                    .padding(vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isSelected) Paper else InkLight
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // #17 是否为模板
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(CardShapeSmall)
+                        .clickable { isTemplate = !isTemplate }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(CardShapeSmall)
+                            .background(if (isTemplate) Cinnabar else InkFaintest)
+                    )
+                    Text(
+                        text = "保存为模板（可重复使用）",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Ink
+                    )
+                }
 
                 Text(
                     text = "绑定技能",
@@ -689,7 +768,14 @@ private fun CreateTaskDialog(
             Button(
                 onClick = {
                     if (taskName.isNotBlank() && selectedSkillId.isNotBlank()) {
-                        onCreate(taskName.trim(), selectedSkillId)
+                        val estMin = estimatedMinText.toIntOrNull()
+                        onCreate(
+                            taskName.trim(),
+                            selectedSkillId,
+                            priority,
+                            isTemplate,
+                            estMin
+                        )
                     }
                 },
                 enabled = taskName.isNotBlank() && selectedSkillId.isNotBlank(),

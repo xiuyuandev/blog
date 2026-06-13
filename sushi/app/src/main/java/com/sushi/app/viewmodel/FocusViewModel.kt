@@ -69,6 +69,22 @@ class FocusViewModel @Inject constructor(
         }
     }
 
+    fun dismissSettlement() {
+        _uiState.update {
+            it.copy(
+                showSettlement = false,
+                currentTaskId = null,
+                currentTaskName = null,
+                currentSkillId = null,
+                elapsedSeconds = 0,
+                description = "",
+                interruptCount = 0,
+                lastPauseReason = null,
+                isFullScreen = false
+            )
+        }
+    }
+
     fun startFocus(taskId: String, taskName: String, skillId: String) {
         _uiState.update {
             it.copy(
@@ -307,6 +323,13 @@ class FocusViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 标记升级庆祝已处理 - 用户已看过结算对话框
+     */
+    fun markCelebrationHandled() {
+        _uiState.update { it.copy(isCelebrationHandled = true) }
+    }
+
     fun showCreateTask() {
         _uiState.update { it.copy(isCreatingTask = true) }
     }
@@ -315,13 +338,22 @@ class FocusViewModel @Inject constructor(
         _uiState.update { it.copy(isCreatingTask = false) }
     }
 
-    fun createTask(name: String, linkedSkillId: String) {
+    fun createTask(
+        name: String,
+        linkedSkillId: String,
+        priority: Int = 0,
+        isTemplate: Boolean = false,
+        estimatedMin: Int? = null
+    ) {
         viewModelScope.launch {
             val task = Task(
                 id = java.util.UUID.randomUUID().toString(),
                 name = name,
                 linkedSkillId = linkedSkillId,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                priority = priority,
+                isTemplate = isTemplate,
+                estimatedDurationMin = estimatedMin
             )
             repository.insertTask(task)
             _uiState.update { it.copy(isCreatingTask = false) }
