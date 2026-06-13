@@ -24,12 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.EventNote
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.TimeRecord
+import com.sushi.app.ui.components.SushiIcons
+import com.sushi.app.ui.components.SushiLoading
+import com.sushi.app.ui.components.SushiProgressBar
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
 import com.sushi.app.ui.theme.Cinnabar
@@ -72,39 +69,44 @@ fun ReviewScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Paper)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.xxl),
-        verticalArrangement = Arrangement.spacedBy(SushiSpacing.xxl)
-    ) {
-        CalendarView(
-            selectedDate = uiState.selectedDate,
-            datesWithRecords = uiState.datesWithRecords,
-            onSelectDate = viewModel::selectDate
-        )
+    Box(modifier = Modifier.fillMaxSize().background(Paper)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.xxl)
+        ) {
+            CalendarView(
+                selectedDate = uiState.selectedDate,
+                datesWithRecords = uiState.datesWithRecords,
+                onSelectDate = viewModel::selectDate
+            )
 
-        AnimatedContent(
-            targetState = uiState.selectedDate,
-            transitionSpec = {
-                slideInVertically { height -> height / 4 } + fadeIn() togetherWith
-                    slideOutVertically { height -> -height / 4 } + fadeOut()
-            },
-            label = "timeline_transition"
-        ) { targetDate ->
-            TimelineSection(
-                records = uiState.recordsByDate,
-                isLoading = uiState.isLoading
+            AnimatedContent(
+                targetState = uiState.selectedDate,
+                transitionSpec = {
+                    slideInVertically { height -> height / 4 } + fadeIn() togetherWith
+                        slideOutVertically { height -> -height / 4 } + fadeOut()
+                },
+                label = "timeline_transition"
+            ) { _ ->
+                TimelineSection(
+                    records = uiState.recordsByDate,
+                    isLoading = uiState.isLoading
+                )
+            }
+
+            StatisticsSection(
+                totalPureTimeMin = uiState.totalPureTimeMin,
+                weeklyTotalMin = uiState.weeklyTotalMin,
+                monthlyTotalMin = uiState.monthlyTotalMin
             )
         }
 
-        StatisticsSection(
-            totalPureTimeMin = uiState.totalPureTimeMin,
-            weeklyTotalMin = uiState.weeklyTotalMin,
-            monthlyTotalMin = uiState.monthlyTotalMin
-        )
+        if (uiState.isLoading && uiState.recordsByDate.isEmpty()) {
+            SushiLoading(text = "加载中")
+        }
     }
 }
 
@@ -138,7 +140,6 @@ private fun CalendarView(
 
     val daysInMonth = displayCal.getActualMaximum(Calendar.DAY_OF_MONTH)
 
-    // Monday=1 .. Sunday=7, convert to grid index where column 0 = Monday
     val firstDayOfWeek = displayCal.get(Calendar.DAY_OF_WEEK)
     val startColumn = when (firstDayOfWeek) {
         Calendar.MONDAY -> 0
@@ -151,7 +152,6 @@ private fun CalendarView(
         else -> 0
     }
 
-    // Selected day's start-of-day timestamp
     val selectedCal = remember(selectedDate) {
         Calendar.getInstance().apply {
             timeInMillis = selectedDate
@@ -163,7 +163,6 @@ private fun CalendarView(
     }
     val selectedDayTimestamp = selectedCal.timeInMillis
 
-    // Today's start-of-day timestamp
     val todayTimestamp = remember {
         Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
@@ -199,7 +198,7 @@ private fun CalendarView(
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    imageVector = SushiIcons.KeyboardLeft,
                     contentDescription = "上个月",
                     tint = InkLight,
                     modifier = Modifier.size(20.dp)
@@ -229,7 +228,7 @@ private fun CalendarView(
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.CalendarToday,
+                            imageVector = SushiIcons.Calendar,
                             contentDescription = null,
                             tint = Cinnabar,
                             modifier = Modifier.size(10.dp)
@@ -254,7 +253,7 @@ private fun CalendarView(
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    imageVector = SushiIcons.KeyboardRight,
                     contentDescription = "下个月",
                     tint = InkLight,
                     modifier = Modifier.size(20.dp)
@@ -444,7 +443,7 @@ private fun EmptyTimelineState() {
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
     ) {
         Icon(
-            imageVector = Icons.Filled.EventNote,
+            imageVector = SushiIcons.History,
             contentDescription = null,
             tint = InkFaintest,
             modifier = Modifier.size(40.dp)
@@ -503,7 +502,7 @@ private fun TimelineEntry(record: TimeRecord, isLast: Boolean) {
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -524,7 +523,7 @@ private fun TimelineEntry(record: TimeRecord, isLast: Boolean) {
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Schedule,
+                            imageVector = SushiIcons.Schedule,
                             contentDescription = null,
                             tint = Cinnabar,
                             modifier = Modifier.size(10.dp)
@@ -556,7 +555,6 @@ private fun StatisticsSection(
     weeklyTotalMin: Int,
     monthlyTotalMin: Int
 ) {
-    // Weekly goal: 40 hours = 2400 min; Monthly goal: 160 hours = 9600 min
     val weeklyGoalMin = 2400
     val monthlyGoalMin = 9600
     val weeklyProgress = if (weeklyTotalMin > 0) (weeklyTotalMin.toFloat() / weeklyGoalMin).coerceIn(0f, 1f) else 0f
@@ -577,7 +575,7 @@ private fun StatisticsSection(
             color = Ink
         )
 
-        // Total pure time — Fix #24
+        // Total pure time
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -613,7 +611,7 @@ private fun StatisticsSection(
                     horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.CalendarToday,
+                        imageVector = SushiIcons.Calendar,
                         contentDescription = null,
                         tint = InkLight,
                         modifier = Modifier.size(14.dp)
@@ -632,22 +630,12 @@ private fun StatisticsSection(
                     color = if (weeklyTotalMin > 0) Ink else InkFaint
                 )
             }
-            // Progress bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(CardShapeSmall)
-                    .background(InkFaintest.copy(alpha = 0.3f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(weeklyProgress)
-                        .height(6.dp)
-                        .clip(CardShapeSmall)
-                        .background(Cinnabar)
-                )
-            }
+            // 进度条（统一组件）
+            SushiProgressBar(
+                progress = weeklyProgress,
+                color = Cinnabar,
+                size = 6.dp
+            )
             Text(
                 text = if (weeklyTotalMin > 0) "目标 ${formatDuration(weeklyGoalMin)}" else "",
                 style = MaterialTheme.typography.labelSmall,
@@ -675,7 +663,7 @@ private fun StatisticsSection(
                     horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.EventNote,
+                        imageVector = SushiIcons.History,
                         contentDescription = null,
                         tint = InkLight,
                         modifier = Modifier.size(14.dp)
@@ -694,22 +682,11 @@ private fun StatisticsSection(
                     color = if (monthlyTotalMin > 0) Ink else InkFaint
                 )
             }
-            // Progress bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(CardShapeSmall)
-                    .background(InkFaintest.copy(alpha = 0.3f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(monthlyProgress)
-                        .height(6.dp)
-                        .clip(CardShapeSmall)
-                        .background(CinnabarLight)
-                )
-            }
+            SushiProgressBar(
+                progress = monthlyProgress,
+                color = CinnabarLight,
+                size = 6.dp
+            )
             Text(
                 text = if (monthlyTotalMin > 0) "目标 ${formatDuration(monthlyGoalMin)}" else "",
                 style = MaterialTheme.typography.labelSmall,

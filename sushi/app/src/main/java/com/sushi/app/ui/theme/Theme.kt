@@ -1,6 +1,7 @@
 package com.sushi.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +21,25 @@ private val SushiColorScheme = lightColorScheme(
     onSurfaceVariant = InkLight,
     outline = InkFaint,
     outlineVariant = PaperDark,
+    error = Cinnabar,
+    onError = Paper
+)
+
+// 暗色配色：纸→墨黑、墨→纸白、亚麻→深灰、朱砂红保持
+private val SushiDarkColorScheme = darkColorScheme(
+    primary = Cinnabar,
+    onPrimary = Paper,
+    secondary = Paper,
+    onSecondary = Ink,
+    tertiary = BronzeCopper,
+    background = Ink,
+    onBackground = Paper,
+    surface = Ink,
+    onSurface = Paper,
+    surfaceVariant = ObsidianBlack,
+    onSurfaceVariant = PaperDark,
+    outline = InkLight,
+    outlineVariant = ObsidianBlack,
     error = Cinnabar,
     onError = Paper
 )
@@ -51,10 +71,12 @@ object SushiAnim {
 
 @Composable
 fun SushiTheme(
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val colorScheme = if (darkTheme) SushiDarkColorScheme else SushiColorScheme
     MaterialTheme(
-        colorScheme = SushiColorScheme,
+        colorScheme = colorScheme,
         typography = SushiTypography,
         content = content
     )

@@ -9,35 +9,33 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -46,11 +44,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sushi.app.data.model.Affix
+import com.sushi.app.data.model.Profession
+import com.sushi.app.ui.components.MenuAction
+import com.sushi.app.ui.components.StampDeleteButton
+import com.sushi.app.ui.components.SushiBackButton
+import com.sushi.app.ui.components.SushiFab
+import com.sushi.app.ui.components.SushiIcons
+import com.sushi.app.ui.components.SushiLoading
+import com.sushi.app.ui.components.SushiOverflowMenu
+import com.sushi.app.ui.components.SushiProgressBar
 import com.sushi.app.ui.theme.AmberGold
 import com.sushi.app.ui.theme.BronzeCopper
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
 import com.sushi.app.ui.theme.Cinnabar
+import com.sushi.app.ui.theme.CinnabarFaint
+import com.sushi.app.ui.theme.CinnabarLight
 import com.sushi.app.ui.theme.DialogShape
 import com.sushi.app.ui.theme.Ink
 import com.sushi.app.ui.theme.InkFaint
@@ -63,6 +73,8 @@ import com.sushi.app.ui.theme.PaperWarm
 import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.RawStoneGray
 import com.sushi.app.ui.theme.SushiSpacing
+import com.sushi.app.util.HapticType
+import com.sushi.app.util.rememberHaptic
 import com.sushi.app.viewmodel.ProfessionDetail
 import com.sushi.app.viewmodel.ProfessionDisplay
 import com.sushi.app.viewmodel.ProfessionUiState
@@ -74,24 +86,38 @@ fun ProfessionScreen(
     viewModel: ProfessionViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val haptic = rememberHaptic()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Crossfade(
             targetState = uiState.selectedProfession != null,
-            animationSpec = tween(durationMillis = 300)
+            animationSpec = tween(durationMillis = 300),
+            label = "professionCrossfade"
         ) { hasDetail ->
             if (hasDetail && uiState.selectedProfession != null) {
                 ProfessionDetailContent(
                     detail = uiState.selectedProfession!!,
                     onBack = viewModel::clearSelectedProfession,
-                    onDeleteProfession = { viewModel.deleteProfession(it) },
-                    onUpdateProfessionName = { id, name -> viewModel.updateProfessionName(id, name) }
+                    onDeleteProfession = { id ->
+                        haptic(HapticType.REJECT)
+                        viewModel.deleteProfession(id)
+                    },
+                    onUpdateProfessionName = { id, name ->
+                        haptic(HapticType.CONFIRM)
+                        viewModel.updateProfessionName(id, name)
+                    }
                 )
             } else {
                 ProfessionListContent(
                     uiState = uiState,
-                    onSelectProfession = viewModel::selectProfession,
-                    onShowCreate = viewModel::showCreate
+                    onSelectProfession = { id ->
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.selectProfession(id)
+                    },
+                    onShowCreate = {
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.showCreate()
+                    }
                 )
             }
         }
@@ -99,6 +125,7 @@ fun ProfessionScreen(
         if (uiState.isCreating) {
             CreateProfessionDialog(
                 onConfirm = { name ->
+                    haptic(HapticType.CONFIRM)
                     viewModel.createProfession(name)
                 },
                 onDismiss = viewModel::hideCreate
@@ -106,18 +133,7 @@ fun ProfessionScreen(
         }
 
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Paper),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "…",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = InkFaint
-                )
-            }
+            SushiLoading(text = "加载中")
         }
     }
 }
@@ -147,33 +163,7 @@ private fun ProfessionListContent(
             )
 
             if (uiState.professions.isEmpty() && !uiState.isLoading) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = SushiSpacing.xxxl),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
-                ) {
-                    Text(
-                        text = "游侠",
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontFamily = FontFamily.Serif,
-                            fontWeight = FontWeight.Light
-                        ),
-                        color = InkLight
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(40.dp)
-                            .height(1.dp)
-                            .background(InkFaintest)
-                    )
-                    Text(
-                        text = "你尚未选择职业，自由如风",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = InkFaint
-                    )
-                }
+                EmptyProfessionState(onAction = onShowCreate)
             } else {
                 uiState.professions.forEach { display ->
                     ProfessionCard(
@@ -182,26 +172,69 @@ private fun ProfessionListContent(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(80.dp))
         }
 
-        // FAB
+        SushiFab(
+            onClick = onShowCreate,
+            icon = SushiIcons.Add,
+            contentDescription = "新建职业"
+        )
+    }
+}
+
+@Composable
+private fun EmptyProfessionState(onAction: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 64.dp, bottom = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
+    ) {
+        Text(
+            text = "游侠",
+            style = MaterialTheme.typography.displayLarge.copy(
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.Light
+            ),
+            color = InkLight
+        )
         Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = SushiSpacing.xl, bottom = SushiSpacing.xl)
-                .shadow(4.dp, CircleShape)
-                .background(Cinnabar, CircleShape)
-                .clip(CircleShape)
-                .clickable(onClick = onShowCreate)
-                .padding(horizontal = 24.dp, vertical = 14.dp)
-        ) {
-            Text(
-                text = "+",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = Paper
+                .size(width = 40.dp, height = 1.dp)
+                .background(InkFaintest)
+        )
+        Text(
+            text = "你尚未选择职业，自由如风",
+            style = MaterialTheme.typography.bodyMedium,
+            color = InkFaint
+        )
+        Spacer(modifier = Modifier.height(SushiSpacing.md))
+        Button(
+            onClick = onAction,
+            shape = CardShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Cinnabar,
+                contentColor = Paper
             )
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+            ) {
+                Icon(
+                    imageVector = SushiIcons.Add,
+                    contentDescription = null,
+                    tint = Paper,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = "新建职业",
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
         }
     }
 }
@@ -212,6 +245,7 @@ private fun ProfessionCard(
     onClick: () -> Unit
 ) {
     val tierColor = tierColorFor(display.tierLabel)
+    val progress = (display.progress / 120f).coerceIn(0f, 1f)
 
     Column(
         modifier = Modifier
@@ -221,7 +255,7 @@ private fun ProfessionCard(
             .background(Linen)
             .clickable(onClick = onClick)
             .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -242,21 +276,12 @@ private fun ProfessionCard(
                 Text(
                     text = "${display.level}",
                     style = MaterialTheme.typography.headlineLarge.copy(
-                        fontFamily = FontFamily.Serif
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.Bold
                     ),
                     color = Ink
                 )
-                Box(
-                    modifier = Modifier
-                        .background(tierColor.copy(alpha = 0.12f), PillShape)
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = display.tierLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tierColor
-                    )
-                }
+                TierPill(label = display.tierLabel, color = tierColor)
             }
         }
 
@@ -264,27 +289,34 @@ private fun ProfessionCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(8.dp)
-                    .clip(CardShapeSmall)
-                    .background(PaperWarm)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(display.progress / 120f)
-                        .clip(CardShapeSmall)
-                        .background(tierColor.copy(alpha = 0.55f))
-                )
-            }
+            SushiProgressBar(
+                progress = progress,
+                color = tierColor,
+                size = 6.dp,
+                modifier = Modifier.weight(1f)
+            )
             Text(
                 text = "${display.progress}/120",
                 style = MaterialTheme.typography.labelSmall,
                 color = InkFaint
             )
         }
+    }
+}
+
+@Composable
+fun TierPill(label: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .clip(PillShape)
+            .background(color.copy(alpha = 0.12f))
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color
+        )
     }
 }
 
@@ -296,8 +328,10 @@ private fun ProfessionDetailContent(
     onUpdateProfessionName: (String, String) -> Unit
 ) {
     val tierColor = tierColorFor(detail.tierLabel)
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-    var showEditName by remember { mutableStateOf(false) }
+    val progress = (detail.progress / 120f).coerceIn(0f, 1f)
+
+    var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var showEditName by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -305,33 +339,29 @@ private fun ProfessionDetailContent(
             .background(Paper)
             .verticalScroll(rememberScrollState())
     ) {
-        // Back button
+        // Header with back + overflow menu
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(CardShape)
-                .clickable(onClick = onBack)
                 .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Linen),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "←",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = InkLight
+            SushiBackButton(onClick = onBack)
+            SushiOverflowMenu(
+                actions = listOf(
+                    MenuAction(
+                        label = "编辑名称",
+                        icon = SushiIcons.Edit,
+                        onClick = { showEditName = true }
+                    ),
+                    MenuAction(
+                        label = "删除职业",
+                        icon = SushiIcons.Delete,
+                        isDestructive = true,
+                        onClick = { showDeleteConfirm = true }
+                    )
                 )
-            }
-            Spacer(modifier = Modifier.width(SushiSpacing.sm))
-            Text(
-                text = "返回",
-                style = MaterialTheme.typography.bodyMedium,
-                color = InkLight
             )
         }
 
@@ -357,9 +387,9 @@ private fun ProfessionDetailContent(
                 )
                 Box(
                     modifier = Modifier
-                        .align(Alignment.Bottom)
                         .padding(bottom = 10.dp)
-                        .background(tierColor.copy(alpha = 0.12f), PillShape)
+                        .clip(PillShape)
+                        .background(tierColor.copy(alpha = 0.12f))
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
@@ -370,23 +400,16 @@ private fun ProfessionDetailContent(
                 }
             }
 
-            // Profession name — tappable to edit
+            // Profession name
             Text(
                 text = detail.profession.name,
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontFamily = FontFamily.SansSerif
                 ),
-                color = Ink,
-                modifier = Modifier
-                    .clip(CardShapeSmall)
-                    .clickable { showEditName = true }
-                    .padding(vertical = 2.dp)
+                color = Ink
             )
 
-            Divider(
-                color = InkFaintest,
-                thickness = 1.dp
-            )
+            Divider1px()
 
             // Total pure time
             val hours = detail.totalPureTimeMin / 60
@@ -408,10 +431,7 @@ private fun ProfessionDetailContent(
                 )
             }
 
-            Divider(
-                color = InkFaintest,
-                thickness = 1.dp
-            )
+            Divider1px()
 
             // Progress bar
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -424,21 +444,12 @@ private fun ProfessionDetailContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(10.dp)
-                            .clip(CardShapeSmall)
-                            .background(Linen)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(detail.progress / 120f)
-                                .clip(CardShapeSmall)
-                                .background(tierColor.copy(alpha = 0.55f))
-                        )
-                    }
+                    SushiProgressBar(
+                        progress = progress,
+                        color = tierColor,
+                        size = 8.dp,
+                        modifier = Modifier.weight(1f)
+                    )
                     Text(
                         text = "${detail.progress}/120",
                         style = MaterialTheme.typography.labelMedium,
@@ -447,10 +458,7 @@ private fun ProfessionDetailContent(
                 }
             }
 
-            Divider(
-                color = InkFaintest,
-                thickness = 1.dp
-            )
+            Divider1px()
 
             // Core skills matrix
             Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
@@ -473,10 +481,7 @@ private fun ProfessionDetailContent(
                 }
             }
 
-            Divider(
-                color = InkFaintest,
-                thickness = 1.dp
-            )
+            Divider1px()
 
             // Affixes section
             Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
@@ -494,91 +499,19 @@ private fun ProfessionDetailContent(
                     )
                 } else {
                     detail.unlockedAffixes.forEach { affix ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .shadow(1.dp, CardShapeSmall)
-                                .clip(CardShapeSmall)
-                                .background(Linen)
-                                .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "已解锁",
-                                tint = Color(0xFF4CAF50),
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = affix.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Ink
-                                )
-                                if (affix.description.isNotBlank()) {
-                                    Text(
-                                        text = affix.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = InkLight
-                                    )
-                                }
-                            }
-                        }
+                        AffixRow(affix = affix, isUnlocked = true)
                     }
-
                     detail.lockedAffixes.forEach { affix ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .shadow(1.dp, CardShapeSmall)
-                                .clip(CardShapeSmall)
-                                .background(PaperWarm)
-                                .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = "未解锁",
-                                tint = InkFaint,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = affix.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = InkFaint
-                                )
-                                Text(
-                                    text = "需要技能等级 ${affix.requiredSkillLevel}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = InkFaint
-                                )
-                            }
-                        }
+                        AffixRow(affix = affix, isUnlocked = false)
                     }
                 }
             }
 
-            // Delete profession button
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(CardShapeSmall)
-                    .background(Color(0xFFFFEBEE))
-                    .clickable { showDeleteConfirm = true }
-                    .padding(vertical = 14.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "删除职业",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = Color(0xFFD32F2F)
-                )
-            }
+            // Delete profession button (stamp style)
+            StampDeleteButton(
+                onClick = { showDeleteConfirm = true },
+                label = "删除职业"
+            )
 
             Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
         }
@@ -606,24 +539,23 @@ private fun ProfessionDetailContent(
                 )
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         showDeleteConfirm = false
                         onDeleteProfession(detail.profession.id)
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Cinnabar,
+                        contentColor = Paper
+                    ),
+                    shape = CardShape
                 ) {
-                    Text(
-                        text = "删除",
-                        color = Color(0xFFD32F2F)
-                    )
+                    Text(text = "删除")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(
-                        text = "取消",
-                        color = InkLight
-                    )
+                    Text(text = "取消", color = InkLight)
                 }
             },
             containerColor = Paper
@@ -644,12 +576,57 @@ private fun ProfessionDetailContent(
 }
 
 @Composable
+private fun Divider1px() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(InkFaintest)
+    )
+}
+
+@Composable
+private fun AffixRow(affix: Affix, isUnlocked: Boolean) {
+    val contentAlpha = if (isUnlocked) 1f else 0.5f
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CardShapeSmall)
+            .background(if (isUnlocked) Linen else PaperWarm)
+            .alpha(contentAlpha)
+            .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+    ) {
+        Icon(
+            imageVector = if (isUnlocked) SushiIcons.Check else SushiIcons.Lock,
+            contentDescription = null,
+            tint = if (isUnlocked) Cinnabar else InkFaint,
+            modifier = Modifier.size(16.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = affix.name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isUnlocked) Ink else InkFaint
+            )
+            Text(
+                text = if (isUnlocked) affix.description else "需要技能等级 ${affix.requiredSkillLevel}",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkFaint
+            )
+        }
+    }
+}
+
+@Composable
 private fun EditProfessionNameDialog(
     currentName: String,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name by remember { mutableStateOf(currentName) }
+    var name by rememberSaveable(currentName) { mutableStateOf(currentName) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -664,49 +641,49 @@ private fun EditProfessionNameDialog(
             )
         },
         text = {
-            OutlinedTextField(
+            TextField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = {
-                    Text(
-                        text = "职业名称",
-                        color = InkFaint
-                    )
-                },
+                placeholder = { Text("职业名称", color = InkFaint) },
                 singleLine = true,
                 shape = CardShapeSmall,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Cinnabar,
-                    unfocusedBorderColor = InkLight,
-                    focusedTextColor = Ink,
-                    unfocusedTextColor = Ink,
-                    cursorColor = Cinnabar,
+                colors = TextFieldDefaults.colors(
                     focusedContainerColor = PaperWarm,
-                    unfocusedContainerColor = PaperWarm
+                    unfocusedContainerColor = PaperWarm,
+                    cursorColor = Ink,
+                    focusedIndicatorColor = Cinnabar,
+                    unfocusedIndicatorColor = InkFaint
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     if (name.isNotBlank()) {
                         onConfirm(name.trim())
                     }
-                }
+                },
+                enabled = name.isNotBlank(),
+                shape = CardShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Cinnabar,
+                    contentColor = Paper,
+                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
+                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                )
             ) {
                 Text(
                     text = "确认",
-                    color = Cinnabar
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
                 )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(
-                    text = "取消",
-                    color = InkLight
-                )
+                Text(text = "取消", color = InkLight)
             }
         },
         containerColor = Paper
@@ -718,6 +695,7 @@ private fun CoreSkillItem(
     skillWithProgress: SkillWithProgress
 ) {
     val tierColor = tierColorFor(tierLabelForLevel(skillWithProgress.level))
+    val progress = (skillWithProgress.progress / 120f).coerceIn(0f, 1f)
 
     Column(
         modifier = Modifier
@@ -762,21 +740,12 @@ private fun CoreSkillItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(6.dp)
-                    .clip(CardShapeSmall)
-                    .background(PaperWarm)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(skillWithProgress.progress / 120f)
-                        .clip(CardShapeSmall)
-                        .background(tierColor.copy(alpha = 0.55f))
-                )
-            }
+            SushiProgressBar(
+                progress = progress,
+                color = tierColor,
+                size = 6.dp,
+                modifier = Modifier.weight(1f)
+            )
             Text(
                 text = "${skillWithProgress.progress}/120",
                 style = MaterialTheme.typography.labelSmall,
@@ -791,7 +760,7 @@ private fun CreateProfessionDialog(
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -806,49 +775,49 @@ private fun CreateProfessionDialog(
             )
         },
         text = {
-            OutlinedTextField(
+            TextField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = {
-                    Text(
-                        text = "职业名称",
-                        color = InkFaint
-                    )
-                },
+                placeholder = { Text("职业名称", color = InkFaint) },
                 singleLine = true,
                 shape = CardShapeSmall,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Cinnabar,
-                    unfocusedBorderColor = InkLight,
-                    focusedTextColor = Ink,
-                    unfocusedTextColor = Ink,
-                    cursorColor = Cinnabar,
+                colors = TextFieldDefaults.colors(
                     focusedContainerColor = PaperWarm,
-                    unfocusedContainerColor = PaperWarm
+                    unfocusedContainerColor = PaperWarm,
+                    cursorColor = Ink,
+                    focusedIndicatorColor = Cinnabar,
+                    unfocusedIndicatorColor = InkFaint
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     if (name.isNotBlank()) {
                         onConfirm(name.trim())
                     }
-                }
+                },
+                enabled = name.isNotBlank(),
+                shape = CardShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Cinnabar,
+                    contentColor = Paper,
+                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
+                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                )
             ) {
                 Text(
-                    text = "确认",
-                    color = Cinnabar
+                    text = "创建",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
                 )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(
-                    text = "取消",
-                    color = InkLight
-                )
+                Text(text = "取消", color = InkLight)
             }
         },
         containerColor = Paper

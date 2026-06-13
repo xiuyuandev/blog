@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,7 +32,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -45,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +54,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -66,15 +66,24 @@ import com.sushi.app.data.model.SkillCategory
 import com.sushi.app.data.model.TimeRecord
 import com.sushi.app.logic.LevelUpEvent
 import com.sushi.app.logic.SettlementResult
+import com.sushi.app.ui.components.MenuAction
+import com.sushi.app.ui.components.StampDeleteButton
+import com.sushi.app.ui.components.SushiBackButton
+import com.sushi.app.ui.components.SushiFab
+import com.sushi.app.ui.components.SushiIcons
+import com.sushi.app.ui.components.SushiLoading
+import com.sushi.app.ui.components.SushiOverflowMenu
+import com.sushi.app.ui.components.SushiProgressBar
+import com.sushi.app.ui.components.UndoSnackbar
 import com.sushi.app.ui.theme.AmberGold
 import com.sushi.app.ui.theme.BronzeCopper
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
 import com.sushi.app.ui.theme.Cinnabar
+import com.sushi.app.ui.theme.CinnabarFaint
 import com.sushi.app.ui.theme.CinnabarLight
 import com.sushi.app.ui.theme.DialogShape
 import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkAlpha08
 import com.sushi.app.ui.theme.InkFaint
 import com.sushi.app.ui.theme.InkFaintest
 import com.sushi.app.ui.theme.InkLight
@@ -84,7 +93,10 @@ import com.sushi.app.ui.theme.Paper
 import com.sushi.app.ui.theme.PaperWarm
 import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.RawStoneGray
+import com.sushi.app.ui.theme.SushiAnim
 import com.sushi.app.ui.theme.SushiSpacing
+import com.sushi.app.util.HapticType
+import com.sushi.app.util.rememberHaptic
 import com.sushi.app.viewmodel.SkillDetail
 import com.sushi.app.viewmodel.SkillDisplay
 import com.sushi.app.viewmodel.SkillUiState
@@ -98,6 +110,7 @@ fun SkillScreen(
     viewModel: SkillViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val haptic = rememberHaptic()
 
     Box(modifier = Modifier.fillMaxSize()) {
         Crossfade(
@@ -116,36 +129,41 @@ fun SkillScreen(
                             professionId
                         )
                     },
-                    onManualInject = viewModel::showManualInject,
-                    onDeleteSkill = { viewModel.deleteSkill(uiState.selectedSkill!!.skill.id) },
+                    onManualInject = {
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.showManualInject()
+                    },
+                    onDeleteSkill = {
+                        haptic(HapticType.LONG_PRESS)
+                        viewModel.deleteSkill(uiState.selectedSkill!!.skill.id)
+                    },
                     onEditSkillName = { newName ->
+                        haptic(HapticType.CONFIRM)
                         viewModel.updateSkillName(uiState.selectedSkill!!.skill.id, newName)
                     },
-                    onDeleteTimeRecord = viewModel::deleteTimeRecord
+                    onDeleteTimeRecord = { id ->
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.deleteTimeRecord(id)
+                    }
                 )
             } else {
                 SkillListContent(
                     uiState = uiState,
                     onSelectCategory = viewModel::selectCategory,
-                    onSelectSkill = viewModel::selectSkill,
-                    onCreateSkill = viewModel::showCreateSkill
+                    onSelectSkill = { id ->
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.selectSkill(id)
+                    },
+                    onCreateSkill = {
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.showCreateSkill()
+                    }
                 )
             }
         }
 
         if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Paper),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "…",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = InkFaint
-                )
-            }
+            SushiLoading(text = "加载中")
         }
     }
 
@@ -153,6 +171,7 @@ fun SkillScreen(
         ManualInjectDialog(
             skillName = uiState.selectedSkill!!.skill.name,
             onConfirm = { minutes, startDt, endDt, desc ->
+                haptic(HapticType.CONFIRM)
                 viewModel.manualInject(
                     skillId = uiState.selectedSkill!!.skill.id,
                     netDurationMin = minutes,
@@ -168,25 +187,28 @@ fun SkillScreen(
     uiState.manualInjectResult?.let { result ->
         SettlementResultDialog(
             result = result,
-            onDismiss = viewModel::dismissManualInjectResult
+            onDismiss = {
+                haptic(HapticType.LONG_PRESS)
+                viewModel.dismissManualInjectResult()
+            }
         )
     }
 
-    // Fix #11: Create skill dialog
     if (uiState.isCreatingSkill) {
         CreateSkillDialog(
             onConfirm = { name, category ->
+                haptic(HapticType.CONFIRM)
                 viewModel.createSkill(name, category)
             },
             onDismiss = viewModel::hideCreateSkill
         )
     }
 
-    // Fix #23: Add profession dialog
     if (uiState.showAddProfessionDialog) {
         AddProfessionDialog(
             availableProfessions = uiState.availableProfessions,
             onSelect = { professionId ->
+                haptic(HapticType.CONFIRM)
                 viewModel.addProfessionToSelectedSkill(professionId)
             },
             onDismiss = viewModel::hideAddProfessionDialog
@@ -212,7 +234,6 @@ private fun SkillListContent(
                 onSelectCategory = onSelectCategory
             )
 
-            // Fix #16: Category stats bar
             CategoryStatsBar(
                 selectedCategory = uiState.selectedCategory,
                 categoryStats = uiState.categoryStats
@@ -226,33 +247,13 @@ private fun SkillListContent(
                 verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
             ) {
                 if (uiState.skills.isEmpty() && !uiState.isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 64.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
-                        ) {
-                            Text(
-                                text = "◎",
-                                style = MaterialTheme.typography.displaySmall,
-                                color = InkFaintest
-                            )
-                            Text(
-                                text = "暂无技能",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = InkFaint
-                            )
-                            Text(
-                                text = "在当前分类下还没有技能",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = InkFaintest
-                            )
-                        }
-                    }
+                    EmptyState(
+                        icon = SushiIcons.Inventory,
+                        title = "暂无技能",
+                        subtitle = "在当前分类下还没有技能",
+                        actionLabel = "+ 新建技能",
+                        onAction = onCreateSkill
+                    )
                 } else {
                     uiState.skills.forEach { display ->
                         SkillCard(
@@ -264,23 +265,11 @@ private fun SkillListContent(
             }
         }
 
-        // Fix #11: FAB for creating skill
-        FloatingActionButton(
+        SushiFab(
             onClick = onCreateSkill,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = SushiSpacing.xl, bottom = SushiSpacing.xl),
-            containerColor = Cinnabar,
-            contentColor = Paper,
-            shape = CircleShape
-        ) {
-            Text(
-                text = "+",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
-        }
+            icon = SushiIcons.Add,
+            contentDescription = "新建技能"
+        )
     }
 }
 
@@ -345,7 +334,6 @@ private fun CategoryTabs(
     }
 }
 
-// Fix #16: Category stats bar
 @Composable
 private fun CategoryStatsBar(
     selectedCategory: SkillCategory,
@@ -392,6 +380,7 @@ private fun SkillCard(
     onClick: () -> Unit
 ) {
     val tierColor = tierColorFor(display.tierLabel)
+    val progress = (display.progress / 120f).coerceIn(0f, 1f)
 
     Column(
         modifier = Modifier
@@ -401,7 +390,7 @@ private fun SkillCard(
             .background(Linen)
             .clickable(onClick = onClick)
             .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -425,18 +414,7 @@ private fun SkillCard(
                     ),
                     color = Ink
                 )
-                Box(
-                    modifier = Modifier
-                        .clip(PillShape)
-                        .background(tierColor.copy(alpha = 0.12f))
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = display.tierLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tierColor
-                    )
-                }
+                TierPill(label = display.tierLabel, color = tierColor)
             }
         }
 
@@ -444,35 +422,34 @@ private fun SkillCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(Paper)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(display.progress / 120f)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(tierColor.copy(alpha = 0.55f))
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(display.progress / 120f)
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(tierColor.copy(alpha = 0.2f))
-                        .offset(x = (-1).dp)
-                )
-            }
+            SushiProgressBar(
+                progress = progress,
+                color = tierColor,
+                size = 6.dp,
+                modifier = Modifier.weight(1f)
+            )
             Text(
                 text = "${display.progress}/120",
                 style = MaterialTheme.typography.labelSmall,
                 color = InkFaint
             )
         }
+    }
+}
+
+@Composable
+fun TierPill(label: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .clip(PillShape)
+            .background(color.copy(alpha = 0.12f))
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color
+        )
     }
 }
 
@@ -488,323 +465,297 @@ private fun SkillDetailContent(
     onDeleteTimeRecord: (String) -> Unit
 ) {
     val tierColor = tierColorFor(detail.tierLabel)
+    val progress = (detail.progress / 120f).coerceIn(0f, 1f)
 
-    // Fix #6: Delete skill confirmation dialog state
     var showDeleteConfirm by remember { mutableStateOf(false) }
-
-    // Fix #9: Edit skill name dialog state
     var showEditNameDialog by remember { mutableStateOf(false) }
-
-    // Fix #13: Delete time record confirmation dialog state
     var recordToDelete by remember { mutableStateOf<TimeRecord?>(null) }
+    var lastDeleted by remember { mutableStateOf<TimeRecord?>(null) }
+    var showUndoSnackbar by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Paper)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(CardShapeSmall)
-                    .background(PaperWarm)
-                    .clickable(onClick = onBack)
-                    .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "←",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = InkLight
-                    )
-                    Text(
-                        text = "返回",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = InkLight
-                    )
-                }
-            }
-        }
-
+    Box(modifier = Modifier.fillMaxSize().background(Paper)) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = SushiSpacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(SushiSpacing.xxl)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
+            // Header with back + overflow menu
             Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.md)
-            ) {
-                Text(
-                    text = "${detail.level}",
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontFamily = FontFamily.Serif,
-                        fontSize = 72.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = Ink
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(PillShape)
-                        .background(tierColor.copy(alpha = 0.12f))
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                        .offset(y = (-8).dp)
-                ) {
-                    Text(
-                        text = detail.tierLabel,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = tierColor,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            // Fix #9: Skill name is tappable to edit
-            Text(
-                text = detail.skill.name,
-                style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.SansSerif),
-                color = Ink,
-                modifier = Modifier.clickable { showEditNameDialog = true }
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "经验值",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = InkLight
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(10.dp)
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(Linen)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(detail.progress / 120f)
-                                .clip(RoundedCornerShape(5.dp))
-                                .background(tierColor.copy(alpha = 0.55f))
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(detail.progress / 120f)
-                                .clip(RoundedCornerShape(5.dp))
-                                .background(tierColor.copy(alpha = 0.2f))
-                                .offset(x = (-1).dp)
-                        )
-                    }
-                    Text(
-                        text = "${detail.progress}/120",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = InkFaint
-                    )
-                }
-            }
-
-            Button(
-                onClick = onManualInject,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper
-                ),
-                shape = CardShape
+                    .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "+ 手动注入时间",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold
+                SushiBackButton(onClick = onBack)
+                SushiOverflowMenu(
+                    actions = listOf(
+                        MenuAction(
+                            label = "编辑名称",
+                            icon = SushiIcons.Edit,
+                            onClick = { showEditNameDialog = true }
+                        ),
+                        MenuAction(
+                            label = "删除技能",
+                            icon = SushiIcons.Delete,
+                            isDestructive = true,
+                            onClick = { showDeleteConfirm = true }
+                        )
                     )
                 )
             }
 
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(1.dp)
-                    .background(InkFaintest)
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
-                Text(
-                    text = "关联职业",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = InkLight
-                )
+                    .padding(horizontal = SushiSpacing.xxl),
+                verticalArrangement = Arrangement.spacedBy(SushiSpacing.xxl)
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.md)
                 ) {
-                    detail.professions.forEach { profession ->
-                        ProfessionChip(
-                            profession = profession,
-                            onRemove = { onRemoveProfession(profession.id) }
-                        )
-                    }
-                    // Fix #23: "+" button calls showAddProfessionDialog
+                    Text(
+                        text = "${detail.level}",
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontFamily = FontFamily.Serif,
+                            fontSize = 72.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Ink
+                    )
                     Box(
                         modifier = Modifier
                             .clip(PillShape)
-                            .shadow(0.5.dp, PillShape)
-                            .background(Linen)
-                            .clickable { onAddProfession() }
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                            .background(tierColor.copy(alpha = 0.12f))
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                            .offset(y = (-8).dp)
                     ) {
                         Text(
-                            text = "+",
+                            text = detail.tierLabel,
                             style = MaterialTheme.typography.labelLarge,
+                            color = tierColor,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Text(
+                    text = detail.skill.name,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.SansSerif),
+                    color = Ink
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "经验值",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = InkLight
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+                    ) {
+                        SushiProgressBar(
+                            progress = progress,
+                            color = tierColor,
+                            size = 8.dp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "${detail.progress}/120",
+                            style = MaterialTheme.typography.labelMedium,
                             color = InkFaint
                         )
                     }
                 }
-            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(InkFaintest)
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
-                Text(
-                    text = "词条",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = InkLight
-                )
-
-                if (detail.unlockedAffixes.isEmpty() && detail.lockedAffixes.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(CardShapeSmall)
-                            .background(PaperWarm)
-                            .padding(SushiSpacing.lg),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "◇",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = InkFaintest
-                            )
-                            Text(
-                                text = "暂无词条",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = InkFaint
-                            )
-                        }
-                    }
-                } else {
-                    detail.unlockedAffixes.forEach { affix ->
-                        AffixItem(affix = affix, isUnlocked = true, tierColor = tierColor)
-                    }
-
-                    detail.lockedAffixes.forEach { affix ->
-                        AffixItem(affix = affix, isUnlocked = false, tierColor = tierColor)
-                    }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(InkFaintest)
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
-                Text(
-                    text = "历史记录",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = InkLight
-                )
-
-                if (detail.historyRecords.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(CardShapeSmall)
-                            .background(PaperWarm)
-                            .padding(SushiSpacing.lg),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "◷",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = InkFaintest
-                            )
-                            Text(
-                                text = "暂无记录",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = InkFaint
-                            )
-                        }
-                    }
-                } else {
-                    detail.historyRecords.forEach { record ->
-                        // Fix #13: HistoryRecordItem with delete button
-                        HistoryRecordItem(
-                            record = record,
-                            onDelete = { recordToDelete = record }
+                Button(
+                    onClick = onManualInject,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Cinnabar,
+                        contentColor = Paper
+                    ),
+                    shape = CardShape
+                ) {
+                    Text(
+                        text = "+ 手动注入时间",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.SemiBold
                         )
+                    )
+                }
+
+                Divider1px()
+
+                Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+                    Text(
+                        text = "关联职业",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = InkLight
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        detail.professions.forEach { profession ->
+                            ProfessionChip(
+                                profession = profession,
+                                onRemove = { onRemoveProfession(profession.id) }
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(PillShape)
+                                .shadow(0.5.dp, PillShape)
+                                .background(Linen)
+                                .clickable { onAddProfession() }
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = SushiIcons.Add,
+                                    contentDescription = null,
+                                    tint = InkFaint,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "添加",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = InkFaint
+                                )
+                            }
+                        }
                     }
                 }
-            }
 
-            // Fix #6: Delete skill button
-            Button(
-                onClick = { showDeleteConfirm = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFD32F2F),
-                    contentColor = Color.White
-                ),
-                shape = CardShape
-            ) {
-                Text(
-                    text = "删除技能",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold
+                Divider1px()
+
+                Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+                    Text(
+                        text = "词条",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = InkLight
                     )
-                )
-            }
 
-            Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
+                    if (detail.unlockedAffixes.isEmpty() && detail.lockedAffixes.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(CardShapeSmall)
+                                .background(PaperWarm)
+                                .padding(SushiSpacing.lg),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = SushiIcons.Lock,
+                                    contentDescription = null,
+                                    tint = InkFaintest,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "暂无词条",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = InkFaint
+                                )
+                            }
+                        }
+                    } else {
+                        detail.unlockedAffixes.forEach { affix ->
+                            AffixItem(affix = affix, isUnlocked = true, tierColor = tierColor)
+                        }
+
+                        detail.lockedAffixes.forEach { affix ->
+                            AffixItem(affix = affix, isUnlocked = false, tierColor = tierColor)
+                        }
+                    }
+                }
+
+                Divider1px()
+
+                Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+                    Text(
+                        text = "历史记录",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = InkLight
+                    )
+
+                    if (detail.historyRecords.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(CardShapeSmall)
+                                .background(PaperWarm)
+                                .padding(SushiSpacing.lg),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = SushiIcons.History,
+                                    contentDescription = null,
+                                    tint = InkFaintest,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = "暂无记录",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = InkFaint
+                                )
+                            }
+                        }
+                    } else {
+                        detail.historyRecords.forEach { record ->
+                            HistoryRecordItem(
+                                record = record,
+                                onDelete = {
+                                    lastDeleted = record
+                                    recordToDelete = record
+                                }
+                            )
+                        }
+                    }
+                }
+
+                StampDeleteButton(
+                    onClick = { showDeleteConfirm = true },
+                    label = "删除技能"
+                )
+
+                Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
+            }
+        }
+
+        // Undo Snackbar 覆盖在底部
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+        ) {
+            UndoSnackbar(
+                visible = showUndoSnackbar,
+                message = lastDeleted?.let { "已删除 ${it.netDurationMin} 分钟记录" } ?: "",
+                onUndo = {
+                    lastDeleted?.let { onDeleteTimeRecord(it.id) }
+                },
+                onDismiss = { showUndoSnackbar = false }
+            )
         }
     }
 
-    // Fix #6: Delete skill confirmation dialog
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
@@ -830,8 +781,8 @@ private fun SkillDetailContent(
                         onDeleteSkill()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD32F2F),
-                        contentColor = Color.White
+                        containerColor = Cinnabar,
+                        contentColor = Paper
                     ),
                     shape = CardShape
                 ) {
@@ -847,9 +798,8 @@ private fun SkillDetailContent(
         )
     }
 
-    // Fix #9: Edit skill name dialog
     if (showEditNameDialog) {
-        var editName by remember { mutableStateOf(detail.skill.name) }
+        var editName by remember(detail.skill.id) { mutableStateOf(detail.skill.name) }
 
         AlertDialog(
             onDismissRequest = { showEditNameDialog = false },
@@ -906,7 +856,6 @@ private fun SkillDetailContent(
         )
     }
 
-    // Fix #13: Delete time record confirmation dialog
     recordToDelete?.let { record ->
         AlertDialog(
             onDismissRequest = { recordToDelete = null },
@@ -920,7 +869,7 @@ private fun SkillDetailContent(
             },
             text = {
                 Text(
-                    text = "确定要删除这条 ${record.netDurationMin} 分钟的时间记录吗？此操作不可撤销。",
+                    text = "确定要删除这条 ${record.netDurationMin} 分钟的时间记录吗？",
                     style = MaterialTheme.typography.bodyMedium,
                     color = InkLight
                 )
@@ -930,10 +879,11 @@ private fun SkillDetailContent(
                     onClick = {
                         onDeleteTimeRecord(record.id)
                         recordToDelete = null
+                        showUndoSnackbar = true
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD32F2F),
-                        contentColor = Color.White
+                        containerColor = Cinnabar,
+                        contentColor = Paper
                     ),
                     shape = CardShape
                 ) {
@@ -951,11 +901,21 @@ private fun SkillDetailContent(
 }
 
 @Composable
+private fun Divider1px() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(InkFaintest)
+    )
+}
+
+@Composable
 private fun HistoryRecordItem(
     record: TimeRecord,
     onDelete: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.getDefault()) }
 
     Column(
         modifier = Modifier
@@ -995,15 +955,15 @@ private fun HistoryRecordItem(
                         )
                     }
                 }
-                // Fix #13: Delete icon button
-                Text(
-                    text = "✕",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color(0xFFD32F2F),
+                Icon(
+                    imageVector = SushiIcons.Delete,
+                    contentDescription = "删除",
+                    tint = Cinnabar,
                     modifier = Modifier
+                        .size(16.dp)
                         .clip(CircleShape)
                         .clickable(onClick = onDelete)
-                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                        .padding(2.dp)
                 )
             }
         }
@@ -1032,7 +992,7 @@ private fun ProfessionChip(
             .clip(PillShape)
             .shadow(0.5.dp, PillShape)
             .background(Linen)
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -1041,11 +1001,14 @@ private fun ProfessionChip(
             style = MaterialTheme.typography.labelMedium,
             color = Ink
         )
-        Text(
-            text = "×",
-            style = MaterialTheme.typography.labelSmall,
-            color = InkFaint,
-            modifier = Modifier.clickable(onClick = onRemove)
+        Icon(
+            imageVector = SushiIcons.KeyboardRight,
+            contentDescription = null,
+            tint = InkFaint,
+            modifier = Modifier
+                .size(12.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onRemove)
         )
     }
 }
@@ -1077,11 +1040,11 @@ private fun AffixItem(
                     .background(tierColor)
             )
         }
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(if (isUnlocked) tierColor else InkFaint)
+        Icon(
+            imageVector = if (isUnlocked) SushiIcons.Check else SushiIcons.Lock,
+            contentDescription = null,
+            tint = if (isUnlocked) tierColor else InkFaint,
+            modifier = Modifier.size(14.dp)
         )
         Column(
             modifier = Modifier.weight(1f),
@@ -1115,14 +1078,63 @@ private fun AffixItem(
     }
 }
 
-// Fix #11: Create skill dialog
+@Composable
+private fun EmptyState(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 64.dp, bottom = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = InkFaintest,
+            modifier = Modifier.size(48.dp)
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = InkFaint
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = InkFaintest
+        )
+        if (actionLabel != null && onAction != null) {
+            Spacer(modifier = Modifier.height(SushiSpacing.md))
+            Button(
+                onClick = onAction,
+                shape = CardShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Cinnabar,
+                    contentColor = Paper
+                )
+            ) {
+                Text(
+                    text = actionLabel,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateSkillDialog(
     onConfirm: (String, SkillCategory) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     val categories = listOf(
         SkillCategory.COGNITION to "认知",
@@ -1130,7 +1142,7 @@ private fun CreateSkillDialog(
         SkillCategory.FUNCTION to "功能",
         SkillCategory.STRATEGY to "策略"
     )
-    var selectedCategoryIndex by remember { mutableIntStateOf(0) }
+    var selectedCategoryIndex by rememberSaveable { mutableIntStateOf(0) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1240,7 +1252,6 @@ private fun CreateSkillDialog(
     )
 }
 
-// Fix #23: Add profession dialog
 @Composable
 private fun AddProfessionDialog(
     availableProfessions: List<Profession>,
@@ -1259,28 +1270,11 @@ private fun AddProfessionDialog(
         },
         text = {
             if (availableProfessions.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = SushiSpacing.lg),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "◎",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = InkFaintest
-                        )
-                        Text(
-                            text = "没有可添加的职业",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = InkFaint
-                        )
-                    }
-                }
+                EmptyState(
+                    icon = SushiIcons.Work,
+                    title = "没有可添加的职业",
+                    subtitle = "请先创建一个职业"
+                )
             } else {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -1323,9 +1317,9 @@ private fun ManualInjectDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var minutes by remember { mutableIntStateOf(30) }
-    var description by remember { mutableStateOf("") }
-    var startDateTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    var minutes by rememberSaveable { mutableIntStateOf(30) }
+    var description by rememberSaveable { mutableStateOf("") }
+    var startDateTime by rememberSaveable { mutableStateOf(System.currentTimeMillis()) }
 
     var endDateTime by remember { mutableStateOf(startDateTime + 30 * 60 * 1000L) }
 
@@ -1336,10 +1330,9 @@ private fun ManualInjectDialog(
     val startCal = remember { Calendar.getInstance().apply { timeInMillis = startDateTime } }
     val endCal = remember { Calendar.getInstance().apply { timeInMillis = endDateTime } }
 
-    val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
-    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val dateFormat = remember { SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()) }
+    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
 
-    // Fix #2: 1分钟纯时间 = 1 Exp，修正计算
     val estimatedExp = minutes
 
     AlertDialog(
@@ -1354,18 +1347,30 @@ private fun ManualInjectDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(InkFaintest)
-                )
-
+                // 快捷时间按钮
                 Text(
                     text = "纯时间（分钟）",
                     style = MaterialTheme.typography.labelLarge,
                     color = InkLight
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+                ) {
+                    listOf(15, 30, 60, 120).forEach { preset ->
+                        OutlinedButton(
+                            onClick = { minutes = preset },
+                            shape = PillShape,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (minutes == preset) CinnabarFaint else PaperWarm,
+                                contentColor = if (minutes == preset) Cinnabar else InkLight
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("${preset}m", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
@@ -1390,12 +1395,7 @@ private fun ManualInjectDialog(
                     ) { Text("+5") }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(InkFaintest)
-                )
+                Divider1px()
 
                 Text(
                     text = "开始时间",
@@ -1423,7 +1423,18 @@ private fun ManualInjectDialog(
                         modifier = Modifier.weight(1f),
                         shape = CardShapeSmall
                     ) {
-                        Text(dateFormat.format(startDateTime), color = Ink)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = SushiIcons.Calendar,
+                                contentDescription = null,
+                                tint = Ink,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(dateFormat.format(startDateTime), color = Ink)
+                        }
                     }
                     OutlinedButton(
                         onClick = {
@@ -1443,7 +1454,18 @@ private fun ManualInjectDialog(
                         modifier = Modifier.weight(1f),
                         shape = CardShapeSmall
                     ) {
-                        Text(timeFormat.format(startDateTime), color = Ink)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = SushiIcons.Schedule,
+                                contentDescription = null,
+                                tint = Ink,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(timeFormat.format(startDateTime), color = Ink)
+                        }
                     }
                 }
 
@@ -1472,7 +1494,18 @@ private fun ManualInjectDialog(
                         modifier = Modifier.weight(1f),
                         shape = CardShapeSmall
                     ) {
-                        Text(dateFormat.format(endDateTime), color = Ink)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = SushiIcons.Calendar,
+                                contentDescription = null,
+                                tint = Ink,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(dateFormat.format(endDateTime), color = Ink)
+                        }
                     }
                     OutlinedButton(
                         onClick = {
@@ -1491,16 +1524,22 @@ private fun ManualInjectDialog(
                         modifier = Modifier.weight(1f),
                         shape = CardShapeSmall
                     ) {
-                        Text(timeFormat.format(endDateTime), color = Ink)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = SushiIcons.Schedule,
+                                contentDescription = null,
+                                tint = Ink,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(timeFormat.format(endDateTime), color = Ink)
+                        }
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(InkFaintest)
-                )
+                Divider1px()
 
                 Text(
                     text = "做了什么",
@@ -1592,28 +1631,7 @@ private fun SettlementResultDialog(
             Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
                 if (result.levelUpEvents.isNotEmpty()) {
                     result.levelUpEvents.forEach { event ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(CardShapeSmall)
-                                .background(Linen)
-                                .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = event.skillName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Ink
-                            )
-                            Text(
-                                text = "LV ${event.oldLevel} → ${event.newLevel}",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = Cinnabar
-                            )
-                        }
+                        LevelUpRow(event = event)
                     }
                 }
 
@@ -1628,16 +1646,16 @@ private fun SettlementResultDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(CardShapeSmall)
-                                .background(Linen)
+                                .background(CinnabarFaint)
                                 .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(Cinnabar)
+                            Icon(
+                                imageVector = SushiIcons.Star,
+                                contentDescription = null,
+                                tint = Cinnabar,
+                                modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = affix.name,
@@ -1680,6 +1698,38 @@ private fun SettlementResultDialog(
         },
         containerColor = Paper
     )
+}
+
+@Composable
+private fun LevelUpRow(event: LevelUpEvent) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CardShapeSmall)
+            .background(Linen)
+            .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+    ) {
+        Icon(
+            imageVector = SushiIcons.KeyboardUp,
+            contentDescription = null,
+            tint = Cinnabar,
+            modifier = Modifier.size(14.dp)
+        )
+        Text(
+            text = event.skillName,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Ink
+        )
+        Text(
+            text = "LV ${event.oldLevel} → ${event.newLevel}",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = Cinnabar
+        )
+    }
 }
 
 private fun tierColorFor(tierLabel: String): Color = when (tierLabel) {

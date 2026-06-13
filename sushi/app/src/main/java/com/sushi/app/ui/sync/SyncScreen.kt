@@ -23,14 +23,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -46,7 +46,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -57,13 +56,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.sync.S3Config
 import com.sushi.app.sync.SyncProvider
 import com.sushi.app.sync.WebDavConfig
+import com.sushi.app.ui.components.SushiBackButton
+import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
 import com.sushi.app.ui.theme.Cinnabar
 import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
 import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkAlpha08
 import com.sushi.app.ui.theme.InkFaint
 import com.sushi.app.ui.theme.InkFaintest
 import com.sushi.app.ui.theme.InkLight
@@ -74,6 +73,7 @@ import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.SushiAnim
 import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.viewmodel.SyncViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun SyncScreen(
@@ -88,6 +88,23 @@ fun SyncScreen(
         uri?.let { viewModel.importFromFile(it) }
     }
 
+    // 成功消息 5 秒后自动消失（避免 5 秒后被新消息意外清除）
+    var lastMessage by remember { mutableStateOf("") }
+
+    LaunchedEffect(uiState.statusMessage) {
+        if (uiState.statusMessage.isNotBlank() && uiState.statusMessage != lastMessage) {
+            lastMessage = uiState.statusMessage
+            val isSuccess = !uiState.statusMessage.contains("失败") &&
+                !uiState.statusMessage.contains("错误")
+            if (isSuccess) {
+                delay(5000)
+                if (uiState.statusMessage == lastMessage) {
+                    viewModel.clearStatusMessage()
+                }
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -98,30 +115,10 @@ fun SyncScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(CardShape)
-                .clickable(onClick = onBack)
                 .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Linen),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "←",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = InkLight
-                )
-            }
-            Spacer(modifier = Modifier.width(SushiSpacing.sm))
-            Text(
-                text = "返回",
-                style = MaterialTheme.typography.bodyMedium,
-                color = InkLight
-            )
+            SushiBackButton(onClick = onBack)
         }
 
         Column(
@@ -157,7 +154,12 @@ fun SyncScreen(
 
             // 云端操作
             if (uiState.syncConfig.provider != SyncProvider.NONE) {
-                SectionDivider()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(InkFaintest)
+                )
 
                 CloudActions(
                     isPushing = uiState.isPushing,
@@ -170,7 +172,12 @@ fun SyncScreen(
                 )
             }
 
-            SectionDivider()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(InkFaintest)
+            )
 
             // 本地备份
             LocalBackupSection(
@@ -190,18 +197,6 @@ fun SyncScreen(
                     message = uiState.statusMessage,
                     onDismiss = viewModel::clearStatusMessage
                 )
-            }
-
-            // 成功消息自动消失
-            if (uiState.statusMessage.isNotBlank()) {
-                val isSuccess = !uiState.statusMessage.contains("失败") &&
-                        !uiState.statusMessage.contains("错误")
-                if (isSuccess) {
-                    LaunchedEffect(uiState.statusMessage) {
-                        kotlinx.coroutines.delay(5000)
-                        viewModel.clearStatusMessage()
-                    }
-                }
             }
         }
 
@@ -280,15 +275,6 @@ fun SyncScreen(
 
         Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
     }
-}
-
-@Composable
-private fun SectionDivider() {
-    Divider(
-        color = InkFaintest,
-        thickness = 1.dp,
-        modifier = Modifier.padding(vertical = SushiSpacing.xs)
-    )
 }
 
 @Composable
@@ -489,7 +475,18 @@ private fun WebDavConfigSection(
                 contentColor = Paper
             )
         ) {
-            Text(text = "保存配置")
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+            ) {
+                Icon(
+                    imageVector = SushiIcons.Check,
+                    contentDescription = null,
+                    tint = Paper,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(text = "保存配置")
+            }
         }
     }
 }
@@ -639,7 +636,18 @@ private fun S3ConfigSection(
                 contentColor = Paper
             )
         ) {
-            Text(text = "保存配置")
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+            ) {
+                Icon(
+                    imageVector = SushiIcons.Check,
+                    contentDescription = null,
+                    tint = Paper,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(text = "保存配置")
+            }
         }
     }
 }
@@ -667,9 +675,11 @@ private fun CloudActions(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
             ) {
-                Text(
-                    text = "⏱",
-                    style = MaterialTheme.typography.bodySmall
+                Icon(
+                    imageVector = SushiIcons.Schedule,
+                    contentDescription = null,
+                    tint = Cinnabar,
+                    modifier = Modifier.size(12.dp)
                 )
                 Text(
                     text = "上次同步: $lastSyncTime",
@@ -694,7 +704,7 @@ private fun CloudActions(
                 Spacer(modifier = Modifier.width(SushiSpacing.sm))
             }
             Text(
-                text = if (isTesting) "测试中…" else "🔗 测试连接",
+                text = if (isTesting) "测试中…" else "测试连接",
                 color = InkLight
             )
         }
@@ -723,7 +733,7 @@ private fun CloudActions(
                     )
                     Spacer(modifier = Modifier.width(SushiSpacing.sm))
                 }
-                Text(text = if (isPushing) "推送中…" else "↑ 推送到云端")
+                Text(text = if (isPushing) "推送中…" else "推送到云端")
             }
 
             Button(
@@ -746,7 +756,7 @@ private fun CloudActions(
                     )
                     Spacer(modifier = Modifier.width(SushiSpacing.sm))
                 }
-                Text(text = if (isPulling) "拉取中…" else "↓ 从云端拉取")
+                Text(text = if (isPulling) "拉取中…" else "从云端拉取")
             }
         }
     }
@@ -790,7 +800,7 @@ private fun LocalBackupSection(
                     )
                     Spacer(modifier = Modifier.width(SushiSpacing.sm))
                 }
-                Text(text = if (isExporting) "导出中…" else "📤 导出 JSON")
+                Text(text = if (isExporting) "导出中…" else "导出 JSON")
             }
 
             OutlinedButton(
@@ -811,7 +821,7 @@ private fun LocalBackupSection(
                     )
                     Spacer(modifier = Modifier.width(SushiSpacing.sm))
                 }
-                Text(text = if (isImporting) "导入中…" else "📥 导入 JSON")
+                Text(text = if (isImporting) "导入中…" else "导入 JSON")
             }
         }
     }
@@ -823,10 +833,9 @@ private fun StatusMessage(
     onDismiss: () -> Unit
 ) {
     val isError = message.contains("失败") || message.contains("错误")
-    val isSuccess = !isError
 
     val bgColor by animateColorAsState(
-        targetValue = if (isError) CinnabarFaint else CinnabarFaint,
+        targetValue = CinnabarFaint,
         animationSpec = tween(SushiAnim.FAST),
         label = "statusBg"
     )
@@ -845,10 +854,11 @@ private fun StatusMessage(
             horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm),
             modifier = Modifier.weight(1f)
         ) {
-            Text(
-                text = if (isSuccess) "✓" else "✗",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isError) Cinnabar else Cinnabar
+            Icon(
+                imageVector = if (isError) SushiIcons.Delete else SushiIcons.Check,
+                contentDescription = null,
+                tint = Cinnabar,
+                modifier = Modifier.size(16.dp)
             )
             Text(
                 text = message,
@@ -863,10 +873,11 @@ private fun StatusMessage(
                 .clickable(onClick = onDismiss),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "×",
-                style = MaterialTheme.typography.bodyMedium,
-                color = InkFaint
+            Icon(
+                imageVector = SushiIcons.Delete,
+                contentDescription = "关闭",
+                tint = InkFaint,
+                modifier = Modifier.size(14.dp)
             )
         }
     }

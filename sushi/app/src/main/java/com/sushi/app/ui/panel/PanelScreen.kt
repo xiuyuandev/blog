@@ -8,11 +8,24 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,31 +40,36 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Affix
 import com.sushi.app.data.model.AttributeType
 import com.sushi.app.data.model.Profession
+import com.sushi.app.ui.components.SushiIcons
+import com.sushi.app.ui.components.SushiLoading
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.Cinnabar
+import com.sushi.app.ui.theme.CinnabarFaint
 import com.sushi.app.ui.theme.Ink
 import com.sushi.app.ui.theme.InkFaint
 import com.sushi.app.ui.theme.InkFaintest
 import com.sushi.app.ui.theme.InkLight
-import com.sushi.app.ui.theme.InkAlpha08
 import com.sushi.app.ui.theme.Linen
 import com.sushi.app.ui.theme.Paper
+import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.SushiAnim
 import com.sushi.app.ui.theme.SushiSpacing
-import com.sushi.app.viewmodel.PanelUiState
 import com.sushi.app.viewmodel.PanelViewModel
 import java.text.NumberFormat
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 private val attributeLabels: Map<AttributeType, String> = mapOf(
@@ -87,12 +105,7 @@ fun PanelScreen(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            Text(
-                text = "…",
-                style = MaterialTheme.typography.bodyLarge,
-                color = InkFaint,
-                modifier = Modifier.align(Alignment.Center)
-            )
+            SushiLoading(text = "加载中")
         }
 
         AnimatedVisibility(
@@ -118,7 +131,6 @@ fun PanelScreen(
                     attributes = uiState.attributes
                 )
 
-                // Divider between RadarChart and Affixes
                 SectionDivider()
 
                 AffixesSection(
@@ -127,29 +139,7 @@ fun PanelScreen(
 
                 Spacer(modifier = Modifier.height(SushiSpacing.sm))
 
-                // 同步入口
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(1.dp, CardShape)
-                        .clip(CardShape)
-                        .background(Linen)
-                        .clickable(onClick = onNavigateToSync)
-                        .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "同步与备份",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = InkLight
-                    )
-                    Text(
-                        text = "→",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = InkFaint
-                    )
-                }
+                SyncEntry(onClick = onNavigateToSync)
             }
         }
     }
@@ -179,8 +169,7 @@ private fun PanelHeader(
                 text = professionName.ifBlank { "游侠" },
                 style = MaterialTheme.typography.headlineMedium,
                 color = Ink,
-                modifier = Modifier
-                    .clickable { dropdownExpanded = true }
+                modifier = Modifier.clickable { dropdownExpanded = true }
             )
             DropdownMenu(
                 expanded = dropdownExpanded,
@@ -244,6 +233,7 @@ private fun RadarChartSection(
     attributes: Map<AttributeType, Int>
 ) {
     val textMeasurer = rememberTextMeasurer()
+    var selectedAttribute by remember { mutableStateOf<AttributeType?>(null) }
 
     // Animate attribute values
     val animatedPhysique by animateIntAsState(
@@ -289,13 +279,44 @@ private fun RadarChartSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        val w = size.width.toFloat()
+                        val h = size.height.toFloat()
+                        val cx = w / 2f
+                        val cy = h / 2f
+                        val radius = minOf(cx, cy) * 0.6f
+                        val attributeCount = radarAttributes.size
+                        val angleStep = 2f * Math.PI.toFloat() / attributeCount
+                        val startAngle = -Math.PI.toFloat() / 2f
+
+                        var nearest: AttributeType? = null
+                        var minDist = Float.MAX_VALUE
+                        for (i in 0 until attributeCount) {
+                            val angle = startAngle + i * angleStep
+                            val px = cx + radius * cos(angle)
+                            val py = cy + radius * sin(angle)
+                            val d = hypot(offset.x - px, offset.y - py)
+                            if (d < minDist) {
+                                minDist = d
+                                nearest = radarAttributes[i]
+                            }
+                        }
+                        // 选中在 80px 内的属性
+                        if (minDist < 80f && nearest != null) {
+                            selectedAttribute = if (selectedAttribute == nearest) null else nearest
+                        } else {
+                            selectedAttribute = null
+                        }
+                    }
+                }
         ) {
             val centerX = size.width / 2f
             val centerY = size.height / 2f
             val radius = minOf(centerX, centerY) * 0.6f
             val attributeCount = radarAttributes.size
             val angleStep = 2f * Math.PI.toFloat() / attributeCount
-            val startAngle = -Math.PI.toFloat() / 2f // start from top
+            val startAngle = -Math.PI.toFloat() / 2f
 
             val dashEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f), 0f)
             val gridStroke = Stroke(
@@ -363,7 +384,7 @@ private fun RadarChartSection(
             }
 
             // Draw filled data area with very subtle tint
-            val dataPath = androidx.compose.ui.graphics.Path().apply {
+            val dataPath = Path().apply {
                 moveTo(dataPoints[0].x, dataPoints[0].y)
                 for (i in 1 until dataPoints.size) {
                     lineTo(dataPoints[i].x, dataPoints[i].y)
@@ -403,18 +424,22 @@ private fun RadarChartSection(
                 val labelX = centerX + labelRadius * cos(angle)
                 val labelY = centerY + labelRadius * sin(angle)
 
-                val nameStyle = MaterialTheme.typography.labelMedium.copy(color = Ink)
-                val valueStyle = MaterialTheme.typography.labelSmall.copy(color = InkLight)
+                val isHighlighted = selectedAttribute == attrType
+                val nameStyle = MaterialTheme.typography.labelMedium.copy(
+                    color = if (isHighlighted) Cinnabar else Ink
+                )
+                val valueStyle = MaterialTheme.typography.labelSmall.copy(
+                    color = if (isHighlighted) Cinnabar else InkLight
+                )
 
                 val nameResult = textMeasurer.measure(label, nameStyle)
                 val valueResult = textMeasurer.measure("$value", valueStyle)
 
                 val totalHeight = nameResult.size.height + valueResult.size.height + 2
-                val maxWidth = maxOf(nameResult.size.width, valueResult.size.width)
 
                 drawText(
                     textLayoutResult = nameResult,
-                    color = Ink,
+                    color = if (isHighlighted) Cinnabar else Ink,
                     topLeft = Offset(
                         labelX - nameResult.size.width / 2f,
                         labelY - totalHeight / 2f
@@ -422,12 +447,55 @@ private fun RadarChartSection(
                 )
                 drawText(
                     textLayoutResult = valueResult,
-                    color = InkLight,
+                    color = if (isHighlighted) Cinnabar else InkLight,
                     topLeft = Offset(
                         labelX - valueResult.size.width / 2f,
                         labelY - totalHeight / 2f + nameResult.size.height + 2
                     )
                 )
+
+                if (isHighlighted) {
+                    // 高亮选中：在该属性顶点画圆
+                    val vx = centerX + radius * cos(angle)
+                    val vy = centerY + radius * sin(angle)
+                    drawCircle(
+                        color = CinnabarFaint,
+                        radius = 14f,
+                        center = Offset(vx, vy)
+                    )
+                }
+            }
+        }
+
+        // 选中属性的详情条
+        AnimatedVisibility(
+            visible = selectedAttribute != null,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            val attr = selectedAttribute
+            if (attr != null) {
+                val value = animatedAttributes[attr] ?: 0
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(CardShape)
+                        .background(CinnabarFaint)
+                        .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = attributeLabels[attr] ?: "",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Cinnabar
+                    )
+                    Text(
+                        text = "$value",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Cinnabar
+                    )
+                }
             }
         }
     }
@@ -458,10 +526,11 @@ private fun AffixesSection(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
             ) {
-                Text(
-                    text = "·",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = InkFaintest
+                Icon(
+                    imageVector = SushiIcons.Lock,
+                    contentDescription = null,
+                    tint = InkFaintest,
+                    modifier = Modifier.size(20.dp)
                 )
                 Text(
                     text = "尚无解锁词条",
@@ -471,44 +540,83 @@ private fun AffixesSection(
             }
         } else {
             affixes.forEach { affix ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(1.dp, CardShape)
-                        .clip(CardShape)
-                        .background(Linen.copy(alpha = 0.5f))
-                        .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.md),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = affix.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Ink
-                        )
-                        Text(
-                            text = affix.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = InkLight
-                        )
-                    }
-                    // Small Cinnabar red stamp icon (filled red square)
-                    Canvas(
-                        modifier = Modifier
-                            .size(14.dp)
-                            .padding(end = 2.dp)
-                    ) {
-                        drawRect(
-                            color = Cinnabar,
-                            size = this.size
-                        )
-                    }
-                }
+                AffixRow(affix = affix)
             }
         }
+    }
+}
+
+@Composable
+private fun AffixRow(affix: Affix) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(1.dp, CardShape)
+            .clip(CardShape)
+            .background(Linen.copy(alpha = 0.5f))
+            .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.md),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = affix.name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink
+            )
+            Text(
+                text = affix.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = InkLight
+            )
+        }
+        // 朱砂红印章标识
+        Box(
+            modifier = Modifier
+                .size(14.dp)
+                .clip(CardShape)
+                .background(Cinnabar)
+        )
+    }
+}
+
+@Composable
+private fun SyncEntry(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(1.dp, CardShape)
+            .clip(CardShape)
+            .background(Linen)
+            .clickable(onClick = onClick)
+            .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.md),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+        ) {
+            Icon(
+                imageVector = SushiIcons.Sync,
+                contentDescription = null,
+                tint = InkLight,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = "同步与备份",
+                style = MaterialTheme.typography.bodyMedium,
+                color = InkLight
+            )
+        }
+        Icon(
+            imageVector = SushiIcons.KeyboardRight,
+            contentDescription = null,
+            tint = InkFaint,
+            modifier = Modifier.size(16.dp)
+        )
     }
 }
