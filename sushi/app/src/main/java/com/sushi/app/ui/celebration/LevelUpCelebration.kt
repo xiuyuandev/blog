@@ -2,21 +2,17 @@ package com.sushi.app.ui.celebration
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,32 +21,30 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sushi.app.ui.theme.AmberGold
-import com.sushi.app.ui.theme.BronzeCopper
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.ObsidianBlack
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.SushiSpacing
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.util.HapticType
 import com.sushi.app.util.rememberHaptic
 import kotlinx.coroutines.delay
 
 /**
- * 升级庆祝动画 - 全屏闪光+印章+震感
+ * 升级庆祝动画 - **克制版**
+ *
+ * 替代旧版粒子 + 印章 + 旋转,改为:
+ * - 简洁大数字翻牌
+ * - 短文案
+ * - 3 秒后自动消失
+ *
+ * Material 3 风格,无华丽动效。
  */
 @Composable
 fun LevelUpCelebration(
@@ -69,97 +63,92 @@ fun LevelUpCelebration(
         }
     }
 
-    val transition = rememberInfiniteTransition(label = "celebration")
-    val pulseScale by transition.animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
-    )
-    val rotation by transition.animateFloat(
-        initialValue = -3f,
-        targetValue = 3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "rotation"
-    )
-
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn() + scaleIn(initialScale = 0.8f),
-        exit = fadeOut() + scaleOut(targetScale = 1.2f)
+        enter = fadeIn(animationSpec = tween(300)),
+        exit = fadeOut(animationSpec = tween(300))
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Cinnabar.copy(alpha = 0.15f))
-                .padding(SushiSpacing.xxxl),
+                .background(MaterialColor.scrim),
             contentAlignment = Alignment.Center
         ) {
-            // 印章背景
-            Box(
-                modifier = Modifier
-                    .size(240.dp)
-                    .scale(pulseScale)
-                    .rotate(rotation)
-                    .alpha(0.4f)
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawCircle(
-                        color = Cinnabar,
-                        radius = size.width / 2,
-                        center = Offset(size.width / 2, size.height / 2)
-                    )
-                    drawCircle(
-                        color = Paper,
-                        radius = size.width / 2 - 12f,
-                        center = Offset(size.width / 2, size.height / 2)
-                    )
-                }
-            }
-
             Column(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(SushiSpacing.md)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // 主数字翻牌
+                FlipNumber(targetLevel = newLevel, key = newLevel)
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = "升级",
-                    style = MaterialTheme.typography.displaySmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 56.sp
-                    ),
-                    color = Cinnabar
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialColor.onPrimary
                 )
+
                 Text(
                     text = skillName,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Ink
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialColor.onPrimary,
+                    fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(SushiSpacing.sm))
-                Box(
-                    modifier = Modifier
-                        .scale(pulseScale)
-                ) {
-                    Text(
-                        text = "LV $oldLevel → LV $newLevel",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = if (newLevel >= 100) ObsidianBlack else if (newLevel >= 30) AmberGold else if (newLevel >= 10) BronzeCopper else Cinnabar
-                    )
-                }
-                Spacer(modifier = Modifier.height(SushiSpacing.lg))
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
-                    text = "你向黑曜之境又近一步",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = InkLight
+                    text = "从 LV $oldLevel 到 LV $newLevel",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialColor.onPrimary.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "你向下一段旅程又近了一步。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialColor.onPrimary.copy(alpha = 0.6f),
+                    textAlign = TextAlign.Center
                 )
             }
         }
     }
 }
+
+/**
+ * 数字翻牌效果 — 0.5 秒从 0 翻到目标值
+ */
+@Composable
+private fun FlipNumber(targetLevel: Int, key: Int) {
+    var current by remember { mutableStateOf(0f) }
+    val animated by animateFloatAsState(
+        targetValue = current,
+        animationSpec = tween(durationMillis = 800, easing = LinearEasing),
+        label = "flip"
+    )
+    LaunchedEffect(key) {
+        current = 0f
+        current = targetLevel.toFloat()
+    }
+    Text(
+        text = animated.toInt().toString().padStart(2, '0'),
+        style = MaterialTheme.typography.displayLarge.copy(
+            fontWeight = FontWeight.Black,
+            fontSize = 120.sp
+        ),
+        color = MaterialColor.onPrimary,
+        modifier = Modifier.scale(1f)
+    )
+}
+
+/**
+ * Material 3 标准 scrim(半透明遮罩)
+ */
+private val MaterialColor.scrim: androidx.compose.ui.graphics.Color
+    get() = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f)

@@ -239,6 +239,9 @@ private fun PanelHeader(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
     ) {
+        // 节气 + 农历 + 今日日期(Week 3 新增: 中国本土化)
+        DateSubHeader()
+
         Box {
             Text(
                 text = professionName.ifBlank { "游侠" },
@@ -288,7 +291,50 @@ private fun PanelHeader(
             style = MaterialTheme.typography.bodySmall,
             color = InkFaint
         )
+
+        // 今日古语(Week 3 新增: 节气古语)
+        QuoteSubHeader()
     }
+}
+
+/**
+ * 顶部日期/节气/农历子标题(中国本土化)
+ *
+ * 显示: 2026年6月13日 周六 · 芒种 · 五月廿八
+ */
+@Composable
+private fun DateSubHeader() {
+    val today = remember { java.util.Date() }
+    val solarTerm = remember { com.sushi.app.util.SolarTerm.atDate(today) }
+    val lunar = remember { com.sushi.app.util.LunarConverter().solarToLunar(today) }
+
+    val dateFormat = remember { java.text.SimpleDateFormat("yyyy年M月d日 EEE", java.util.Locale.CHINA) }
+    val dateText = dateFormat.format(today)
+    val termText = solarTerm?.displayName?.let { "· $it" } ?: ""
+    val lunarText = "· ${lunar.yearGanZhi}${lunar.yearZodiac}年 ${lunar.display()}"
+
+    Text(
+        text = "$dateText $termText $lunarText",
+        style = MaterialTheme.typography.bodySmall,
+        color = InkLight
+    )
+}
+
+/**
+ * 今日古语(从 24 节气古语库中随机抽取)
+ */
+@Composable
+private fun QuoteSubHeader() {
+    val today = remember { java.util.Date() }
+    val quote = remember { com.sushi.app.util.SolarTermQuotes.randomForToday(today) }
+    if (quote.isNullOrBlank()) return
+
+    Text(
+        text = "「$quote」",
+        style = MaterialTheme.typography.bodySmall,
+        color = InkFaint,
+        modifier = Modifier.padding(top = SushiSpacing.xs)
+    )
 }
 
 @Composable

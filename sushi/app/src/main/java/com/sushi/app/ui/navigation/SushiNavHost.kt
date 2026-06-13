@@ -1,26 +1,26 @@
 package com.sushi.app.ui.navigation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.PlayCircle
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -28,7 +28,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.sushi.app.sync.SyncConfigManager
 import com.sushi.app.ui.achievement.AchievementScreen
 import com.sushi.app.ui.focus.FocusScreen
 import com.sushi.app.ui.goal.GoalScreen
@@ -42,52 +41,67 @@ import com.sushi.app.ui.review.ReviewScreen
 import com.sushi.app.ui.skill.SkillScreen
 import com.sushi.app.ui.skill.tree.SkillTreeScreen
 import com.sushi.app.ui.sync.SyncScreen
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkLight
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.SushiSpacing
+import com.sushi.app.ui.theme.MaterialColor
 
+/**
+ * 5 Tab 路由定义
+ *
+ * V1.0 5 Tab 导航:
+ * - 主页(Panel): 总览、连续记录、今日要点
+ * - 专注(Focus): 计时 + 技能选择
+ * - 技能(Skill): 技能列表 + 详情 + 树
+ * - 复盘(Review): 当日复盘 + 历史
+ * - 我的(Profile): 设置 + 同步 + 帮助 + 关于
+ */
 sealed class SushiRoute(val route: String, val label: String, val icon: ImageVector) {
-    data object Panel : SushiRoute("panel", "我", com.sushi.app.ui.components.SushiIcons.Home)
-    data object Focus : SushiRoute("focus", "专注", com.sushi.app.ui.components.SushiIcons.Play)
-    data object Skill : SushiRoute("skill", "技能", com.sushi.app.ui.components.SushiIcons.Star)
-    data object Review : SushiRoute("review", "复盘", com.sushi.app.ui.components.SushiIcons.History)
-    data object Profession : SushiRoute("profession", "职业", com.sushi.app.ui.components.SushiIcons.Work)
+    data object Panel : SushiRoute("panel", "主页", Icons.Outlined.Home)
+    data object Focus : SushiRoute("focus", "专注", Icons.Outlined.PlayCircle)
+    data object Skill : SushiRoute("skill", "技能", Icons.Outlined.Star)
+    data object Review : SushiRoute("review", "复盘", Icons.Outlined.History)
+    data object Profile : SushiRoute("profession", "我的", Icons.Outlined.Person)
 
-    data object Sync : SushiRoute("sync", "同步", com.sushi.app.ui.components.SushiIcons.Sync)
-    data object Achievement : SushiRoute("achievement", "成就", com.sushi.app.ui.components.SushiIcons.Star)
-    data object Goal : SushiRoute("goal", "目标", com.sushi.app.ui.components.SushiIcons.Star)
-    data object Report : SushiRoute("report", "周报", com.sushi.app.ui.components.SushiIcons.Calendar)
-    data object Reflection : SushiRoute("reflection", "反思", com.sushi.app.ui.components.SushiIcons.Edit)
-    data object Onboarding : SushiRoute("onboarding", "引导", com.sushi.app.ui.components.SushiIcons.Star)
-    data object Help : SushiRoute("help", "帮助", com.sushi.app.ui.components.SushiIcons.Help)
-    data object SkillTree : SushiRoute("skill_tree", "技能树", com.sushi.app.ui.components.SushiIcons.Star)
+    // 二级页面
+    data object Sync : SushiRoute("sync", "同步", Icons.Outlined.Person)
+    data object Achievement : SushiRoute("achievement", "成就", Icons.Outlined.Star)
+    data object Goal : SushiRoute("goal", "目标", Icons.Outlined.Star)
+    data object Report : SushiRoute("report", "报告", Icons.Outlined.History)
+    data object Reflection : SushiRoute("reflection", "反思", Icons.Outlined.History)
+    data object Onboarding : SushiRoute("onboarding", "引导", Icons.Outlined.Person)
+    data object Help : SushiRoute("help", "帮助", Icons.Outlined.Person)
+    data object SkillTree : SushiRoute("skill_tree", "技能树", Icons.Outlined.Star)
 }
 
+/** 5 Tab 路由(决定是否显示底部导航) */
 private val bottomBarRoutes = setOf(
     SushiRoute.Panel.route,
     SushiRoute.Focus.route,
     SushiRoute.Skill.route,
     SushiRoute.Review.route,
-    SushiRoute.Profession.route
+    SushiRoute.Profile.route
+)
+
+/** 5 Tab 项(顺序即为显示顺序) */
+private val tabItems = listOf(
+    SushiRoute.Panel,
+    SushiRoute.Focus,
+    SushiRoute.Skill,
+    SushiRoute.Review,
+    SushiRoute.Profile
 )
 
 @Composable
 fun SushiNavHost(
-    navController: NavHostController = rememberNavController(),
-    syncConfigManager: SyncConfigManager? = null
+    navController: NavHostController = rememberNavController()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = currentRoute in bottomBarRoutes
 
-    Box(modifier = Modifier.fillMaxSize().background(Paper)) {
+    Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
-            startDestination = SushiRoute.Panel.route
+            startDestination = SushiRoute.Panel.route,
+            modifier = Modifier.fillMaxSize()
         ) {
             composable(SushiRoute.Panel.route) {
                 PanelScreen(
@@ -110,7 +124,7 @@ fun SushiNavHost(
                     onNavigateToReport = { navController.navigate(SushiRoute.Report.route) }
                 )
             }
-            composable(SushiRoute.Profession.route) { ProfessionScreen() }
+            composable(SushiRoute.Profile.route) { ProfessionScreen() }
             composable(SushiRoute.Sync.route) {
                 SyncScreen(onBack = { navController.popBackStack() })
             }
@@ -140,7 +154,13 @@ fun SushiNavHost(
             }
         }
 
-        if (showBottomBar) {
+        // Material 3 底部导航(仅主 Tab 显示)
+        AnimatedVisibility(
+            visible = showBottomBar,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut(),
+            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter)
+        ) {
             SushiBottomBar(
                 currentRoute = currentRoute,
                 onNavigate = { route ->
@@ -151,58 +171,50 @@ fun SushiNavHost(
                             restoreState = true
                         }
                     }
-                },
-                modifier = Modifier.align(Alignment.BottomCenter)
+                }
             )
         }
     }
 }
 
+/**
+ * Material 3 底部导航
+ */
 @Composable
 private fun SushiBottomBar(
     currentRoute: String?,
-    onNavigate: (String) -> Unit,
-    modifier: Modifier = Modifier
+    onNavigate: (String) -> Unit
 ) {
-    val items = listOf(
-        SushiRoute.Panel,
-        SushiRoute.Focus,
-        SushiRoute.Skill,
-        SushiRoute.Review,
-        SushiRoute.Profession
-    )
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Paper)
-            .padding(vertical = SushiSpacing.sm),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
+    NavigationBar(
+        containerColor = MaterialColor.surface,
+        contentColor = MaterialColor.onSurface,
+        tonalElevation = 2.dp
     ) {
-        items.forEach { item ->
+        tabItems.forEach { item ->
             val selected = currentRoute == item.route
-            Column(
-                modifier = Modifier
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-                    .background(if (selected) CinnabarFaint else androidx.compose.ui.graphics.Color.Transparent)
-                    .clickable { onNavigate(item.route) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = item.label,
-                    tint = if (selected) Cinnabar else InkLight,
-                    modifier = Modifier.size(20.dp)
+            NavigationBarItem(
+                selected = selected,
+                onClick = { onNavigate(item.route) },
+                icon = {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label
+                    )
+                },
+                label = {
+                    Text(
+                        text = item.label,
+                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialColor.onPrimaryContainer,
+                    selectedTextColor = MaterialColor.primary,
+                    unselectedIconColor = MaterialColor.onSurfaceVariant,
+                    unselectedTextColor = MaterialColor.onSurfaceVariant,
+                    indicatorColor = MaterialColor.primaryContainer
                 )
-                Text(
-                    text = item.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (selected) Cinnabar else InkLight
-                )
-            }
+            )
         }
     }
 }
