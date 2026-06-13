@@ -47,12 +47,6 @@ import com.sushi.app.ui.components.SushiProgressBar
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
 import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.SerifFontFamily
 import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.viewmodel.ReviewViewModel

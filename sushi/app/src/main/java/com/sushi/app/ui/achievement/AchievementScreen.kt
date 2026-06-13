@@ -24,8 +24,6 @@ import com.sushi.app.ui.components.SushiBackButton
 import com.sushi.app.ui.components.SushiLoading
 import com.sushi.app.ui.components.SushiProgressBar
 import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.SushiSpacing
 
 @Composable

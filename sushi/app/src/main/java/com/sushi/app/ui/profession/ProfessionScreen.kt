@@ -61,16 +61,9 @@ import com.sushi.app.ui.theme.AmberGold
 import com.sushi.app.ui.theme.BronzeCopper
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.DialogShape
 import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.ObsidianBlack
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.RawStoneGray
 import com.sushi.app.ui.theme.SushiSpacing
@@ -685,9 +678,9 @@ private fun EditProfessionNameDialog(
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialColor.primary,
-                    contentColor = MaterialColor.surface,
+                    contentColor = MaterialColor.onPrimary,
                     disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
-                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.5f)
+                    disabledContentColor = MaterialColor.onPrimary.copy(alpha = 0.5f)
                 )
             ) {
                 Text(
@@ -819,9 +812,9 @@ private fun CreateProfessionDialog(
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialColor.primary,
-                    contentColor = MaterialColor.surface,
+                    contentColor = MaterialColor.onPrimary,
                     disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
-                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.5f)
+                    disabledContentColor = MaterialColor.onPrimary.copy(alpha = 0.5f)
                 )
             ) {
                 Text(

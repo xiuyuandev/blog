@@ -346,7 +346,7 @@ private fun TaskSelectionContent(
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialColor.primary,
-                    contentColor = MaterialColor.surface
+                    contentColor = MaterialColor.onPrimary
                 )
             ) {
                 Row(
@@ -774,9 +774,9 @@ private fun CreateTaskDialog(
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialColor.primary,
-                    contentColor = MaterialColor.surface,
+                    contentColor = MaterialColor.onPrimary,
                     disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
-                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.5f)
+                    disabledContentColor = MaterialColor.onPrimary.copy(alpha = 0.5f)
                 )
             ) {
                 Text(
@@ -986,7 +986,7 @@ private fun FocusTimerContent(
                         shape = CardShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialColor.primary,
-                            contentColor = MaterialColor.surface
+                            contentColor = MaterialColor.onPrimary
                         )
                     ) {
                         Row(
@@ -1220,9 +1220,9 @@ private fun SettlementDialog(
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialColor.primary,
-                    contentColor = MaterialColor.surface,
+                    contentColor = MaterialColor.onPrimary,
                     disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
-                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.5f)
+                    disabledContentColor = MaterialColor.onPrimary.copy(alpha = 0.5f)
                 )
             ) {
                 Text(
@@ -1340,7 +1340,7 @@ private fun SettlementResultDialog(
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialColor.primary,
-                    contentColor = MaterialColor.surface
+                    contentColor = MaterialColor.onPrimary
                 )
             ) {
                 Text(
@@ -1450,7 +1450,7 @@ private fun GraduationHintDialog(
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialColor.primary,
-                    contentColor = MaterialColor.surface
+                    contentColor = MaterialColor.onPrimary
                 )
             ) {
                 Text(

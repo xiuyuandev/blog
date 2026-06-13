@@ -36,10 +36,6 @@ import com.sushi.app.ui.components.SushiBackButton
 import com.sushi.app.ui.components.SushiLoading
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.RawStoneGray
 import com.sushi.app.ui.theme.SushiSpacing
 import kotlin.math.cos

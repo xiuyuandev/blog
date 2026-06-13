@@ -62,12 +62,6 @@ import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
 import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
-import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.SushiAnim
 import com.sushi.app.ui.theme.SushiSpacing
@@ -501,7 +495,7 @@ private fun WebDavConfigSection(
             shape = CardShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialColor.primary,
-                contentColor = MaterialColor.surface
+                contentColor = MaterialColor.onPrimary
             )
         ) {
             Row(
@@ -588,9 +582,9 @@ private fun CloudActions(
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialColor.primary,
-                    contentColor = MaterialColor.surface,
+                    contentColor = MaterialColor.onPrimary,
                     disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
-                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.6f)
+                    disabledContentColor = MaterialColor.onPrimary.copy(alpha = 0.6f)
                 )
             ) {
                 if (isPushing) {
@@ -611,9 +605,9 @@ private fun CloudActions(
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialColor.onSurface,
-                    contentColor = MaterialColor.surface,
+                    contentColor = MaterialColor.inverseOnSurface,
                     disabledContainerColor = MaterialColor.onSurface.copy(alpha = 0.4f),
-                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.6f)
+                    disabledContentColor = MaterialColor.inverseOnSurface.copy(alpha = 0.6f)
                 )
             ) {
                 if (isPulling) {
