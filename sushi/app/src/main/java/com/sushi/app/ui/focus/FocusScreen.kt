@@ -119,94 +119,92 @@ fun FocusScreen(
         )
     }
 
-    when {
-        uiState.settlementResult != null -> {
-            SettlementResultDialog(
-                result = uiState.settlementResult!!,
-                taskCompleted = uiState.settlementResult != null && uiState.currentTaskId != null,
-                onDismiss = {
-                    haptic(HapticType.CONFIRM)
-                    viewModel.dismissSettlementResult()
-                }
-            )
-        }
-        uiState.showSettlement -> {
-            SettlementDialog(
-                rawDurationMin = uiState.rawDurationMin,
-                netDurationMin = uiState.netDurationMin,
-                interruptCount = uiState.interruptCount,
-                lastPauseReason = uiState.lastPauseReason,
-                description = uiState.description,
-                onNetDurationChange = viewModel::setNetDuration,
-                onAdjustNetDuration = viewModel::adjustNetDuration,
-                onDescriptionChange = viewModel::updateDescription,
-                onConfirm = {
-                    haptic(HapticType.CONFIRM)
-                    viewModel.confirmSettlement()
-                },
-                onCancel = {
-                    haptic(HapticType.REJECT)
-                    viewModel.dismissSettlement()
-                }
-            )
-        }
-        else -> {
-            Crossfade(
-                targetState = uiState.isFocusing,
-                animationSpec = tween(durationMillis = 400),
-                label = "focusStateTransition"
-            ) { isFocusing ->
-                if (isFocusing) {
-                    FocusTimerContent(
-                        taskId = uiState.currentTaskId ?: uiState.currentSkillId ?: "",
-                        taskName = uiState.currentTaskName ?: "",
-                        elapsedSeconds = uiState.elapsedSeconds,
-                        isPaused = uiState.isPaused,
-                        interruptCount = uiState.interruptCount,
-                        lastPauseReason = uiState.lastPauseReason,
-                        isFullScreen = uiState.isFullScreen,
-                        onTick = viewModel::updateElapsedTime,
-                        onPause = {
-                            haptic(HapticType.KEYBOARD_TAP)
-                            viewModel.pauseFocus()
-                        },
-                        onResume = {
-                            haptic(HapticType.KEYBOARD_TAP)
-                            viewModel.resumeFocus()
-                        },
-                        onStop = {
-                            haptic(HapticType.REJECT)
-                            viewModel.stopFocus()
-                        },
-                        onToggleFullScreen = {
-                            haptic(HapticType.KEYBOARD_TAP)
-                            viewModel.toggleFullScreen()
-                        }
-                    )
-                } else {
-                    TaskSelectionContent(
-                        activeTasks = uiState.activeTasks,
-                        completedTasks = uiState.completedTasks,
-                        allSkills = uiState.allSkills,
-                        isCreatingTask = uiState.isCreatingTask,
-                        onSelectTask = { task, skillId ->
-                            haptic(HapticType.CONFIRM)
-                            viewModel.startFocus(task.id, task.name, skillId)
-                        },
-                        onStartFocusBySkill = { skillId, skillName ->
-                            haptic(HapticType.CONFIRM)
-                            viewModel.startFocusBySkill(skillId, skillName)
-                        },
-                        onShowCreateTask = {
-                            haptic(HapticType.KEYBOARD_TAP)
-                            viewModel.showCreateTask()
-                        },
-                        onHideCreateTask = viewModel::hideCreateTask,
-                        onCreateTask = viewModel::createTask,
-                        onReactivateTask = viewModel::reactivateTask,
-                        onDeleteTask = viewModel::deleteTask
-                    )
-                }
+    // 结算结果对话框(优先级高于结算输入框)
+    val settlementResult = uiState.settlementResult
+    if (settlementResult != null) {
+        SettlementResultDialog(
+            result = settlementResult,
+            taskCompleted = uiState.currentTaskId != null,
+            onDismiss = {
+                haptic(HapticType.CONFIRM)
+                viewModel.dismissSettlementResult()
+            }
+        )
+    } else if (uiState.showSettlement) {
+        SettlementDialog(
+            rawDurationMin = uiState.rawDurationMin,
+            netDurationMin = uiState.netDurationMin,
+            interruptCount = uiState.interruptCount,
+            lastPauseReason = uiState.lastPauseReason,
+            description = uiState.description,
+            onNetDurationChange = viewModel::setNetDuration,
+            onAdjustNetDuration = viewModel::adjustNetDuration,
+            onDescriptionChange = viewModel::updateDescription,
+            onConfirm = {
+                haptic(HapticType.CONFIRM)
+                viewModel.confirmSettlement()
+            },
+            onCancel = {
+                haptic(HapticType.REJECT)
+                viewModel.dismissSettlement()
+            }
+        )
+    } else {
+        Crossfade(
+            targetState = uiState.isFocusing,
+            animationSpec = tween(durationMillis = 400),
+            label = "focusStateTransition"
+        ) { isFocusing ->
+            if (isFocusing) {
+                FocusTimerContent(
+                    taskId = uiState.currentTaskId ?: uiState.currentSkillId ?: "",
+                    taskName = uiState.currentTaskName ?: "",
+                    elapsedSeconds = uiState.elapsedSeconds,
+                    isPaused = uiState.isPaused,
+                    interruptCount = uiState.interruptCount,
+                    lastPauseReason = uiState.lastPauseReason,
+                    isFullScreen = uiState.isFullScreen,
+                    onTick = viewModel::updateElapsedTime,
+                    onPause = {
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.pauseFocus()
+                    },
+                    onResume = {
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.resumeFocus()
+                    },
+                    onStop = {
+                        haptic(HapticType.REJECT)
+                        viewModel.stopFocus()
+                    },
+                    onToggleFullScreen = {
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.toggleFullScreen()
+                    }
+                )
+            } else {
+                TaskSelectionContent(
+                    activeTasks = uiState.activeTasks,
+                    completedTasks = uiState.completedTasks,
+                    allSkills = uiState.allSkills,
+                    isCreatingTask = uiState.isCreatingTask,
+                    onSelectTask = { task, skillId ->
+                        haptic(HapticType.CONFIRM)
+                        viewModel.startFocus(task.id, task.name, skillId)
+                    },
+                    onStartFocusBySkill = { skillId, skillName ->
+                        haptic(HapticType.CONFIRM)
+                        viewModel.startFocusBySkill(skillId, skillName)
+                    },
+                    onShowCreateTask = {
+                        haptic(HapticType.KEYBOARD_TAP)
+                        viewModel.showCreateTask()
+                    },
+                    onHideCreateTask = viewModel::hideCreateTask,
+                    onCreateTask = viewModel::createTask,
+                    onReactivateTask = viewModel::reactivateTask,
+                    onDeleteTask = viewModel::deleteTask
+                )
             }
         }
     }

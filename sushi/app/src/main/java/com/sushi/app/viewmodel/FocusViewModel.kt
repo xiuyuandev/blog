@@ -289,22 +289,6 @@ class FocusViewModel(
         _uiState.update { it.copy(showGraduationHint = false) }
     }
 
-    fun dismissSettlement() {
-        _uiState.update {
-            it.copy(
-                showSettlement = false,
-                currentTaskId = null,
-                currentTaskName = null,
-                currentSkillId = null,
-                elapsedSeconds = 0,
-                description = "",
-                interruptCount = 0,
-                lastPauseReason = null,
-                isFullScreen = false
-            )
-        }
-    }
-
     fun dismissSettlementResult() {
         _uiState.update {
             it.copy(
@@ -319,13 +303,6 @@ class FocusViewModel(
                 isFullScreen = false
             )
         }
-    }
-
-    /**
-     * 标记升级庆祝已处理 - 用户已看过结算对话框
-     */
-    fun markCelebrationHandled() {
-        _uiState.update { it.copy(isCelebrationHandled = true) }
     }
 
     fun showCreateTask() {

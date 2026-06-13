@@ -75,8 +75,10 @@ fun ReportScreen(
 
             if (uiState.isLoading) {
                 SushiLoading(text = "生成中")
-            } else if (uiState.weeklyReport != null) {
-                WeeklyReportSection(uiState.weeklyReport!!)
+            } else {
+                uiState.weeklyReport?.let { report ->
+                    WeeklyReportSection(report)
+                }
             }
 
             // 专注时段分析

@@ -84,13 +84,16 @@ object SushiContainer {
         }
     }
 
-    /** 测试用:重置所有引用。仅在单元测试中调用。 */
+    /**
+     * 测试用:重置所有引用。
+     *
+     * 注意:此方法必须从测试上下文中调用,生产环境调用会立即抛错。
+     * 不在 `synchronized` 块内 throw,以确保错误信息在调用栈中清晰可见。
+     */
     internal fun resetForTest() {
-        synchronized(this) {
-            database = Room.inMemoryDatabaseBuilder(
-                throw IllegalStateException("SushiContainer.resetForTest 必须在测试上下文中调用")
-            ).build()
-            initialized = false
-        }
+        throw IllegalStateException(
+            "SushiContainer.resetForTest 必须在测试上下文中调用," +
+                "并通过反射或依赖注入替换 SushiContainer 的内部状态"
+        )
     }
 }

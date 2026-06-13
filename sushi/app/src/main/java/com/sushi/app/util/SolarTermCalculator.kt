@@ -49,11 +49,10 @@ enum class SolarTerm(val displayName: String, val season: Season) {
             val year = cal.get(Calendar.YEAR)
             if (year < 2025 || year > 2050) return null
 
-            // 24 节气近似日期(公历)
-            val monthDay = month * 100 + day
-            return when (monthDay) {
-                in 101..106 -> XIAO_HAN      // 1/5-1/6 前后
-                in 120..121 -> DA_HAN        // 1/20 前后
+            // 24 节气近似日期(公历),按从小寒开始排列的 month*100+day
+            return when (month * 100 + day) {
+                in 101..106 -> XIAO_HAN
+                in 120..121 -> DA_HAN
                 in 203..205 -> LI_CHUN
                 in 218..220 -> YU_SHUI
                 in 305..307 -> JING_ZHE
@@ -81,13 +80,63 @@ enum class SolarTerm(val displayName: String, val season: Season) {
         }
 
         /**
-         * 获取指定日期的下一个节气
+         * 获取指定日期之后(或当天)的下一个节气。
+         *
+         * 算法:
+         * 1. 如果当前日期精确匹配某个节气,返回它的下一个;
+         * 2. 否则遍历所有节气的近似日期(从小寒到大雪),返回第一个
+         *    monthDay 大于当前 monthDay 的节气;
+         * 3. 跨年:如果当前 monthDay 已晚于 DONG_ZHI(1221~1223),
+         *    则下一年的第一个节气是 XIAO_HAN。
          */
         fun nextTerm(date: Date): SolarTerm {
-            val cal = Calendar.getInstance().apply { time = date }
             val current = atDate(date)
-            return current?.nextOrFirst() ?: XIAO_HAN
+            if (current != null) {
+                return current.nextOrFirst()
+            }
+
+            val cal = Calendar.getInstance().apply { time = date }
+            val monthDay = (cal.get(Calendar.MONTH) + 1) * 100 + cal.get(Calendar.DAY_OF_MONTH)
+
+            // 按顺序遍历所有 24 节气的"中间日"(中值),找第一个 > 当前 monthDay 的
+            val termCenters = ORDERED_TERM_CENTERS
+            for ((term, center) in termCenters) {
+                if (center > monthDay) return term
+            }
+            // 已过冬至,下一节气是下一年小寒
+            return XIAO_HAN
         }
+
+        /**
+         * 各节气在"monthDay"中的中间日(近似日期),按节气顺序。
+         * 用于在没有精确匹配时,计算下一个节气。
+         */
+        private val ORDERED_TERM_CENTERS: List<Pair<SolarTerm, Int>> = listOf(
+            XIAO_HAN to 105,       // 1/5
+            DA_HAN to 120,         // 1/20
+            LI_CHUN to 204,        // 2/4
+            YU_SHUI to 219,        // 2/19
+            JING_ZHE to 306,       // 3/6
+            CHUN_FEN to 321,       // 3/21
+            QING_MING to 405,      // 4/5
+            GU_YU to 420,          // 4/20
+            LI_XIA to 506,         // 5/6
+            XIAO_MAN to 521,       // 5/21
+            MANG_ZHONG to 606,     // 6/6
+            XIA_ZHI to 621,        // 6/21
+            XIAO_SHU to 707,       // 7/7
+            DA_SHU to 723,         // 7/23
+            LI_QIU to 808,         // 8/8
+            CHU_SHU to 823,        // 8/23
+            BAI_LU to 908,         // 9/8
+            QIU_FEN to 923,        // 9/23
+            HAN_LU to 1009,        // 10/9
+            SHUANG_JIANG to 1024,  // 10/24
+            LI_DONG to 1108,       // 11/8
+            XIAO_XUE to 1122,      // 11/22
+            DA_XUE to 1207,        // 12/7
+            DONG_ZHI to 1222       // 12/22
+        )
     }
 }
 

@@ -112,53 +112,67 @@ fun SkillScreen(
             animationSpec = tween(durationMillis = 300),
             label = "skillCrossfade"
         ) { isDetail ->
-            if (isDetail && uiState.selectedSkill != null) {
-                SkillDetailContent(
-                    detail = uiState.selectedSkill!!,
-                    onBack = viewModel::clearSelectedSkill,
-                    onAddProfession = viewModel::showAddProfessionDialog,
-                    onRemoveProfession = { professionId ->
-                        viewModel.removeProfessionFromSkill(
-                            uiState.selectedSkill!!.skill.id,
-                            professionId
-                        )
-                    },
-                    onManualInject = {
-                        haptic(HapticType.KEYBOARD_TAP)
-                        viewModel.showManualInject()
-                    },
-                    onDeleteSkill = {
-                        haptic(HapticType.LONG_PRESS)
-                        viewModel.deleteSkill(uiState.selectedSkill!!.skill.id)
-                    },
-                    onEditSkillName = { newName ->
-                        haptic(HapticType.CONFIRM)
-                        viewModel.updateSkillName(uiState.selectedSkill!!.skill.id, newName)
-                    },
-                    onDeleteTimeRecord = { id ->
-                        haptic(HapticType.KEYBOARD_TAP)
-                        viewModel.deleteTimeRecord(id)
-                    },
-                    onGraduateSkill = { id, msg ->
-                        haptic(HapticType.LONG_PRESS)
-                        viewModel.graduateSkill(id, msg)
-                    }
-                )
-            } else {
-                SkillListContent(
-                    uiState = uiState,
-                    onSelectCategory = viewModel::selectCategory,
-                    onSelectSkill = { id ->
-                        haptic(HapticType.KEYBOARD_TAP)
-                        viewModel.selectSkill(id)
-                    },
-                    onCreateSkill = {
-                        haptic(HapticType.KEYBOARD_TAP)
-                        viewModel.showCreateSkill()
-                    },
-                    onNavigateToSkillTree = onNavigateToSkillTree
-                )
-            }
+            uiState.selectedSkill?.let { detail ->
+                if (isDetail) {
+                    SkillDetailContent(
+                        detail = detail,
+                        onBack = viewModel::clearSelectedSkill,
+                        onAddProfession = viewModel::showAddProfessionDialog,
+                        onRemoveProfession = { professionId ->
+                            viewModel.removeProfessionFromSkill(
+                                detail.skill.id,
+                                professionId
+                            )
+                        },
+                        onManualInject = {
+                            haptic(HapticType.KEYBOARD_TAP)
+                            viewModel.showManualInject()
+                        },
+                        onDeleteSkill = {
+                            haptic(HapticType.LONG_PRESS)
+                            viewModel.deleteSkill(detail.skill.id)
+                        },
+                        onEditSkillName = { newName ->
+                            haptic(HapticType.CONFIRM)
+                            viewModel.updateSkillName(detail.skill.id, newName)
+                        },
+                        onDeleteTimeRecord = { id ->
+                            haptic(HapticType.KEYBOARD_TAP)
+                            viewModel.deleteTimeRecord(id)
+                        },
+                        onGraduateSkill = { id, msg ->
+                            haptic(HapticType.LONG_PRESS)
+                            viewModel.graduateSkill(id, msg)
+                        }
+                    )
+                } else {
+                    SkillListContent(
+                        uiState = uiState,
+                        onSelectCategory = viewModel::selectCategory,
+                        onSelectSkill = { id ->
+                            haptic(HapticType.KEYBOARD_TAP)
+                            viewModel.selectSkill(id)
+                        },
+                        onCreateSkill = {
+                            haptic(HapticType.KEYBOARD_TAP)
+                            viewModel.showCreateSkill()
+                        },
+                        onNavigateToSkillTree = onNavigateToSkillTree
+                    )
+                }
+            } ?: SkillListContent(
+                uiState = uiState,
+                onSelectCategory = viewModel::selectCategory,
+                onSelectSkill = { id ->
+                    haptic(HapticType.KEYBOARD_TAP)
+                    viewModel.selectSkill(id)
+                },
+                onCreateSkill = {
+                    haptic(HapticType.KEYBOARD_TAP)
+                    viewModel.showCreateSkill()
+                },
+                onNavigateToSkillTree = onNavigateToSkillTree
+            )
         }
 
         if (uiState.isLoading) {
@@ -166,21 +180,23 @@ fun SkillScreen(
         }
     }
 
-    if (uiState.showManualInject && uiState.selectedSkill != null) {
-        ManualInjectDialog(
-            skillName = uiState.selectedSkill!!.skill.name,
-            onConfirm = { minutes, startDt, endDt, desc ->
-                haptic(HapticType.CONFIRM)
-                viewModel.manualInject(
-                    skillId = uiState.selectedSkill!!.skill.id,
-                    netDurationMin = minutes,
-                    startDateTime = startDt,
-                    endDateTime = endDt,
-                    description = desc
-                )
-            },
-            onDismiss = viewModel::hideManualInject
-        )
+    if (uiState.showManualInject) {
+        uiState.selectedSkill?.let { detail ->
+            ManualInjectDialog(
+                skillName = detail.skill.name,
+                onConfirm = { minutes, startDt, endDt, desc ->
+                    haptic(HapticType.CONFIRM)
+                    viewModel.manualInject(
+                        skillId = detail.skill.id,
+                        netDurationMin = minutes,
+                        startDateTime = startDt,
+                        endDateTime = endDt,
+                        description = desc
+                    )
+                },
+                onDismiss = viewModel::hideManualInject
+            )
+        }
     }
 
     uiState.manualInjectResult?.let { result ->

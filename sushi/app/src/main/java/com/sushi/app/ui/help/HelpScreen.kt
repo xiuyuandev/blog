@@ -122,9 +122,9 @@ fun HelpScreen(
         }
     }
 
-    if (selectedEntry != null) {
+    selectedEntry?.let { entry ->
         HelpDetailDialog(
-            entry = selectedEntry!!,
+            entry = entry,
             onDismiss = { selectedEntry = null }
         )
     }

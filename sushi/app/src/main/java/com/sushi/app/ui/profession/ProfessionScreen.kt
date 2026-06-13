@@ -3,7 +3,6 @@ package com.sushi.app.ui.profession
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,32 +87,44 @@ fun ProfessionScreen(
             animationSpec = tween(durationMillis = 300),
             label = "professionCrossfade"
         ) { hasDetail ->
-            if (hasDetail && uiState.selectedProfession != null) {
-                ProfessionDetailContent(
-                    detail = uiState.selectedProfession!!,
-                    onBack = viewModel::clearSelectedProfession,
-                    onDeleteProfession = { id ->
-                        haptic(HapticType.REJECT)
-                        viewModel.deleteProfession(id)
-                    },
-                    onUpdateProfessionName = { id, name ->
-                        haptic(HapticType.CONFIRM)
-                        viewModel.updateProfessionName(id, name)
-                    }
-                )
-            } else {
-                ProfessionListContent(
-                    uiState = uiState,
-                    onSelectProfession = { id ->
-                        haptic(HapticType.KEYBOARD_TAP)
-                        viewModel.selectProfession(id)
-                    },
-                    onShowCreate = {
-                        haptic(HapticType.KEYBOARD_TAP)
-                        viewModel.showCreate()
-                    }
-                )
-            }
+            uiState.selectedProfession?.let { detail ->
+                if (hasDetail) {
+                    ProfessionDetailContent(
+                        detail = detail,
+                        onBack = viewModel::clearSelectedProfession,
+                        onDeleteProfession = { id ->
+                            haptic(HapticType.REJECT)
+                            viewModel.deleteProfession(id)
+                        },
+                        onUpdateProfessionName = { id, name ->
+                            haptic(HapticType.CONFIRM)
+                            viewModel.updateProfessionName(id, name)
+                        }
+                    )
+                } else {
+                    ProfessionListContent(
+                        uiState = uiState,
+                        onSelectProfession = { id ->
+                            haptic(HapticType.KEYBOARD_TAP)
+                            viewModel.selectProfession(id)
+                        },
+                        onShowCreate = {
+                            haptic(HapticType.KEYBOARD_TAP)
+                            viewModel.showCreate()
+                        }
+                    )
+                }
+            } ?: ProfessionListContent(
+                uiState = uiState,
+                onSelectProfession = { id ->
+                    haptic(HapticType.KEYBOARD_TAP)
+                    viewModel.selectProfession(id)
+                },
+                onShowCreate = {
+                    haptic(HapticType.KEYBOARD_TAP)
+                    viewModel.showCreate()
+                }
+            )
         }
 
         if (uiState.isCreating) {

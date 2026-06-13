@@ -54,8 +54,14 @@ data class LunarDate(
  * 精度: ±1 天(基于 1900-2050 农历表)
  *
  * 对于本应用(仅显示日期用),精度足够。
+ *
+ * ⚠️ TODO: 当前 [LUNAR_TABLE] 仅 1900、1901 两年有真实数据,
+ * 1902-2050 共 149 年使用 30 天占位实现,在这些年份会显示错误的农历日期。
+ * 实际生产必须从寿星天文历/香港天文台公开数据填入真实表。
  */
 class LunarConverter {
+
+    private val androidTag = "LunarConverter"
 
     /**
      * 公历 → 农历
@@ -74,6 +80,15 @@ class LunarConverter {
         val baseSolar = makeDate(1900, 1, 31)
         val daysDiff = ((solar.time - baseSolar.time) / (1000 * 60 * 60 * 24)).toInt()
         if (daysDiff < 0) return LunarDate(year, month, day)
+
+        // 当年份落在占位实现范围时,一次性警告
+        if (year >= 1902) {
+            android.util.Log.w(
+                androidTag,
+                "农历表占位实现,年份 $year 的转换结果不准确。" +
+                    "实际生产应填入完整 1902-2050 农历数据。"
+            )
+        }
 
         // 累加每个月,直到 daysDiff < 当月天数
         var lunarYear = 1900
