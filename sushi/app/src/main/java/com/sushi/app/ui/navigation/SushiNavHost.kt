@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CloudSync
 import androidx.compose.material.icons.outlined.HourglassTop
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
@@ -23,6 +24,7 @@ import com.sushi.app.ui.focus.FocusScreen
 import com.sushi.app.ui.skill.SkillScreen
 import com.sushi.app.ui.profession.ProfessionScreen
 import com.sushi.app.ui.review.ReviewScreen
+import com.sushi.app.ui.sync.SyncScreen
 import com.sushi.app.ui.theme.Ink
 import com.sushi.app.ui.theme.InkFaint
 import com.sushi.app.ui.theme.Paper
@@ -33,6 +35,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     data object Skill : Screen("skill", "技能", Icons.Outlined.AutoStories)
     data object Profession : Screen("profession", "职业", Icons.Outlined.Badge)
     data object Review : Screen("review", "复盘", Icons.Outlined.CalendarMonth)
+    data object Sync : Screen("sync", "同步", Icons.Outlined.CloudSync)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,45 +53,50 @@ fun SushiNavHost() {
     Scaffold(
         containerColor = Paper,
         bottomBar = {
-            NavigationBar(
-                containerColor = Paper,
-                contentColor = Ink
-            ) {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
+            // 同步页面不显示底部导航
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
+            if (currentRoute != Screen.Sync.route) {
+                NavigationBar(
+                    containerColor = Paper,
+                    contentColor = Ink
+                ) {
+                    val navEntry by navController.currentBackStackEntryAsState()
+                    val currentDestination = navEntry?.destination
 
-                screens.forEach { screen ->
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                screen.icon,
-                                contentDescription = screen.label,
-                                tint = if (currentDestination?.hierarchy?.any { it.route == screen.route } == true)
-                                    Ink else InkFaint
-                            )
-                        },
-                        label = {
-                            Text(
-                                screen.label,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (currentDestination?.hierarchy?.any { it.route == screen.route } == true)
-                                    Ink else InkFaint
-                            )
-                        },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                    screens.forEach { screen ->
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    screen.icon,
+                                    contentDescription = screen.label,
+                                    tint = if (currentDestination?.hierarchy?.any { it.route == screen.route } == true)
+                                        Ink else InkFaint
+                                )
+                            },
+                            label = {
+                                Text(
+                                    screen.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (currentDestination?.hierarchy?.any { it.route == screen.route } == true)
+                                        Ink else InkFaint
+                                )
+                            },
+                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                            onClick = {
+                                navController.navigate(screen.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = Paper
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = Paper
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
@@ -98,11 +106,16 @@ fun SushiNavHost() {
             startDestination = Screen.Panel.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Panel.route) { PanelScreen() }
+            composable(Screen.Panel.route) {
+                PanelScreen(onNavigateToSync = { navController.navigate(Screen.Sync.route) })
+            }
             composable(Screen.Focus.route) { FocusScreen() }
             composable(Screen.Skill.route) { SkillScreen() }
             composable(Screen.Profession.route) { ProfessionScreen() }
             composable(Screen.Review.route) { ReviewScreen() }
+            composable(Screen.Sync.route) {
+                SyncScreen(onBack = { navController.popBackStack() })
+            }
         }
     }
 }

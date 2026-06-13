@@ -2,6 +2,7 @@ package com.sushi.app.ui.panel
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -53,7 +54,8 @@ private val radarAttributes = listOf(
 
 @Composable
 fun PanelScreen(
-    viewModel: PanelViewModel = hiltViewModel()
+    viewModel: PanelViewModel = hiltViewModel(),
+    onNavigateToSync: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -89,6 +91,28 @@ fun PanelScreen(
                 AffixesSection(
                     affixes = uiState.unlockedAffixes
                 )
+
+                // 同步入口
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Linen)
+                        .clickable(onClick = onNavigateToSync)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "同步与备份",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = InkLight
+                    )
+                    Text(
+                        text = "→",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = InkFaint
+                    )
+                }
             }
         }
     }

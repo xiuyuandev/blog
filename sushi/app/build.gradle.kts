@@ -91,6 +91,12 @@ dependencies {
     // Gson for type converters
     implementation("com.google.code.gson:gson:2.10.1")
 
+    // OkHttp for WebDAV & S3
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // DataStore for sync settings
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
