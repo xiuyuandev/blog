@@ -39,7 +39,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Goal
 import com.sushi.app.data.model.Skill
 import com.sushi.app.ui.components.SushiBackButton
@@ -62,7 +61,7 @@ import java.util.Calendar
 
 @Composable
 fun GoalScreen(
-    viewModel: GoalViewModel = hiltViewModel(),
+    viewModel: GoalViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()

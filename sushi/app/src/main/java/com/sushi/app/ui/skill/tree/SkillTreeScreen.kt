@@ -30,7 +30,6 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Skill
 import com.sushi.app.logic.ExperienceEngine
 import com.sushi.app.ui.components.SushiBackButton
@@ -53,7 +52,7 @@ import kotlin.math.sin
 
 @Composable
 fun SkillTreeScreen(
-    viewModel: SkillTreeViewModel = hiltViewModel(),
+    viewModel: SkillTreeViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onBack: () -> Unit,
     onSkillClick: (String) -> Unit
 ) {

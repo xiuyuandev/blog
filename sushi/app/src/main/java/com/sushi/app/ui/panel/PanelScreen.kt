@@ -48,7 +48,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Affix
 import com.sushi.app.data.model.AttributeType
 import com.sushi.app.data.model.Profession
@@ -90,7 +89,7 @@ private val radarAttributes = listOf(
 
 @Composable
 fun PanelScreen(
-    viewModel: PanelViewModel = hiltViewModel(),
+    viewModel: PanelViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onNavigateToSync: () -> Unit = {},
     onNavigateToAchievement: () -> Unit = {},
     onNavigateToGoal: () -> Unit = {},

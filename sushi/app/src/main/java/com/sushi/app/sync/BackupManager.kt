@@ -8,8 +8,6 @@ import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * 备份数据结构
@@ -28,10 +26,12 @@ data class BackupData(
 )
 
 /**
- * 备份管理器：负责 JSON/CSV 导出/导入
+ * 备份管理器:负责 JSON/CSV 导出/导入
+ *
+ * V1.0 由 [com.sushi.app.SushiContainer] 持有单例,不再依赖 Hilt。
+ * 同时支持本地导入导出 + WebDAV 同步(坚果云)。
  */
-@Singleton
-class BackupManager @Inject constructor(
+class BackupManager(
     private val repository: SushiRepository
 ) {
     private val gson = Gson()

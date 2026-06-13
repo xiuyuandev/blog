@@ -3,11 +3,13 @@ package com.sushi.app.data.repository
 import com.sushi.app.data.dao.*
 import com.sushi.app.data.model.*
 import kotlinx.coroutines.flow.Flow
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class SushiRepository @Inject constructor(
+/**
+ * 仓库层:聚合 11 个 DAO。
+ *
+ * 由 [com.sushi.app.SushiContainer] 持有单例,不再依赖 Hilt。
+ */
+class SushiRepository(
     private val skillDao: SkillDao,
     private val professionDao: ProfessionDao,
     private val affixDao: AffixDao,

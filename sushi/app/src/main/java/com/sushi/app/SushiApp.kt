@@ -1,35 +1,38 @@
 package com.sushi.app
 
 import android.app.Application
-import com.sushi.app.data.repository.SeedData
 import com.sushi.app.data.repository.SushiRepository
 import com.sushi.app.logic.ExperienceEngine
-import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltAndroidApp
+/**
+ * 素时 Application
+ *
+ * 负责:
+ * 1. 初始化 [SushiContainer] 顶层单例
+ * 2. 首次启动时预置数据(技能/职业/词条/任务/成就/帮助)
+ */
 class SushiApp : Application() {
 
-    @Inject lateinit var repository: SushiRepository
-    @Inject lateinit var seedData: SeedData
-    @Inject lateinit var engine: ExperienceEngine
-
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    val appScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
+        SushiContainer.init(this)
         seedIfFirstLaunch()
     }
 
     private fun seedIfFirstLaunch() {
         appScope.launch {
-            // 首次启动预置数据
             try {
-                // 技能/职业/词条/任务
+                val repository: SushiRepository = SushiContainer.repository
+                val seedData = SushiContainer.seedData
+                val engine: ExperienceEngine = SushiContainer.engine
+
+                // 技能 / 职业 / 词条 / 任务
                 val skills = seedData.seedSkills()
                 val existingSkill = repository.getSkillById(skills.first().id)
                 if (existingSkill == null) {
@@ -47,7 +50,7 @@ class SushiApp : Application() {
                         repository.updateProfessionExp(profession.id, linkedExp)
                     }
                 }
-                // 默认成就 + 帮助条目（独立判断，已有则跳过）
+                // 默认成就 + 帮助条目(独立判断,已有则跳过)
                 engine.seedDefaultAchievements()
                 engine.seedHelpEntries()
             } catch (_: Exception) {

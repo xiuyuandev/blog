@@ -52,9 +52,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.sushi.app.sync.ConflictResolution
-import com.sushi.app.sync.S3Config
+import androidx.compose.ui.platform.LocalContext
 import com.sushi.app.sync.SyncConfig
 import com.sushi.app.sync.SyncProvider
 import com.sushi.app.sync.ThemeMode
@@ -80,15 +78,17 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SyncScreen(
-    viewModel: SyncViewModel = hiltViewModel(),
     onBack: () -> Unit = {}
 ) {
+    val viewModel: SyncViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val contentResolver = context.contentResolver
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        uri?.let { viewModel.importFromFile(it) }
+        uri?.let { viewModel.importFromFile(contentResolver, it) }
     }
 
     // 成功消息 5 秒后自动消失（避免 5 秒后被新消息意外清除）
@@ -105,6 +105,16 @@ fun SyncScreen(
                     viewModel.clearStatusMessage()
                 }
             }
+        }
+    }
+
+    // 监听待导出文件,自动写入
+    LaunchedEffect(uiState.pendingExportJson, uiState.pendingExportCsv) {
+        val json = uiState.pendingExportJson
+        val csv = uiState.pendingExportCsv
+        if ((json != null || csv != null) && uiState.pendingExportFileName.isNotBlank()) {
+            viewModel.writeExportFile(contentResolver, json, csv, uiState.pendingExportFileName)
+            viewModel.consumePendingExport()
         }
     }
 
@@ -142,15 +152,11 @@ fun SyncScreen(
                 onSelectProvider = viewModel::selectProvider
             )
 
-            // 配置区域
+            // 配置区域(只支持 WebDAV)
             when (uiState.syncConfig.provider) {
                 SyncProvider.WEBDAV -> WebDavConfigSection(
                     config = uiState.syncConfig.webDavConfig,
                     onSave = viewModel::saveWebDavConfig
-                )
-                SyncProvider.S3 -> S3ConfigSection(
-                    config = uiState.syncConfig.s3Config,
-                    onSave = viewModel::saveS3Config
                 )
                 SyncProvider.NONE -> {}
             }
@@ -197,12 +203,10 @@ fun SyncScreen(
                     .background(InkFaintest)
             )
 
-            // #23 偏好设置
+            // #23 偏好设置(精简版:只保留主题+每日一句)
             PreferencesSection(
                 config = uiState.syncConfig,
                 onThemeModeChange = viewModel::setThemeMode,
-                onConflictResolutionChange = viewModel::setConflictResolution,
-                onWhiteNoiseChange = viewModel::setWhiteNoiseEnabled,
                 onDailyQuoteChange = viewModel::setDailyQuoteEnabled
             )
 
@@ -330,12 +334,6 @@ private fun ProviderSelection(
                 label = "坚果云 WebDAV",
                 isSelected = currentProvider == SyncProvider.WEBDAV,
                 onClick = { onSelectProvider(SyncProvider.WEBDAV) },
-                modifier = Modifier.weight(1f)
-            )
-            ProviderOption(
-                label = "七牛云 S3",
-                isSelected = currentProvider == SyncProvider.S3,
-                onClick = { onSelectProvider(SyncProvider.S3) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -500,167 +498,6 @@ private fun WebDavConfigSection(
         Button(
             onClick = {
                 onSave(WebDavConfig(serverUrl, username, password, remotePath))
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = CardShape,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Cinnabar,
-                contentColor = Paper
-            )
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
-            ) {
-                Icon(
-                    imageVector = SushiIcons.Check,
-                    contentDescription = null,
-                    tint = Paper,
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(text = "保存配置")
-            }
-        }
-    }
-}
-
-@Composable
-private fun S3ConfigSection(
-    config: S3Config,
-    onSave: (S3Config) -> Unit
-) {
-    var endpoint by remember(config.endpoint) { mutableStateOf(config.endpoint) }
-    var region by remember(config.region) { mutableStateOf(config.region) }
-    var bucket by remember(config.bucket) { mutableStateOf(config.bucket) }
-    var accessKey by remember(config.accessKey) { mutableStateOf(config.accessKey) }
-    var secretKey by remember(config.secretKey) { mutableStateOf(config.secretKey) }
-    var remotePath by remember(config.remotePath) { mutableStateOf(config.remotePath) }
-    var showSecret by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, CardShape)
-            .clip(CardShape)
-            .background(PaperWarm)
-            .padding(SushiSpacing.lg),
-        verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
-    ) {
-        SectionTitle(title = "七牛云 S3 配置")
-
-        OutlinedTextField(
-            value = endpoint,
-            onValueChange = { endpoint = it },
-            label = { Text("Endpoint", color = InkLight) },
-            placeholder = { Text("s3-cn-south-1.qiniucs.com", color = InkFaint) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = region,
-            onValueChange = { region = it },
-            label = { Text("Region", color = InkLight) },
-            placeholder = { Text("cn-south-1", color = InkFaint) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = bucket,
-            onValueChange = { bucket = it },
-            label = { Text("Bucket", color = InkLight) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = accessKey,
-            onValueChange = { accessKey = it },
-            label = { Text("Access Key", color = InkLight) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = secretKey,
-            onValueChange = { secretKey = it },
-            label = { Text("Secret Key", color = InkLight) },
-            singleLine = true,
-            visualTransformation = if (showSecret) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                Box(
-                    modifier = Modifier
-                        .clip(CardShapeSmall)
-                        .background(CinnabarFaint)
-                        .clickable { showSecret = !showSecret }
-                        .padding(horizontal = SushiSpacing.sm, vertical = SushiSpacing.xs),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (showSecret) "隐藏" else "显示",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Cinnabar
-                    )
-                }
-            },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = remotePath,
-            onValueChange = { remotePath = it },
-            label = { Text("远程路径前缀", color = InkLight) },
-            placeholder = { Text("sushi/", color = InkFaint) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = {
-                onSave(S3Config(endpoint, region, bucket, accessKey, secretKey, remotePath))
             },
             modifier = Modifier.fillMaxWidth(),
             shape = CardShape,
@@ -917,14 +754,16 @@ private fun StatusMessage(
 }
 
 /**
- * #23 偏好设置：主题、冲突解决、白噪音、每日一句
+ * #23 偏好设置:V1.0 精简版 — 只保留主题模式 + 每日一句
+ *
+ * 移除(对比旧版本):
+ * - 冲突解决(无云则无冲突)
+ * - 白噪音(需音频下载,违背离线原则)
  */
 @Composable
 private fun PreferencesSection(
     config: SyncConfig,
     onThemeModeChange: (ThemeMode) -> Unit,
-    onConflictResolutionChange: (ConflictResolution) -> Unit,
-    onWhiteNoiseChange: (Boolean) -> Unit,
     onDailyQuoteChange: (Boolean) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
@@ -971,59 +810,10 @@ private fun PreferencesSection(
             }
         }
 
-        // 冲突解决
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = "同步冲突解决",
-                style = MaterialTheme.typography.labelMedium,
-                color = InkLight
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(
-                    ConflictResolution.ASK_EACH_TIME to "每次询问",
-                    ConflictResolution.LOCAL_WINS to "本地覆盖",
-                    ConflictResolution.REMOTE_WINS to "云端覆盖",
-                    ConflictResolution.ALWAYS_MERGE to "总是合并"
-                ).forEach { (resolution, label) ->
-                    val isSelected = config.conflictResolution == resolution
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(CardShapeSmall)
-                            .background(if (isSelected) CinnabarFaint else Linen)
-                            .clickable { onConflictResolutionChange(resolution) }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(if (isSelected) Cinnabar else InkFaintest)
-                        )
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isSelected) Cinnabar else Ink
-                        )
-                    }
-                }
-            }
-        }
-
-        // 白噪音
-        ToggleSettingRow(
-            title = "白噪音",
-            subtitle = "专注时播放白噪音（实验性）",
-            checked = config.whiteNoiseEnabled,
-            onChange = onWhiteNoiseChange
-        )
-
         // 每日一句
         ToggleSettingRow(
             title = "每日一句",
-            subtitle = "在主面板显示随机金句",
+            subtitle = "在主面板显示节气古语",
             checked = config.dailyQuoteEnabled,
             onChange = onDailyQuoteChange
         )

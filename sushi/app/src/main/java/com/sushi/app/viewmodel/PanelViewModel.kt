@@ -2,13 +2,11 @@ package com.sushi.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sushi.app.SushiContainer
 import com.sushi.app.data.model.*
 import com.sushi.app.data.repository.SushiRepository
-import com.sushi.app.logic.ExperienceEngine
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class PanelUiState(
     val professionName: String = "游侠",
@@ -20,10 +18,9 @@ data class PanelUiState(
     val allProfessions: List<Profession> = emptyList()
 )
 
-@HiltViewModel
-class PanelViewModel @Inject constructor(
-    private val repository: SushiRepository,
-    private val experienceEngine: ExperienceEngine
+class PanelViewModel(
+    private val repository: SushiRepository = SushiContainer.repository,
+    private val experienceEngine: ExperienceEngine = SushiContainer.engine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PanelUiState())

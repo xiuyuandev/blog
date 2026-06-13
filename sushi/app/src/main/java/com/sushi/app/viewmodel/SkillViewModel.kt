@@ -2,14 +2,13 @@ package com.sushi.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sushi.app.SushiContainer
 import com.sushi.app.data.model.*
 import com.sushi.app.data.repository.SushiRepository
 import com.sushi.app.logic.ExperienceEngine
 import com.sushi.app.logic.SettlementResult
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class SkillUiState(
     val selectedCategory: SkillCategory = SkillCategory.COGNITION,
@@ -43,10 +42,9 @@ data class SkillDetail(
     val historyRecords: List<TimeRecord> = emptyList()
 )
 
-@HiltViewModel
-class SkillViewModel @Inject constructor(
-    private val repository: SushiRepository,
-    private val experienceEngine: ExperienceEngine
+class SkillViewModel(
+    private val repository: SushiRepository = SushiContainer.repository,
+    private val experienceEngine: ExperienceEngine = SushiContainer.engine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SkillUiState())

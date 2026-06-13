@@ -2,15 +2,14 @@ package com.sushi.app.ui.report
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sushi.app.SushiContainer
 import com.sushi.app.data.repository.SushiRepository
 import com.sushi.app.logic.ExperienceEngine
 import com.sushi.app.logic.WeeklyReport
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class ReportUiState(
     val weeklyReport: WeeklyReport? = null,
@@ -20,10 +19,9 @@ data class ReportUiState(
     val isLoading: Boolean = true
 )
 
-@HiltViewModel
-class ReportViewModel @Inject constructor(
-    private val repository: SushiRepository,
-    private val engine: ExperienceEngine
+class ReportViewModel(
+    private val repository: SushiRepository = SushiContainer.repository,
+    private val engine: ExperienceEngine = SushiContainer.engine
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ReportUiState())
     val uiState: StateFlow<ReportUiState> = _uiState.asStateFlow()

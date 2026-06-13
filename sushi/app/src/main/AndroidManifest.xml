@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        INTERNET 权限说明:
+        仅用于用户主动配置的坚果云 WebDAV 同步(用户输入坚果云账号+应用密码后,App 才连接用户自己的坚果云)。
+        App 默认不联网,不收集任何数据。
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".SushiApp"
         android:allowBackup="true"
@@ -8,6 +15,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="false"
         android:theme="@style/Theme.Sushi">
         <activity
             android:name=".MainActivity"

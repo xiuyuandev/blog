@@ -2,10 +2,10 @@ package com.sushi.app.ui.goal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sushi.app.SushiContainer
 import com.sushi.app.data.model.Goal
 import com.sushi.app.data.model.Skill
 import com.sushi.app.data.repository.SushiRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import java.util.Calendar
 import java.util.UUID
-import javax.inject.Inject
 
 data class GoalUiState(
     val goals: List<Goal> = emptyList(),
@@ -22,9 +21,8 @@ data class GoalUiState(
     val showCreateDialog: Boolean = false
 )
 
-@HiltViewModel
-class GoalViewModel @Inject constructor(
-    private val repository: SushiRepository
+class GoalViewModel(
+    private val repository: SushiRepository = SushiContainer.repository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(GoalUiState())
     val uiState: StateFlow<GoalUiState> = _uiState.asStateFlow()

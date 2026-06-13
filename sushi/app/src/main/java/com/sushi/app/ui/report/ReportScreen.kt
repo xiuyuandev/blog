@@ -25,7 +25,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.ui.components.BarChart
 import com.sushi.app.ui.components.HorizontalBarChart
 import com.sushi.app.ui.components.SushiBackButton
@@ -50,7 +49,7 @@ import java.util.Locale
 
 @Composable
 fun ReportScreen(
-    viewModel: ReportViewModel = hiltViewModel(),
+    viewModel: ReportViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()

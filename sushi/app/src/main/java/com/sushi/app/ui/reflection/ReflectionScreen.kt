@@ -33,7 +33,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.DailyReflection
 import com.sushi.app.ui.components.MoodPicker
 import com.sushi.app.ui.components.SushiBackButton
@@ -57,7 +56,7 @@ import java.util.UUID
 
 @Composable
 fun ReflectionScreen(
-    viewModel: ReflectionViewModel = hiltViewModel(),
+    viewModel: ReflectionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()

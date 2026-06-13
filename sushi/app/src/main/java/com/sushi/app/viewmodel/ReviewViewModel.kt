@@ -2,14 +2,13 @@ package com.sushi.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sushi.app.SushiContainer
 import com.sushi.app.data.model.*
 import com.sushi.app.data.repository.SushiRepository
 import com.sushi.app.logic.ExperienceEngine
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
-import javax.inject.Inject
 
 data class ReviewUiState(
     val selectedDate: Long = System.currentTimeMillis(),
@@ -21,10 +20,9 @@ data class ReviewUiState(
     val isLoading: Boolean = true
 )
 
-@HiltViewModel
-class ReviewViewModel @Inject constructor(
-    private val repository: SushiRepository,
-    private val experienceEngine: ExperienceEngine
+class ReviewViewModel(
+    private val repository: SushiRepository = SushiContainer.repository,
+    private val experienceEngine: ExperienceEngine = SushiContainer.engine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReviewUiState())

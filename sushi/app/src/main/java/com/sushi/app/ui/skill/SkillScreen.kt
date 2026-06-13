@@ -59,7 +59,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Affix
 import com.sushi.app.data.model.Profession
 import com.sushi.app.data.model.SkillCategory
@@ -107,7 +106,7 @@ import java.util.Locale
 
 @Composable
 fun SkillScreen(
-    viewModel: SkillViewModel = hiltViewModel(),
+    viewModel: SkillViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onNavigateToSkillTree: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()

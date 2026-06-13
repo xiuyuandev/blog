@@ -2,15 +2,14 @@ package com.sushi.app.ui.achievement
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sushi.app.SushiContainer
 import com.sushi.app.data.model.Achievement
 import com.sushi.app.data.repository.SushiRepository
 import com.sushi.app.logic.ExperienceEngine
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class AchievementUiState(
     val achievements: List<Achievement> = emptyList(),
@@ -19,10 +18,9 @@ data class AchievementUiState(
     val isLoading: Boolean = true
 )
 
-@HiltViewModel
-class AchievementViewModel @Inject constructor(
-    private val repository: SushiRepository,
-    private val engine: ExperienceEngine
+class AchievementViewModel(
+    private val repository: SushiRepository = SushiContainer.repository,
+    private val engine: ExperienceEngine = SushiContainer.engine
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AchievementUiState())
     val uiState: StateFlow<AchievementUiState> = _uiState.asStateFlow()

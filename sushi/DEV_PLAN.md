@@ -1,8 +1,8 @@
 # 素时 · 开发计划(V1.0 修订版)
 
-> **目标**: 在现有 31 项功能工程基础上,**保留 29 项核心 + 剥离 2 项(白噪音/云同步) + 换皮 Material 3 设计语言**,交付符合"Google 风格 + 中国气质 + 离线公益"的素时 V1.0 APK。
+> **目标**: 在现有 31 项功能工程基础上,**保留 30 项核心 + 剥离 1 项(白噪音) + 换皮 Material 3 设计语言 + 保留坚果云 WebDAV 同步**,交付符合"Google 风格 + 中国气质 + 离线公益"的素时 V1.0 APK。
 > **策略**: 不推翻,而是**减法换皮**。
-> **撰写日期**: 2026-06-13 · 修订版
+> **撰写日期**: 2026-06-13 · 修订版(保留 WebDAV)
 
 ---
 
@@ -28,12 +28,12 @@
 
 | 维度 | 决策 |
 |---|---|
-| **功能层** | 29 项保留 + 2 项剥离(白噪音、云同步) |
+| **功能层** | 30 项保留 + 1 项剥离(白噪音) + 保留 WebDAV 同步 |
 | **设计层** | 全 UI 换皮为 Material 3 + 中国色板 |
 | **交互层** | 改用 Material 3 标准组件(NavigationBar / ExtendedFAB / ModalBottomSheet) |
 | **数据层** | 完全保留(已经过验证) |
 | **业务逻辑** | 完全保留(经验引擎、毕业逻辑、Streak、成就) |
-| **依赖层** | 移除 Hilt(用顶层单例)、保留 Compose/Room/Flow |
+| **依赖层** | 移除 Hilt(用顶层单例)、保留 Compose/Room/OkHttp(仅 WebDAV) |
 
 ### 1.2 三件大事
 1. **换皮**(60% 工作量): 重写所有 Composable 主题
@@ -44,7 +44,7 @@
 | 决策项 | 选择 | 理由 |
 |---|---|---|
 | DI 框架 | **不用 Hilt,改用顶层单例** | 减依赖、减方法数 |
-| 网络库 | **完全移除** | 不联网 |
+| 网络库 | **保留 OkHttp(仅 WebDAV),移除 S3 SDK/Retrofit** | WebDAV 是用户自主选择 |
 | 数据库 | **Room 保留**(已建 v3 迁移) | 稳定,本地 |
 | UI 框架 | **Compose 保留 + Material 3 升级** | 主流、Jetpack |
 | 主题 | **Material 3 baseline + 中国静态色** | 不用动态取色 |
@@ -53,6 +53,7 @@
 | 字体 | **思源黑体/霞鹜文楷内置子集** | 离线可用 |
 | 图标 | **Material Symbols Rounded 内置** | 离线、无版权 |
 | 备份 | **本地文件 + SAF** | 离线 |
+| 云同步 | **仅保留 WebDAV(坚果云)**,用户主动配置 | 用户自托管,数据不经我们 |
 
 ---
 
@@ -79,11 +80,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("androidx.navigation:navigation-compose:2.7.6")
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")  // 仅用于 WebDAV
     
     // 移除的(原工程有,V1.0 不要)
     // - hilt-android / hilt-compiler
-    // - okhttp / retrofit
-    // - datastore(改用 SharedPreferences 或保留)
+    // - retrofit(直接用 OkHttp)
+    // - aws-s3-sdk(改 WebDAV)
     // - material dynamic color(改用静态)
 }
 ```
@@ -96,8 +98,8 @@ dependencies {
 - **总计: ~7MB** ✅
 
 ### 2.3 权限申请
-**目标: 0 权限**
-- ❌ 不申请网络
+**目标: 1 权限(仅 WebDAV 同步使用)**
+- ✅ **INTERNET** — 仅用于用户主动配置的坚果云 WebDAV 同步,App 不主动连接任何服务器
 - ❌ 不申请存储(用 SAF)
 - ❌ 不申请通知
 - ❌ 不申请位置
@@ -343,19 +345,19 @@ app/src/main/java/com/sushi/app/
 | 路径 | 原因 |
 |---|---|
 | `di/` 整目录 | 移除 Hilt,改用 SushiContainer |
-| `sync/` 整目录 | 不联网,移除所有同步逻辑 |
-| `ui/sync/SyncScreen.kt` | 无同步,删除 |
-| `ui/sync/SyncViewModel.kt` | 无同步,删除 |
-| `viewmodel/SyncViewModel.kt` | 无同步,删除 |
-| `sync/BackupManager.kt`(原云备份版) | 改写为本地 JSON 备份 |
-| 任何 OkHttp / Retrofit / WebDAV / S3 引用 | 不联网 |
-| WebDAV/S3 配置文件 | 不联网 |
-| 应用市场白噪音相关代码 | 剥离 |
-| `<uses-permission android:name="android.permission.INTERNET" />` | 不联网 |
-| `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />` | 不联网 |
+| `sync/S3SyncService.kt` | 国内访问不便,完全移除 |
+| `sync/SyncConfig.kt`(复杂版) | 简化为只支持 WebDAV |
+| `ui/sync/SyncScreen.kt` | 改写为 WebDAV 配置页 |
+| `viewmodel/SyncViewModel.kt` | 改写为 WebDAV ViewModel |
+| `sync/BackupManager.kt`(原云备份版) | 改写为本地 JSON 备份(在 data/repository/) |
+| Retrofit 引用 | 直接用 OkHttp |
+| AWS S3 SDK | 不需要 |
+| `<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />` | 不需要 |
 | `<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />` | 改用 SAF |
+| **保留** `sync/WebDavSyncService.kt` | 用户自主选择同步 |
+| **保留** `sync/SyncService.kt`(接口) | 接口保留,只实现 WebDAV |
 
-**预计删除**: ~20% 现有代码(主要是同步相关)
+**预计删除**: ~15% 现有代码(主要是 S3 + 复杂 Sync)
 
 ### 5.2 重写清单(换皮)
 
@@ -370,6 +372,8 @@ app/src/main/java/com/sushi/app/
 | `MainActivity.kt` | 集成 NavHost |
 | `SushiApp.kt` | 初始化 SushiContainer |
 | `ui/celebration/LevelUpCelebration.kt` | 改克制版(无粒子) |
+| `ui/sync/SyncScreen.kt` | 改写为只支持 WebDAV 的配置页 |
+| `viewmodel/SyncViewModel.kt` | 改写为 WebDAV ViewModel |
 
 ### 5.3 新建清单
 
@@ -390,6 +394,7 @@ app/src/main/java/com/sushi/app/
 | `assets/fonts/LXGWWenKai-Regular.ttf` | 霞鹜文楷 |
 | `res/values/strings.xml` | 全部中文字串 |
 | `res/drawable/ic_launcher_*.xml` | 应用图标 |
+| `res/xml/network_security_config.xml` | 允许用户配置的坚果云域名(可选 HTTPS) |
 
 ### 5.4 保留清单(无需改动)
 - 全部 11 个 DAO
@@ -435,8 +440,8 @@ app/src/main/java/com/sushi/app/
 | 4 | 新建 `ui/theme/Shape.kt` | 圆角标准化 |
 | 5 | 集成 Material Symbols Rounded | 图标正常 |
 | 5 | 移除 Hilt 引用,改用 Container | 编译通过 |
-| 6 | 移除 OkHttp/Retrofit 引用 | 编译通过 |
-| 6 | 移除网络权限 | Manifest 干净 |
+| 6 | 移除 Retrofit / AWS S3 SDK | 编译通过 |
+| 6 | 保留 INTERNET 权限(Manifest 标注用途) | Manifest 干净 |
 | 7 | 全工程编译,记录 APK 大小 | APK < 12MB |
 
 ### Week 2: 5 Tab 导航 + Material 3 换皮
@@ -450,6 +455,7 @@ app/src/main/java/com/sushi/app/
 | 10 | 目标页 `GoalScreen.kt` 改写 | 目标卡片 |
 | 10 | 报告页 `ReportScreen.kt` 改写(保留图表) | 4 段切换 |
 | 11 | 我的页 `SettingsScreen.kt` 新建 | 列表样式 |
+| 11 | `SyncScreen.kt` 改写为 WebDAV 配置页(输入坚果云账号/密码/路径) | 配置可用 |
 | 11 | 成就页、复盘页、任务页全部 Material 化 | 风格统一 |
 | 12 | FAB 改造(ExtendedFAB) | 浮动按钮正确 |
 | 12 | ModalBottomSheet 替换 AlertDialog | 所有弹窗为底部弹出 |
@@ -519,7 +525,10 @@ app/src/main/java/com/sushi/app/
 - **系统**: MIUI/EMUI/OriginOS/ColorOS/HyperOS
 
 ### 8.4 隐私与权限
-**目标: 0 权限**(详见 §2.3)
+**目标: 1 权限(详见 §2.3)**
+- INTERNET 仅用于用户主动配置的坚果云 WebDAV 同步
+- App 不主动连接任何服务器
+- 不收集任何使用数据、崩溃数据
 
 ---
 
@@ -550,12 +559,13 @@ app/src/main/java/com/sushi/app/
 ```
 素时隐私政策(2026年6月)
 
-1. 本 App 不连接任何服务器
+1. 本 App 不连接任何服务器(默认情况下)
 2. 本 App 不收集任何数据
-3. 本 App 不申请任何系统权限
-4. 所有数据仅存储在您设备本地
-5. 卸载 App 后,所有数据自动清除
-6. 开源地址: github.com/xxx/sushi
+3. 唯一申请的权限:INTERNET,仅用于您主动配置的坚果云 WebDAV 同步
+4. 同步数据直接存到您自己的坚果云账号,不经任何第三方(包括我们)
+5. 所有数据仅存储在您设备本地 + 您自己的坚果云(若启用同步)
+6. 卸载 App 后,设备本地数据自动清除
+7. 开源地址: github.com/xxx/sushi
 ```
 
 ### 9.4 官网
@@ -635,14 +645,15 @@ app/src/main/java/com/sushi/app/
 | 23 深色模式 | ✅ 保留 | Material 3 |
 | 24 全屏专注 | ✅ 保留 | 不动 |
 | **25 白噪音** | ❌ **剥离** | 删除 |
-| **26 同步冲突** | ❌ **剥离** | 删除 |
+| 26 ~~S3 同步~~ → 改 WebDAV | ✅ **保留(改 WebDAV)** | 用户自托管,数据存用户自己的坚果云 |
 | 27 数据导入(本地) | ✅ 保留 | JSON |
 | 28 Onboarding | ✅ 保留 | 流程跑通 |
 | 29 概念解释 | ✅ 保留 | 卡片化 |
 | 30 帮助中心 | ✅ 保留 | 列表化 |
 | 31 CSV 导出 | ✅ 保留 | MediaStore |
 
-**总账**: 31 项 → **29 项保留 + 2 项剥离** ✅
+**总账**: 31 项 → **30 项保留 + 1 项剥离(白噪音)**。
+**S3 同步被 WebDAV(坚果云)取代**,作为可选同步方式保留。
 
 ---
 

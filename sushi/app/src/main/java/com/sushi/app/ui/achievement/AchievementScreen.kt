@@ -19,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.ui.components.AchievementBadge
 import com.sushi.app.ui.components.SushiBackButton
 import com.sushi.app.ui.components.SushiLoading
@@ -32,7 +31,7 @@ import com.sushi.app.ui.theme.SushiSpacing
 
 @Composable
 fun AchievementScreen(
-    viewModel: AchievementViewModel = hiltViewModel(),
+    viewModel: AchievementViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()

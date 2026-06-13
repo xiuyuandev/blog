@@ -5,25 +5,20 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.w3c.dom.Document
-import org.xml.sax.InputSource
-import java.io.StringReader
 import java.net.URLEncoder
-import javax.inject.Inject
-import javax.inject.Singleton
-import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * WebDAV 同步实现（坚果云）
+ * WebDAV 同步实现(坚果云)
  *
- * 坚果云 WebDAV 基本操作：
+ * 坚果云 WebDAV 基本操作:
  * - MKCOL: 创建远程目录
  * - PUT: 上传文件
  * - GET: 下载文件
  * - PROPFIND: 检查文件/目录是否存在
+ *
+ * 由 [com.sushi.app.SushiContainer] 持有单例,不再依赖 Hilt。
  */
-@Singleton
-class WebDavSyncService @Inject constructor() : SyncService {
+class WebDavSyncService : SyncService {
 
     private val client = OkHttpClient.Builder()
         .followRedirects(true)
@@ -34,7 +29,7 @@ class WebDavSyncService @Inject constructor() : SyncService {
 
     companion object {
         private const val BACKUP_FILENAME = "sushi_backup.json"
-        // Fix #15: 备份文件大小上限 10 MB，防止恶意/异常大文件 OOM
+        // 备份文件大小上限 10 MB,防止恶意/异常大文件 OOM
         private const val MAX_BACKUP_SIZE = 10L * 1024 * 1024
     }
 

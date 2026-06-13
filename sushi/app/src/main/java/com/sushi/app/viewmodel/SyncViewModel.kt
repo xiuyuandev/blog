@@ -1,17 +1,14 @@
 package com.sushi.app.viewmodel
 
-import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sushi.app.SushiContainer
 import com.sushi.app.sync.*
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
 data class SyncUiState(
     val syncConfig: SyncConfig = SyncConfig(),
@@ -26,16 +23,23 @@ data class SyncUiState(
     val showImportConfirmation: Boolean = false,
     val pendingImportJson: String? = null,
     val lastPushTimestamp: Long = 0L,
-    val showExportFormatDialog: Boolean = false
+    val showExportFormatDialog: Boolean = false,
+    val showWebDavConfigDialog: Boolean = false,
+    val pendingExportJson: String? = null,
+    val pendingExportCsv: String? = null,
+    val pendingExportFileName: String = ""
 )
 
-@HiltViewModel
-class SyncViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val syncConfigManager: SyncConfigManager,
-    private val backupManager: BackupManager,
-    private val webDavSyncService: WebDavSyncService,
-    private val s3SyncService: S3SyncService
+/**
+ * 同步 ViewModel(V1.0 精简版)
+ *
+ * 移除 S3、ConflictResolution、WhiteNoise。
+ * 保留 WebDAV 同步、本地 JSON/CSV 导入导出、主题模式、每日一句。
+ */
+class SyncViewModel(
+    private val syncConfigManager: SyncConfigManager = SushiContainer.syncConfigManager,
+    private val backupManager: BackupManager = BackupManager(SushiContainer.repository),
+    private val webDavSyncService: WebDavSyncService = SushiContainer.webDavSyncService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SyncUiState())
@@ -49,7 +53,7 @@ class SyncViewModel @Inject constructor(
         }
     }
 
-    // ========== 云端同步 ==========
+    // ========== 云端同步(仅 WebDAV) ==========
 
     fun selectProvider(provider: SyncProvider) {
         viewModelScope.launch {
@@ -63,10 +67,12 @@ class SyncViewModel @Inject constructor(
         }
     }
 
-    fun saveS3Config(config: S3Config) {
-        viewModelScope.launch {
-            syncConfigManager.saveS3Config(config)
-        }
+    fun showWebDavConfigDialog() {
+        _uiState.update { it.copy(showWebDavConfigDialog = true) }
+    }
+
+    fun hideWebDavConfigDialog() {
+        _uiState.update { it.copy(showWebDavConfigDialog = false) }
     }
 
     fun testConnection() {
@@ -79,10 +85,6 @@ class SyncViewModel @Inject constructor(
                     SyncProvider.WEBDAV -> {
                         webDavSyncService.setConfig(config.webDavConfig)
                         webDavSyncService.testConnection()
-                    }
-                    SyncProvider.S3 -> {
-                        s3SyncService.setConfig(config.s3Config)
-                        s3SyncService.testConnection()
                     }
                     else -> SyncResult.Error("请先选择同步方式")
                 }
@@ -101,7 +103,6 @@ class SyncViewModel @Inject constructor(
     }
 
     fun pushToCloud() {
-        // Fix #14: UI 更新在 Main 线程执行，网络 IO 在 IO 线程
         viewModelScope.launch {
             _uiState.update { it.copy(isPushing = true, statusMessage = "") }
             val config = withContext(Dispatchers.IO) { syncConfigManager.getConfig() }
@@ -113,10 +114,6 @@ class SyncViewModel @Inject constructor(
                         SyncProvider.WEBDAV -> {
                             webDavSyncService.setConfig(config.webDavConfig)
                             webDavSyncService.push(json)
-                        }
-                        SyncProvider.S3 -> {
-                            s3SyncService.setConfig(config.s3Config)
-                            s3SyncService.push(json)
                         }
                         else -> SyncResult.Error("请先选择同步方式")
                     }
@@ -146,7 +143,6 @@ class SyncViewModel @Inject constructor(
     }
 
     fun pullFromCloud(merge: Boolean = false) {
-        // Fix #14: UI 更新在 Main 线程
         viewModelScope.launch {
             _uiState.update { it.copy(isPulling = true, statusMessage = "") }
             val config = withContext(Dispatchers.IO) { syncConfigManager.getConfig() }
@@ -156,10 +152,6 @@ class SyncViewModel @Inject constructor(
                     SyncProvider.WEBDAV -> {
                         webDavSyncService.setConfig(config.webDavConfig)
                         webDavSyncService.pull()
-                    }
-                    SyncProvider.S3 -> {
-                        s3SyncService.setConfig(config.s3Config)
-                        s3SyncService.pull()
                     }
                     else -> SyncResult.Error("请先选择同步方式")
                 }
@@ -182,7 +174,7 @@ class SyncViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isPulling = false,
-                            statusMessage = if (importResult.isSuccess) "拉取成功（${if (merge) "合并" else "覆盖"}）" else "拉取失败: 数据解析错误",
+                            statusMessage = if (importResult.isSuccess) "拉取成功(${if (merge) "合并" else "覆盖"})" else "拉取失败: 数据解析错误",
                             lastSyncTime = if (importResult.isSuccess) {
                                 java.text.SimpleDateFormat("yyyy/MM/dd HH:mm", java.util.Locale.getDefault())
                                     .format(java.util.Date())
@@ -199,45 +191,13 @@ class SyncViewModel @Inject constructor(
         }
     }
 
-    // ========== 本地导出/导入 ==========
+    // ========== 本地导入(由 Composable 提供 contentResolver) ==========
 
-    fun exportToFile() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isExporting = true, statusMessage = "") }
-            try {
-                val json = backupManager.exportToJson()
-                val fileName = "sushi_backup_${System.currentTimeMillis()}.json"
-
-                val contentValues = android.content.ContentValues().apply {
-                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "application/json")
-                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOCUMENTS)
-                }
-
-                val uri = context.contentResolver.insert(
-                    android.provider.MediaStore.Files.getContentUri("external"),
-                    contentValues
-                )
-
-                if (uri != null) {
-                    context.contentResolver.openOutputStream(uri)?.use { os ->
-                        os.write(json.toByteArray(Charsets.UTF_8))
-                    }
-                    _uiState.update { it.copy(isExporting = false, statusMessage = "导出成功: $fileName") }
-                } else {
-                    _uiState.update { it.copy(isExporting = false, statusMessage = "导出失败: 无法创建文件") }
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isExporting = false, statusMessage = "导出失败: ${e.message}") }
-            }
-        }
-    }
-
-    fun importFromFile(uri: Uri) {
+    fun importFromFile(contentResolver: android.content.ContentResolver, uri: Uri) {
         viewModelScope.launch {
             _uiState.update { it.copy(isImporting = true, statusMessage = "") }
             try {
-                val json = context.contentResolver.openInputStream(uri)?.use { ist ->
+                val json = contentResolver.openInputStream(uri)?.use { ist ->
                     String(ist.readBytes(), Charsets.UTF_8)
                 } ?: throw Exception("无法读取文件")
 
@@ -246,8 +206,6 @@ class SyncViewModel @Inject constructor(
                     _uiState.update { it.copy(isImporting = false, statusMessage = "无效的备份文件格式") }
                     return@launch
                 }
-
-                // Show preview instead of importing directly
                 _uiState.update { it.copy(isImporting = false) }
                 requestImport(json)
             } catch (e: Exception) {
@@ -315,60 +273,92 @@ class SyncViewModel @Inject constructor(
         }
     }
 
-    fun setConflictResolution(resolution: ConflictResolution) {
-        viewModelScope.launch {
-            syncConfigManager.saveConflictResolution(resolution)
-        }
-    }
-
-    fun setWhiteNoiseEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            syncConfigManager.saveWhiteNoiseEnabled(enabled)
-        }
-    }
-
     fun setDailyQuoteEnabled(enabled: Boolean) {
         viewModelScope.launch {
             syncConfigManager.saveDailyQuoteEnabled(enabled)
         }
     }
 
-    /**
-     * 导出为 CSV
-     */
-    fun exportToCsvFile() {
+    // ========== 导出(由 Composable 触发 SAF 写入) ==========
+
+    fun showExportFormatDialog() {
+        _uiState.update { it.copy(showExportFormatDialog = true) }
+    }
+
+    fun hideExportFormatDialog() {
+        _uiState.update { it.copy(showExportFormatDialog = false) }
+    }
+
+    fun onSelectJson() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isExporting = true, statusMessage = "") }
-            try {
-                val csv = backupManager.exportTimeRecordsToCsv()
-                val fileName = "sushi_records_${System.currentTimeMillis()}.csv"
-
-                val contentValues = android.content.ContentValues().apply {
-                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "text/csv")
-                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOCUMENTS)
-                }
-
-                val uri = context.contentResolver.insert(
-                    android.provider.MediaStore.Files.getContentUri("external"),
-                    contentValues
+            _uiState.update { it.copy(showExportFormatDialog = false) }
+            val json = withContext(Dispatchers.IO) { backupManager.exportToJson() }
+            _uiState.update {
+                it.copy(
+                    pendingExportJson = json,
+                    pendingExportFileName = "sushi_backup_${System.currentTimeMillis()}.json"
                 )
-
-                if (uri != null) {
-                    context.contentResolver.openOutputStream(uri)?.use { os ->
-                        os.write(csv.toByteArray(Charsets.UTF_8))
-                    }
-                    _uiState.update { it.copy(isExporting = false, statusMessage = "CSV 导出成功: $fileName") }
-                } else {
-                    _uiState.update { it.copy(isExporting = false, statusMessage = "CSV 导出失败: 无法创建文件") }
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(isExporting = false, statusMessage = "CSV 导出失败: ${e.message}") }
             }
         }
     }
 
-    fun setShowExportFormatDialog(show: Boolean) {
-        _uiState.update { it.copy(showExportFormatDialog = show) }
+    fun onSelectCsv() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(showExportFormatDialog = false) }
+            val csv = withContext(Dispatchers.IO) { backupManager.exportTimeRecordsToCsv() }
+            _uiState.update {
+                it.copy(
+                    pendingExportCsv = csv,
+                    pendingExportFileName = "sushi_records_${System.currentTimeMillis()}.csv"
+                )
+            }
+        }
+    }
+
+    fun consumePendingExport() {
+        _uiState.update { it.copy(pendingExportJson = null, pendingExportCsv = null) }
+    }
+
+    /**
+     * 由 Composable 实际写入文件(使用 SAF / MediaStore)
+     * 返回成功/失败消息
+     */
+    fun writeExportFile(
+        contentResolver: android.content.ContentResolver,
+        json: String?,
+        csv: String?,
+        fileName: String
+    ) {
+        viewModelScope.launch {
+            try {
+                val (content, mime) = when {
+                    json != null -> json to "application/json"
+                    csv != null -> csv to "text/csv"
+                    else -> {
+                        _uiState.update { it.copy(statusMessage = "导出失败: 无内容") }
+                        return@launch
+                    }
+                }
+                val contentValues = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime)
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOCUMENTS)
+                }
+                val uri = contentResolver.insert(
+                    android.provider.MediaStore.Files.getContentUri("external"),
+                    contentValues
+                )
+                if (uri != null) {
+                    contentResolver.openOutputStream(uri)?.use { os ->
+                        os.write(content.toByteArray(Charsets.UTF_8))
+                    }
+                    _uiState.update { it.copy(statusMessage = "导出成功: $fileName") }
+                } else {
+                    _uiState.update { it.copy(statusMessage = "导出失败: 无法创建文件") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(statusMessage = "导出失败: ${e.message}") }
+            }
+        }
     }
 }

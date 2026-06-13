@@ -11,44 +11,24 @@ enum class ThemeMode {
 
 /**
  * 同步服务类型
+ *
+ * V1.0 精简:只保留 NONE 和 WEBDAV(坚果云)
+ * S3 已剥离(国内访问不便)
  */
 enum class SyncProvider {
     NONE,       // 未配置
-    WEBDAV,     // 坚果云 WebDAV
-    S3          // 七牛云 S3
+    WEBDAV      // 坚果云 WebDAV
 }
 
 /**
- * WebDAV 配置（坚果云）
+ * WebDAV 配置(坚果云)
  */
 data class WebDavConfig(
-    val serverUrl: String = "",     // 如 https://dav.jianguoyun.com/dav/
+    val serverUrl: String = "https://dav.jianguoyun.com/dav/",  // 坚果云默认 WebDAV 地址
     val username: String = "",
-    val password: String = "",      // 坚果云应用专用密码
-    val remotePath: String = "/sushi/" // 远程目录路径
+    val password: String = "",       // 坚果云应用专用密码
+    val remotePath: String = "/sushi/"  // 远程目录路径
 )
-
-/**
- * S3 配置（七牛云）
- */
-data class S3Config(
-    val endpoint: String = "",      // 如 s3-cn-south-1.qiniucs.com
-    val region: String = "",        // 如 cn-south-1
-    val bucket: String = "",
-    val accessKey: String = "",
-    val secretKey: String = "",
-    val remotePath: String = "sushi/" // 远程对象前缀
-)
-
-/**
- * 同步冲突解决策略
- */
-enum class ConflictResolution {
-    ASK_EACH_TIME,    // 每次询问
-    LOCAL_WINS,       // 本地优先
-    REMOTE_WINS,      // 远端优先
-    ALWAYS_MERGE      // 总是合并
-}
 
 /**
  * 同步配置
@@ -56,10 +36,7 @@ enum class ConflictResolution {
 data class SyncConfig(
     val provider: SyncProvider = SyncProvider.NONE,
     val webDavConfig: WebDavConfig = WebDavConfig(),
-    val s3Config: S3Config = S3Config(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val conflictResolution: ConflictResolution = ConflictResolution.ASK_EACH_TIME,
-    val whiteNoiseEnabled: Boolean = false,
     val dailyQuoteEnabled: Boolean = true,
     val hasOnboarded: Boolean = false
 )

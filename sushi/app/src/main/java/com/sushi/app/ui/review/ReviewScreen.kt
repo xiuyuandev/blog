@@ -40,7 +40,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.TimeRecord
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.components.SushiLoading
@@ -65,7 +64,7 @@ import java.util.Locale
 
 @Composable
 fun ReviewScreen(
-    viewModel: ReviewViewModel = hiltViewModel(),
+    viewModel: ReviewViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onNavigateToReport: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()

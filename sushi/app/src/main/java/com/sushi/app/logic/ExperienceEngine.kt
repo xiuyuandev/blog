@@ -8,23 +8,22 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * 核心经验流转引擎
  *
- * 等级算法：Level = totalExp / 120
- * 当前级进度：Progress = totalExp % 120
+ * 等级算法:Level = totalExp / 120
+ * 当前级进度:Progress = totalExp % 120
  *
- * 经验流转逻辑：
- * 1. 任务绑定单个技能，纯时间全额注入该技能
- * 2. 技能经验增加后，职业经验共振：遍历该技能的 linkedProfessionIds，
- *    每个关联职业的 totalExp += netDurationMin（100%等比注入）
- * 3. 属性面板计算：遍历所有技能，检查其当前等级是否满足任何 Affix 的 requiredSkillLevel
+ * 经验流转逻辑:
+ * 1. 任务绑定单个技能,纯时间全额注入该技能
+ * 2. 技能经验增加后,职业经验共振:遍历该技能的 linkedProfessionIds,
+ *    每个关联职业的 totalExp += netDurationMin(100%等比注入)
+ * 3. 属性面板计算:遍历所有技能,检查其当前等级是否满足任何 Affix 的 requiredSkillLevel
+ *
+ * 由 [com.sushi.app.SushiContainer] 持有单例,不再依赖 Hilt。
  */
-@Singleton
-class ExperienceEngine @Inject constructor(
+class ExperienceEngine(
     private val repository: SushiRepository
 ) {
     companion object {

@@ -2,13 +2,12 @@ package com.sushi.app.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sushi.app.SushiContainer
 import com.sushi.app.data.model.*
 import com.sushi.app.data.repository.SushiRepository
 import com.sushi.app.logic.ExperienceEngine
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class ProfessionUiState(
     val professions: List<ProfessionDisplay> = emptyList(),
@@ -42,10 +41,9 @@ data class SkillWithProgress(
     val progress: Int
 )
 
-@HiltViewModel
-class ProfessionViewModel @Inject constructor(
-    private val repository: SushiRepository,
-    private val experienceEngine: ExperienceEngine
+class ProfessionViewModel(
+    private val repository: SushiRepository = SushiContainer.repository,
+    private val experienceEngine: ExperienceEngine = SushiContainer.engine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfessionUiState())

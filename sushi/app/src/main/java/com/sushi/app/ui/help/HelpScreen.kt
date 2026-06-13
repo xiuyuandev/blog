@@ -30,7 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.HelpEntry
 import com.sushi.app.ui.components.SushiBackButton
 import com.sushi.app.ui.components.SushiIcons
@@ -48,7 +47,7 @@ import com.sushi.app.ui.theme.SushiSpacing
 
 @Composable
 fun HelpScreen(
-    viewModel: HelpViewModel = hiltViewModel(),
+    viewModel: HelpViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()

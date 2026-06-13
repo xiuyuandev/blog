@@ -2,20 +2,18 @@ package com.sushi.app.ui.reflection
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sushi.app.SushiContainer
 import com.sushi.app.data.model.DailyReflection
 import com.sushi.app.data.repository.SushiRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-import javax.inject.Inject
 
 data class ReflectionUiState(
     val todayKey: String = "",
@@ -26,9 +24,8 @@ data class ReflectionUiState(
     val isLoading: Boolean = true
 )
 
-@HiltViewModel
-class ReflectionViewModel @Inject constructor(
-    private val repository: SushiRepository
+class ReflectionViewModel(
+    private val repository: SushiRepository = SushiContainer.repository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ReflectionUiState())
     val uiState: StateFlow<ReflectionUiState> = _uiState.asStateFlow()

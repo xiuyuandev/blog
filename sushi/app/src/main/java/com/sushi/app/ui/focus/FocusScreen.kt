@@ -60,7 +60,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Skill
 import com.sushi.app.data.model.Task
 import com.sushi.app.logic.LevelUpEvent
@@ -89,7 +88,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun FocusScreen(
-    viewModel: FocusViewModel = hiltViewModel()
+    viewModel: FocusViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val haptic = rememberHaptic()

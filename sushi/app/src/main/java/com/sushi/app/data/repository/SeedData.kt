@@ -1,15 +1,14 @@
 package com.sushi.app.data.repository
 
 import com.sushi.app.data.model.*
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * 预置示范数据
- * 首次启动时插入示范技能、职业及词条，确保用户首屏即有数据感知
+ * 首次启动时插入示范技能、职业及词条,确保用户首屏即有数据感知
+ *
+ * 由 [com.sushi.app.SushiContainer] 持有单例,不再依赖 Hilt。
  */
-@Singleton
-class SeedData @Inject constructor() {
+class SeedData {
 
     fun seedSkills(): List<Skill> = listOf(
         Skill(

@@ -43,7 +43,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Affix
 import com.sushi.app.data.model.Profession
 import com.sushi.app.data.model.Task
@@ -84,7 +83,7 @@ import com.sushi.app.viewmodel.SkillWithProgress
 
 @Composable
 fun ProfessionScreen(
-    viewModel: ProfessionViewModel = hiltViewModel()
+    viewModel: ProfessionViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val haptic = rememberHaptic()
