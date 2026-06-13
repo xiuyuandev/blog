@@ -1,4 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    素时 · 主题配置
+    - Theme.Splash:启动屏主题(由 MainActivity 在 AndroidManifest 中引用,Activity 启动时使用)
+    - Theme.Sushi:启动屏结束后切换到的主主题(由 Theme.Splash 的 postSplashScreenTheme 指定)
+    使用 androidx.core.splashscreen 的 Theme.SplashScreen 父主题,自动兼容 Android 8-11 与 Android 12+。
+-->
 <resources>
-    <style name="Theme.Sushi" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- 启动屏主题:AndroidManifest 中 MainActivity 的 android:theme 引用此主题 -->
+    <style name="Theme.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Sushi</item>
+    </style>
+
+    <!--
+        启动后主主题:Compose Material 3 接管全部绘制,
+        此处只需保证无 ActionBar、状态栏/导航栏透明,Material 3 颜色由 SushiTheme 在 Compose 中提供。
+    -->
+    <style name="Theme.Sushi" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
 </resources>

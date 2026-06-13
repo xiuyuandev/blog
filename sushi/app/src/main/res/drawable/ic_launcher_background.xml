@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    素时 · 启动图标背景
+    宣纸白 #FAF8F4(中国传统色)
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#FAF8F4" />
+</shape>

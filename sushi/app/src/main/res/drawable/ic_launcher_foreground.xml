@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    素时 · 启动图标前景
+    设计:"时之生长"
+    - 朱砂色 #B23A48(中国红)
+    - 一条流畅的曲线,既是 "S" 字母(Sushi),也是树苗从地面向上生长
+    - 顶端的小圆点,代表 24 节气中的"日"——时间的标点
+    - 108x108 dp 画布,72x72 dp 安全区
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 主体 S 曲线:从左下(地面)向上生长,中部扭转,向右上伸展 -->
+    <path
+        android:pathData="M 38,72
+                          C 38,68 44,64 50,60
+                          C 56,56 62,52 62,46
+                          C 62,40 56,38 50,40
+                          C 46,41 43,43 41,46"
+        android:strokeColor="#B23A48"
+        android:strokeWidth="8"
+        android:strokeLineCap="round" />
+
+    <!-- 顶端小圆点:代表"日"(时间的标点) -->
+    <path
+        android:pathData="M 65,32 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0"
+        android:fillColor="#B23A48" />
+
+    <!-- 底端"种子"小圆点:代表生长起点 -->
+    <path
+        android:pathData="M 38,80 m -3,0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0"
+        android:fillColor="#B23A48" />
+</vector>

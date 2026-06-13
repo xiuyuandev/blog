@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    素时 · 启动屏背景
+    宣纸白 #FAF8F4
+    Android 12+ SplashScreen API 要求 windowSplashScreenBackground 为单色
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#FAF8F4" />
+</shape>
