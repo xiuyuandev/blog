@@ -20,6 +20,7 @@ val BronzeCopper = Color(0xFFB87333)
 val AmberGold = Color(0xFFFFBF00)
 val ObsidianBlack = Color(0xFF1A1A1A)
 val AuroraGreen = Color(0xFF00FF7F)
+val SilverGray = Color(0xFFC0C0C0)
 
 // 辅助色
 val InkLight = Color(0xFF6B6B6B)

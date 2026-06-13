@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM Task WHERE isCompleted = 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM Task WHERE isCompleted = 0 ORDER BY priority DESC, createdAt DESC")
     fun getActiveTasks(): Flow<List<Task>>
 
     @Query("SELECT * FROM Task ORDER BY createdAt DESC")
@@ -14,6 +14,21 @@ interface TaskDao {
 
     @Query("SELECT * FROM Task")
     suspend fun getAllTasksSync(): List<Task>
+
+    @Query("SELECT * FROM Task WHERE isTemplate = 1")
+    fun getTemplateTasks(): Flow<List<Task>>
+
+    @Query("SELECT * FROM Task WHERE isTemplate = 1")
+    suspend fun getTemplateTasksSync(): List<Task>
+
+    @Query("SELECT * FROM Task WHERE recurrenceRule IS NOT NULL AND isCompleted = 0")
+    fun getRecurringTasks(): Flow<List<Task>>
+
+    @Query("SELECT * FROM Task WHERE linkedProfessionId = :professionId")
+    fun getByProfession(professionId: String): Flow<List<Task>>
+
+    @Query("SELECT * FROM Task WHERE linkedSkillId = :skillId AND isCompleted = 0")
+    fun getActiveBySkill(skillId: String): Flow<List<Task>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(tasks: List<Task>)
@@ -39,7 +54,6 @@ interface TaskDao {
     @Query("DELETE FROM Task WHERE id = :id")
     suspend fun deleteById(id: String)
 
-    // Fix #3: 删除技能时清理关联的 Task（完成任务保留历史未完成删除）
     @Query("DELETE FROM Task WHERE linkedSkillId = :skillId AND isCompleted = 0")
     suspend fun deleteActiveBySkillId(skillId: String)
 

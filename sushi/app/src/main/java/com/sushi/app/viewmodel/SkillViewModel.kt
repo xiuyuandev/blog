@@ -166,6 +166,28 @@ class SkillViewModel @Inject constructor(
         }
     }
 
+    /**
+     * #21 主动毕业技能（从技能详情中调用）
+     */
+    fun graduateSkill(skillId: String, message: String) {
+        viewModelScope.launch {
+            repository.graduateSkill(skillId, message.ifBlank { "已完成此程，步入新境。" })
+            selectSkill(skillId)
+        }
+    }
+
+    /**
+     * #19 设置前置技能
+     */
+    fun setPrerequisites(skillId: String, prereqIds: List<String>) {
+        viewModelScope.launch {
+            val skill = repository.getSkillById(skillId) ?: return@launch
+            val updated = skill.copy(prerequisiteSkillIds = prereqIds)
+            repository.updateSkill(updated)
+            selectSkill(skillId)
+        }
+    }
+
     // Fix #23: Add profession to skill (interactive)
     fun showAddProfessionDialog() {
         viewModelScope.launch {

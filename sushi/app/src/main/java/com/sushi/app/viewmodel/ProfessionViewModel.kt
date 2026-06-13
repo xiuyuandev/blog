@@ -32,7 +32,8 @@ data class ProfessionDetail(
     val totalPureTimeMin: Int,
     val coreSkills: List<SkillWithProgress>,
     val unlockedAffixes: List<Affix> = emptyList(),
-    val lockedAffixes: List<Affix> = emptyList()
+    val lockedAffixes: List<Affix> = emptyList(),
+    val professionTasks: List<Task> = emptyList()
 )
 
 data class SkillWithProgress(
@@ -100,12 +101,17 @@ class ProfessionViewModel @Inject constructor(
                 skill == null || skill.level < affix.requiredSkillLevel
             }
 
+            // #20 职业专属任务
+            val professionTasks = repository.getTasksByProfession(professionId).first()
+                .filter { !it.isCompleted }
+
             _uiState.update {
                 it.copy(
                     selectedProfession = ProfessionDetail(
                         profession, level, progress, tier.label,
                         profession.totalExp, coreSkills,
-                        unlockedAffixes, lockedAffixes
+                        unlockedAffixes, lockedAffixes,
+                        professionTasks = professionTasks
                     )
                 )
             }
@@ -149,6 +155,23 @@ class ProfessionViewModel @Inject constructor(
             if (_uiState.value.selectedProfession?.profession?.id == professionId) {
                 selectProfession(professionId)
             }
+        }
+    }
+
+    /**
+     * #20 添加职业专属任务
+     */
+    fun addProfessionTask(professionId: String, name: String, linkedSkillId: String) {
+        viewModelScope.launch {
+            val task = Task(
+                id = java.util.UUID.randomUUID().toString(),
+                name = name,
+                linkedSkillId = linkedSkillId,
+                linkedProfessionId = professionId,
+                createdAt = System.currentTimeMillis()
+            )
+            repository.insertTask(task)
+            selectProfession(professionId)
         }
     }
 }

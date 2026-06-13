@@ -27,7 +27,19 @@ data class FocusUiState(
     val startDateTime: Long = System.currentTimeMillis(),
     val settlementResult: SettlementResult.Success? = null,
     val isCreatingTask: Boolean = false,
-    val isPaused: Boolean = false
+    val isPaused: Boolean = false,
+    // #11 中断次数统计
+    val interruptCount: Int = 0,
+    // #12 上一次暂停原因
+    val lastPauseReason: String? = null,
+    // #24 全屏专注模式
+    val isFullScreen: Boolean = false,
+    // #21 毕业提示
+    val showGraduationHint: Boolean = false,
+    // 暂停原因对话框
+    val showPauseReasonDialog: Boolean = false,
+    // 正在进行的记录 ID（用于暂停日志）
+    val inProgressRecordId: String? = null
 )
 
 @HiltViewModel
@@ -66,12 +78,16 @@ class FocusViewModel @Inject constructor(
                 currentSkillId = skillId,
                 elapsedSeconds = 0,
                 showSettlement = false,
-                startDateTime = System.currentTimeMillis()
+                startDateTime = System.currentTimeMillis(),
+                interruptCount = 0,
+                lastPauseReason = null,
+                isFullScreen = false,
+                showGraduationHint = false,
+                inProgressRecordId = null
             )
         }
     }
 
-    // Fix #19: Support direct skill timing (no task required)
     fun startFocusBySkill(skillId: String, skillName: String) {
         _uiState.update {
             it.copy(
@@ -81,7 +97,12 @@ class FocusViewModel @Inject constructor(
                 currentSkillId = skillId,
                 elapsedSeconds = 0,
                 showSettlement = false,
-                startDateTime = System.currentTimeMillis()
+                startDateTime = System.currentTimeMillis(),
+                interruptCount = 0,
+                lastPauseReason = null,
+                isFullScreen = false,
+                showGraduationHint = false,
+                inProgressRecordId = null
             )
         }
     }
@@ -96,6 +117,7 @@ class FocusViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 isFocusing = false,
+                isPaused = false,
                 showSettlement = true,
                 rawDurationMin = rawMin,
                 netDurationMin = rawMin,
@@ -118,17 +140,69 @@ class FocusViewModel @Inject constructor(
         _uiState.update { it.copy(description = text) }
     }
 
-    // Fix #21: Pause support
     fun pauseFocus() {
-        _uiState.update { it.copy(isPaused = true) }
+        // 弹出暂停原因对话框
+        _uiState.update { it.copy(showPauseReasonDialog = true) }
     }
 
-    // Fix #21: Resume support
     fun resumeFocus() {
         _uiState.update { it.copy(isPaused = false) }
     }
 
-    // Fix #22: Manual inject validation; Fix #8/#20: direct skill timing & auto-complete
+    /**
+     * 确认暂停原因后真正暂停
+     */
+    fun confirmPause(reason: String, category: String) {
+        val state = _uiState.value
+        val now = System.currentTimeMillis()
+        // 记录暂停日志（如有进行中的记录）
+        if (state.inProgressRecordId != null) {
+            viewModelScope.launch {
+                repository.insertPauseLog(
+                    PauseLog(
+                        id = java.util.UUID.randomUUID().toString(),
+                        timeRecordId = state.inProgressRecordId,
+                        pausedAt = now,
+                        resumedAt = null,
+                        reason = reason,
+                        reasonCategory = category
+                    )
+                )
+            }
+        }
+        _uiState.update {
+            it.copy(
+                isPaused = true,
+                interruptCount = it.interruptCount + 1,
+                lastPauseReason = reason,
+                showPauseReasonDialog = false
+            )
+        }
+    }
+
+    fun dismissPauseReasonDialog() {
+        // 跳过记录直接暂停
+        _uiState.update {
+            it.copy(
+                isPaused = true,
+                interruptCount = it.interruptCount + 1,
+                lastPauseReason = "未说明",
+                showPauseReasonDialog = false
+            )
+        }
+    }
+
+    /**
+     * #24 切换全屏专注模式
+     */
+    fun toggleFullScreen() {
+        _uiState.update { it.copy(isFullScreen = !it.isFullScreen) }
+    }
+
+    fun setFullScreen(enabled: Boolean) {
+        _uiState.update { it.copy(isFullScreen = enabled) }
+    }
+
     fun confirmSettlement() {
         val state = _uiState.value
         if (state.netDurationMin <= 0) return
@@ -145,7 +219,11 @@ class FocusViewModel @Inject constructor(
                     netDurationMin = state.netDurationMin,
                     startDateTime = startDt,
                     endDateTime = endDt,
-                    description = state.description.ifBlank { state.currentTaskName ?: "" }
+                    description = state.description.ifBlank { state.currentTaskName ?: "" },
+                    interruptCount = state.interruptCount,
+                    lastPauseReason = state.lastPauseReason,
+                    tagsSnapshot = emptyList(),
+                    isFullScreen = state.isFullScreen
                 )
             } else {
                 experienceEngine.manualInject(
@@ -159,14 +237,19 @@ class FocusViewModel @Inject constructor(
 
             when (result) {
                 is SettlementResult.Success -> {
-                    // Fix #20: Auto-complete the task after settlement
                     if (state.currentTaskId != null) {
                         repository.markTaskCompleted(state.currentTaskId)
                     }
+                    // #21 检查毕业提示
+                    val skill = repository.getSkillById(skillId)
+                    val showGraduation = skill != null &&
+                        experienceEngine.calculateLevel(skill.totalExp) >= 100 &&
+                        !skill.isGraduated
                     _uiState.update {
                         it.copy(
                             settlementResult = result,
-                            showSettlement = false
+                            showSettlement = false,
+                            showGraduationHint = showGraduation
                         )
                     }
                 }
@@ -177,6 +260,21 @@ class FocusViewModel @Inject constructor(
         }
     }
 
+    /**
+     * #21 主动毕业技能
+     */
+    fun graduateSkill(message: String) {
+        val skillId = _uiState.value.currentSkillId ?: return
+        viewModelScope.launch {
+            repository.graduateSkill(skillId, message.ifBlank { "已完成此程，步入新境。" })
+            _uiState.update { it.copy(showGraduationHint = false) }
+        }
+    }
+
+    fun dismissGraduationHint() {
+        _uiState.update { it.copy(showGraduationHint = false) }
+    }
+
     fun dismissSettlement() {
         _uiState.update {
             it.copy(
@@ -185,7 +283,10 @@ class FocusViewModel @Inject constructor(
                 currentTaskName = null,
                 currentSkillId = null,
                 elapsedSeconds = 0,
-                description = ""
+                description = "",
+                interruptCount = 0,
+                lastPauseReason = null,
+                isFullScreen = false
             )
         }
     }
@@ -198,7 +299,10 @@ class FocusViewModel @Inject constructor(
                 currentTaskName = null,
                 currentSkillId = null,
                 elapsedSeconds = 0,
-                description = ""
+                description = "",
+                interruptCount = 0,
+                lastPauseReason = null,
+                isFullScreen = false
             )
         }
     }
@@ -224,14 +328,29 @@ class FocusViewModel @Inject constructor(
         }
     }
 
-    // Fix #3: Task reactivation
+    /**
+     #17 任务模板
+     */
+    fun createTemplate(name: String, linkedSkillId: String) {
+        viewModelScope.launch {
+            val task = Task(
+                id = java.util.UUID.randomUUID().toString(),
+                name = name,
+                linkedSkillId = linkedSkillId,
+                createdAt = System.currentTimeMillis(),
+                isTemplate = true
+            )
+            repository.insertTask(task)
+            _uiState.update { it.copy(isCreatingTask = false) }
+        }
+    }
+
     fun reactivateTask(taskId: String) {
         viewModelScope.launch {
             repository.reactivateTask(taskId)
         }
     }
 
-    // Fix #8: Delete task
     fun deleteTask(taskId: String) {
         viewModelScope.launch {
             repository.deleteTask(taskId)

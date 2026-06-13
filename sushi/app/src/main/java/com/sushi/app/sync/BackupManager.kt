@@ -5,6 +5,9 @@ import com.google.gson.reflect.TypeToken
 import com.sushi.app.data.model.*
 import com.sushi.app.data.repository.SushiRepository
 import kotlinx.coroutines.flow.first
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,23 +15,28 @@ import javax.inject.Singleton
  * 备份数据结构
  */
 data class BackupData(
-    val version: Int = 1,
+    val version: Int = 2,
     val exportTime: Long = System.currentTimeMillis(),
     val skills: List<Skill>,
     val professions: List<Profession>,
     val affixes: List<Affix>,
     val tasks: List<Task>,
-    val timeRecords: List<TimeRecord>
+    val timeRecords: List<TimeRecord>,
+    val achievements: List<Achievement> = emptyList(),
+    val goals: List<Goal> = emptyList(),
+    val reflections: List<DailyReflection> = emptyList()
 )
 
 /**
- * 备份管理器：负责 JSON 导出/导入
+ * 备份管理器：负责 JSON/CSV 导出/导入
  */
 @Singleton
 class BackupManager @Inject constructor(
     private val repository: SushiRepository
 ) {
     private val gson = Gson()
+    private val csvTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    private val csvDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     /**
      * 导出所有数据为 JSON 字符串
@@ -39,13 +47,19 @@ class BackupManager @Inject constructor(
         val affixes = repository.getAllAffixes().first()
         val tasks = repository.getAllTasks().first()
         val timeRecords = repository.getAllRecords().first()
+        val achievements = repository.getAllAchievements().first()
+        val goals = repository.getAllGoals().first()
+        val reflections = repository.getAllReflections().first()
 
         val backup = BackupData(
             skills = skills,
             professions = professions,
             affixes = affixes,
             tasks = tasks,
-            timeRecords = timeRecords
+            timeRecords = timeRecords,
+            achievements = achievements,
+            goals = goals,
+            reflections = reflections
         )
 
         return gson.toJson(backup)
@@ -53,20 +67,22 @@ class BackupManager @Inject constructor(
 
     /**
      * 从 JSON 字符串导入数据（覆盖现有数据）
-     * Fix #5: 真正的"覆盖"——先清空所有表，再插入备份数据
      */
     suspend fun importFromJson(json: String): Result<Unit> {
         return try {
             val backup = gson.fromJson(json, BackupData::class.java)
                 ?: return Result.failure(IllegalArgumentException("无效的备份数据"))
 
-            // 真正清空后插入
+            // 清空后插入
             repository.clearAllTables()
             repository.insertSkills(backup.skills)
             if (backup.professions.isNotEmpty()) repository.insertProfessions(backup.professions)
             if (backup.affixes.isNotEmpty()) repository.insertAffixes(backup.affixes)
             backup.tasks.forEach { repository.insertTask(it) }
             backup.timeRecords.forEach { repository.insertTimeRecord(it) }
+            backup.achievements.forEach { repository.insertAchievement(it) }
+            backup.goals.forEach { repository.insertGoal(it) }
+            backup.reflections.forEach { repository.insertReflection(it) }
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -75,24 +91,51 @@ class BackupManager @Inject constructor(
     }
 
     /**
-     * 验证 JSON 格式是否合法
+     * 导出时间记录为 CSV 格式（用于 Excel 二次分析）
      */
-    fun validateJson(json: String): Boolean {
-        return try {
-            val backup = gson.fromJson(json, BackupData::class.java)
-            backup.version > 0
-        } catch (_: Exception) {
-            false
+    suspend fun exportTimeRecordsToCsv(): String {
+        val records = repository.getAllRecordsSync()
+        val skills = repository.getAllSkillsSync().associateBy { it.id }
+        val tasks = repository.getAllTasksSync().associateBy { it.id }
+
+        val sb = StringBuilder()
+        // UTF-8 BOM 让 Excel 正确识别中文
+        sb.append("\uFEFF")
+        sb.append("dateKey,start,end,rawMin,netMin,skill,task,description,interrupts,tags,isFullScreen\n")
+
+        records.sortedBy { it.startDateTime }.forEach { r ->
+            val skill = skills[r.skillId]?.name ?: ""
+            val task = r.taskId?.let { tasks[it]?.name } ?: ""
+            val desc = r.description.replace(",", " ").replace("\n", " ")
+            val tags = r.tagsSnapshot.joinToString("|")
+            sb.append("${r.attributionDateKey},")
+            sb.append("${csvTimeFormat.format(Date(r.startDateTime))},")
+            sb.append("${csvTimeFormat.format(Date(r.endDateTime))},")
+            sb.append("${r.rawDurationMin},${r.netDurationMin},")
+            sb.append("${escapeCsv(skill)},${escapeCsv(task)},")
+            sb.append("${escapeCsv(desc)},${r.interruptCount},${escapeCsv(tags)},${r.isFullScreen}\n")
         }
+        return sb.toString()
     }
 
     /**
-     * 智能合并：将云端数据与本地数据合并。
-     * 相同 ID 的实体，根据策略选择保留哪个版本。
-     * Skills/Professions：保留 totalExp 更高的。
-     * Tasks：已完成的优先。
-     * TimeRecords：保留 timestamp 更新的。
-     * Affixes：云端版本优先。
+     * 导出技能为 CSV
+     */
+    suspend fun exportSkillsToCsv(): String {
+        val skills = repository.getAllSkillsSync()
+        val sb = StringBuilder()
+        sb.append("\uFEFF")
+        sb.append("name,category,totalExp,level,isGraduated,graduatedAt\n")
+        for (s in skills) {
+            val level = s.totalExp / 120
+            sb.append("${escapeCsv(s.name)},${s.category.name},${s.totalExp},${level},")
+            sb.append("${s.isGraduated},${s.graduatedAt?.let { csvDateFormat.format(Date(it)) } ?: ""}\n")
+        }
+        return sb.toString()
+    }
+
+    /**
+     * 智能合并
      */
     suspend fun mergeFromJson(json: String) {
         val cloudData = gson.fromJson(json, BackupData::class.java)
@@ -103,6 +146,9 @@ class BackupManager @Inject constructor(
         val localAffixes = repository.getAllAffixesSync()
         val localTasks = repository.getAllTasksSync()
         val localRecords = repository.getAllRecordsSync()
+        val localAchievements = repository.getAllAchievementsSync()
+        val localGoals = repository.getAllGoalsSync()
+        val localReflections = repository.getAllReflectionsSync()
 
         val mergedSkills = mergeById(
             localSkills, cloudData.skills, { it.id },
@@ -124,17 +170,29 @@ class BackupManager @Inject constructor(
             localRecords, cloudData.timeRecords, { it.id },
             { local, cloud -> if (cloud.timestamp >= local.timestamp) cloud else local }
         )
+        val mergedAchievements = mergeById(
+            localAchievements, cloudData.achievements, { it.id },
+            { local, cloud -> if (cloud.isUnlocked && !local.isUnlocked) cloud else local }
+        )
+        val mergedGoals = mergeById(
+            localGoals, cloudData.goals, { it.id },
+            { local, cloud -> if (cloud.currentMinutes >= local.currentMinutes) cloud else local }
+        )
+        val mergedReflections = mergeById(
+            localReflections, cloudData.reflections, { it.id },
+            { local, cloud -> if (cloud.createdAt >= local.createdAt) cloud else local }
+        )
 
         repository.insertSkills(mergedSkills)
         repository.insertProfessions(mergedProfessions)
         repository.insertAffixes(mergedAffixes)
         repository.insertAllTasks(mergedTasks)
         repository.insertAllTimeRecords(mergedRecords)
+        repository.insertAllAchievements(mergedAchievements)
+        mergedGoals.forEach { repository.insertGoal(it) }
+        mergedReflections.forEach { repository.insertReflection(it) }
     }
 
-    /**
-     * 按 ID 合并两个列表，冲突时使用 resolve 函数决定保留哪个。
-     */
     private fun <T> mergeById(
         localList: List<T>,
         cloudList: List<T>,
@@ -156,13 +214,31 @@ class BackupManager @Inject constructor(
         }
     }
 
-    /**
-     * 版本迁移：根据备份数据版本号进行迁移。
-     */
-    fun migrateBackup(data: BackupData): BackupData {
-        return when (data.version) {
-            1 -> data // 当前版本，无需迁移
-            else -> data
+    private fun escapeCsv(value: String): String {
+        return if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            "\"" + value.replace("\"", "\"\"") + "\""
+        } else value
+    }
+
+    fun validateJson(json: String): Boolean {
+        return try {
+            val backup = gson.fromJson(json, BackupData::class.java)
+            backup.version > 0
+        } catch (_: Exception) {
+            false
         }
+    }
+
+    fun migrateBackup(data: BackupData): BackupData = when (data.version) {
+        1 -> {
+            // v1 → v2 升级
+            data.copy(
+                version = 2,
+                achievements = emptyList(),
+                goals = emptyList(),
+                reflections = emptyList()
+            )
+        }
+        else -> data
     }
 }

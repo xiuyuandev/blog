@@ -91,7 +91,12 @@ private val radarAttributes = listOf(
 @Composable
 fun PanelScreen(
     viewModel: PanelViewModel = hiltViewModel(),
-    onNavigateToSync: () -> Unit = {}
+    onNavigateToSync: () -> Unit = {},
+    onNavigateToAchievement: () -> Unit = {},
+    onNavigateToGoal: () -> Unit = {},
+    onNavigateToReport: () -> Unit = {},
+    onNavigateToReflection: () -> Unit = {},
+    onNavigateToHelp: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -139,9 +144,80 @@ fun PanelScreen(
 
                 Spacer(modifier = Modifier.height(SushiSpacing.sm))
 
+                // 快捷入口区
+                QuickActionsGrid(
+                    onAchievement = onNavigateToAchievement,
+                    onGoal = onNavigateToGoal,
+                    onReport = onNavigateToReport,
+                    onReflection = onNavigateToReflection,
+                    onHelp = onNavigateToHelp
+                )
+
+                Spacer(modifier = Modifier.height(SushiSpacing.sm))
+
                 SyncEntry(onClick = onNavigateToSync)
             }
         }
+    }
+}
+
+@Composable
+private fun QuickActionsGrid(
+    onAchievement: () -> Unit,
+    onGoal: () -> Unit,
+    onReport: () -> Unit,
+    onReflection: () -> Unit,
+    onHelp: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+        Text(
+            text = "快捷入口",
+            style = MaterialTheme.typography.labelLarge,
+            color = InkLight
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+                QuickActionTile(label = "成就", icon = com.sushi.app.ui.components.SushiIcons.Star, onClick = onAchievement, modifier = Modifier.weight(1f))
+                QuickActionTile(label = "目标", icon = com.sushi.app.ui.components.SushiIcons.Edit, onClick = onGoal, modifier = Modifier.weight(1f))
+                QuickActionTile(label = "周报", icon = com.sushi.app.ui.components.SushiIcons.Calendar, onClick = onReport, modifier = Modifier.weight(1f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+                QuickActionTile(label = "反思", icon = com.sushi.app.ui.components.SushiIcons.History, onClick = onReflection, modifier = Modifier.weight(1f))
+                QuickActionTile(label = "帮助", icon = com.sushi.app.ui.components.SushiIcons.Help, onClick = onHelp, modifier = Modifier.weight(1f))
+                QuickActionTile(label = "同步", icon = com.sushi.app.ui.components.SushiIcons.Sync, onClick = {}, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickActionTile(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .shadow(1.dp, CardShape)
+            .clip(CardShape)
+            .background(Linen.copy(alpha = 0.5f))
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Cinnabar,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = Ink
+        )
     }
 }
 

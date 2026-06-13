@@ -26,6 +26,7 @@ data class SyncUiState(
     val showImportConfirmation: Boolean = false,
     val pendingImportJson: String? = null,
     val lastPushTimestamp: Long = 0L,
+    val showExportFormatDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -304,5 +305,70 @@ class SyncViewModel @Inject constructor(
 
     fun clearStatusMessage() {
         _uiState.update { it.copy(statusMessage = "") }
+    }
+
+    // ========== 偏好设置 ==========
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch {
+            syncConfigManager.saveThemeMode(mode)
+        }
+    }
+
+    fun setConflictResolution(resolution: ConflictResolution) {
+        viewModelScope.launch {
+            syncConfigManager.saveConflictResolution(resolution)
+        }
+    }
+
+    fun setWhiteNoiseEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            syncConfigManager.saveWhiteNoiseEnabled(enabled)
+        }
+    }
+
+    fun setDailyQuoteEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            syncConfigManager.saveDailyQuoteEnabled(enabled)
+        }
+    }
+
+    /**
+     * 导出为 CSV
+     */
+    fun exportToCsvFile() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, statusMessage = "") }
+            try {
+                val csv = backupManager.exportTimeRecordsToCsv()
+                val fileName = "sushi_records_${System.currentTimeMillis()}.csv"
+
+                val contentValues = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "text/csv")
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOCUMENTS)
+                }
+
+                val uri = context.contentResolver.insert(
+                    android.provider.MediaStore.Files.getContentUri("external"),
+                    contentValues
+                )
+
+                if (uri != null) {
+                    context.contentResolver.openOutputStream(uri)?.use { os ->
+                        os.write(csv.toByteArray(Charsets.UTF_8))
+                    }
+                    _uiState.update { it.copy(isExporting = false, statusMessage = "CSV 导出成功: $fileName") }
+                } else {
+                    _uiState.update { it.copy(isExporting = false, statusMessage = "CSV 导出失败: 无法创建文件") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isExporting = false, statusMessage = "CSV 导出失败: ${e.message}") }
+            }
+        }
+    }
+
+    fun setShowExportFormatDialog(show: Boolean) {
+        _uiState.update { it.copy(showExportFormatDialog = show) }
     }
 }

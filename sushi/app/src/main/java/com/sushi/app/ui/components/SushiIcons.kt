@@ -22,7 +22,8 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Inventory2
@@ -73,10 +74,12 @@ object SushiIcons {
     val ArrowBack = Icons.Outlined.ArrowBack
     val Calendar = Icons.Outlined.CalendarToday
     val Check = Icons.Outlined.Check
+    val Close = Icons.Outlined.Close
     val Delete = Icons.Outlined.Delete
     val Edit = Icons.Outlined.Edit
     val ExpandLess = Icons.Outlined.ExpandLess
     val ExpandMore = Icons.Outlined.ExpandMore
+    val Help = Icons.Outlined.HelpOutline
     val History = Icons.Outlined.History
     val Home = Icons.Outlined.Home
     val Info = Icons.Outlined.Info

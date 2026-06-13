@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sushi.app.data.model.Affix
 import com.sushi.app.data.model.Profession
+import com.sushi.app.data.model.Task
 import com.sushi.app.ui.components.MenuAction
 import com.sushi.app.ui.components.StampDeleteButton
 import com.sushi.app.ui.components.SushiBackButton
@@ -503,6 +504,48 @@ private fun ProfessionDetailContent(
                     }
                     detail.lockedAffixes.forEach { affix ->
                         AffixRow(affix = affix, isUnlocked = false)
+                    }
+                }
+            }
+
+            Divider1px()
+
+            // #20 职业专属任务
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+                Text(
+                    text = "职业专属任务",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = InkLight
+                )
+                if (detail.professionTasks.isEmpty()) {
+                    Text(
+                        text = "尚无专属任务",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = InkFaint
+                    )
+                } else {
+                    detail.professionTasks.forEach { task ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(CardShapeSmall)
+                                .background(Linen)
+                                .padding(horizontal = SushiSpacing.md, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(Cinnabar)
+                            )
+                            Text(
+                                text = task.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Ink
+                            )
+                        }
                     }
                 }
             }

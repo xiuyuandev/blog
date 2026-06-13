@@ -64,6 +64,8 @@ import com.sushi.app.data.model.Skill
 import com.sushi.app.data.model.Task
 import com.sushi.app.logic.LevelUpEvent
 import com.sushi.app.logic.SettlementResult
+import com.sushi.app.ui.celebration.LevelUpCelebration
+import com.sushi.app.ui.components.PauseReasonDialog
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
@@ -90,6 +92,39 @@ fun FocusScreen(
     val uiState by viewModel.uiState.collectAsState()
     val haptic = rememberHaptic()
 
+    // 暂停原因对话框（点击暂停后弹出）
+    PauseReasonDialog(
+        visible = uiState.showPauseReasonDialog,
+        onConfirm = { reason, category ->
+            haptic(HapticType.KEYBOARD_TAP)
+            viewModel.confirmPause(reason, category)
+        },
+        onDismiss = { viewModel.dismissPauseReasonDialog() }
+    )
+
+    // 毕业提示对话框
+    if (uiState.showGraduationHint) {
+        GraduationHintDialog(
+            onConfirm = { message ->
+                haptic(HapticType.LONG_PRESS)
+                viewModel.graduateSkill(message)
+            },
+            onDismiss = { viewModel.dismissGraduationHint() }
+        )
+    }
+
+    // 升级庆祝（升级时全屏动效）
+    val levelUpEvent = uiState.settlementResult?.levelUpEvents?.firstOrNull()
+    if (levelUpEvent != null && !uiState.showGraduationHint) {
+        LevelUpCelebration(
+            visible = true,
+            oldLevel = levelUpEvent.oldLevel,
+            newLevel = levelUpEvent.newLevel,
+            skillName = levelUpEvent.skillName,
+            onDismiss = { viewModel.dismissSettlementResult() }
+        )
+    }
+
     when {
         uiState.settlementResult != null -> {
             SettlementResultDialog(
@@ -105,6 +140,8 @@ fun FocusScreen(
             SettlementDialog(
                 rawDurationMin = uiState.rawDurationMin,
                 netDurationMin = uiState.netDurationMin,
+                interruptCount = uiState.interruptCount,
+                lastPauseReason = uiState.lastPauseReason,
                 description = uiState.description,
                 onNetDurationChange = viewModel::setNetDuration,
                 onAdjustNetDuration = viewModel::adjustNetDuration,
@@ -131,6 +168,9 @@ fun FocusScreen(
                         taskName = uiState.currentTaskName ?: "",
                         elapsedSeconds = uiState.elapsedSeconds,
                         isPaused = uiState.isPaused,
+                        interruptCount = uiState.interruptCount,
+                        lastPauseReason = uiState.lastPauseReason,
+                        isFullScreen = uiState.isFullScreen,
                         onTick = viewModel::updateElapsedTime,
                         onPause = {
                             haptic(HapticType.KEYBOARD_TAP)
@@ -143,6 +183,10 @@ fun FocusScreen(
                         onStop = {
                             haptic(HapticType.REJECT)
                             viewModel.stopFocus()
+                        },
+                        onToggleFullScreen = {
+                            haptic(HapticType.KEYBOARD_TAP)
+                            viewModel.toggleFullScreen()
                         }
                     )
                 } else {
@@ -680,10 +724,14 @@ private fun FocusTimerContent(
     taskName: String,
     elapsedSeconds: Int,
     isPaused: Boolean,
+    interruptCount: Int = 0,
+    lastPauseReason: String? = null,
+    isFullScreen: Boolean = false,
     onTick: (Int) -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
-    onStop: () -> Unit
+    onStop: () -> Unit,
+    onToggleFullScreen: () -> Unit = {}
 ) {
     val isPausedState by rememberUpdatedState(isPaused)
     LaunchedEffect(taskId) {
@@ -799,7 +847,53 @@ private fun FocusTimerContent(
                 )
             }
 
+            // #11 中断次数 + #12 暂停原因 显示
+            if (interruptCount > 0) {
+                Spacer(modifier = Modifier.height(SushiSpacing.sm))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(CardShapeSmall)
+                            .background(CinnabarFaint)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "已暂停 $interruptCount 次",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Cinnabar
+                        )
+                    }
+                    if (!lastPauseReason.isNullOrBlank()) {
+                        Text(
+                            text = "· $lastPauseReason",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = InkFaint
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(SushiSpacing.lg))
+
+            // #24 全屏模式提示
+            if (isFullScreen) {
+                Box(
+                    modifier = Modifier
+                        .clip(CardShapeSmall)
+                        .background(Ink)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "全屏专注中",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Paper
+                    )
+                }
+                Spacer(modifier = Modifier.height(SushiSpacing.sm))
+            }
 
             // Pause/Resume + Stop buttons with icons
             Row(
@@ -875,6 +969,18 @@ private fun FocusTimerContent(
                         Text(text = "停止")
                     }
                 }
+
+                // #24 全屏切换
+                OutlinedButton(
+                    onClick = onToggleFullScreen,
+                    shape = CardShape,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (isFullScreen) Ink else Paper,
+                        contentColor = if (isFullScreen) Paper else InkLight
+                    )
+                ) {
+                    Text(text = if (isFullScreen) "退出全屏" else "全屏")
+                }
             }
         }
     }
@@ -891,6 +997,8 @@ private fun formatElapsedTime(totalSeconds: Int): String {
 private fun SettlementDialog(
     rawDurationMin: Int,
     netDurationMin: Int,
+    interruptCount: Int = 0,
+    lastPauseReason: String? = null,
     description: String,
     onNetDurationChange: (Int) -> Unit,
     onAdjustNetDuration: (Int) -> Unit,
@@ -917,6 +1025,31 @@ private fun SettlementDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = InkLight
                 )
+
+                // #11 中断次数 + #12 暂停原因 在结算对话框中显示
+                if (interruptCount > 0) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(CardShapeSmall)
+                            .background(CinnabarFaint.copy(alpha = 0.4f))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = SushiIcons.Sync,
+                            contentDescription = null,
+                            tint = Cinnabar,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text(
+                            text = "本次被打断 $interruptCount 次" + if (!lastPauseReason.isNullOrBlank()) " · 最近：$lastPauseReason" else "",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Cinnabar
+                        )
+                    }
+                }
 
                 Text(
                     text = "请诚实地扣除杂质时间，记录纯时间",
@@ -1182,4 +1315,76 @@ private fun LevelUpItem(event: LevelUpEvent) {
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+/**
+ * #21 毕业提示 - 技能达到 LV 100 后询问是否毕业
+ */
+@Composable
+private fun GraduationHintDialog(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var message by rememberSaveable { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = DialogShape,
+        title = {
+            Text(
+                text = "已至 LV 100，是否毕业？",
+                style = MaterialTheme.typography.headlineSmall,
+                color = Ink
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
+                Text(
+                    text = "此技能已至黑曜之境。毕业后此技能将移入「已毕业」分组，并留下你的寄语。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = InkLight
+                )
+                TextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    placeholder = { Text("毕业寄语（可选）", color = InkFaint) },
+                    singleLine = false,
+                    maxLines = 3,
+                    shape = CardShapeSmall,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = PaperWarm,
+                        unfocusedContainerColor = PaperWarm,
+                        cursorColor = Ink,
+                        focusedIndicatorColor = Cinnabar,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(message) },
+                shape = CardShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Cinnabar,
+                    contentColor = Paper
+                )
+            ) {
+                Text(
+                    text = "毕业",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "暂不", color = InkLight)
+            }
+        },
+        containerColor = Paper
+    )
 }

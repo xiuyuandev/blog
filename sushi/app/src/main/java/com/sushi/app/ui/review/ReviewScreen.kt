@@ -65,7 +65,8 @@ import java.util.Locale
 
 @Composable
 fun ReviewScreen(
-    viewModel: ReviewViewModel = hiltViewModel()
+    viewModel: ReviewViewModel = hiltViewModel(),
+    onNavigateToReport: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 

@@ -53,8 +53,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sushi.app.sync.ConflictResolution
 import com.sushi.app.sync.S3Config
+import com.sushi.app.sync.SyncConfig
 import com.sushi.app.sync.SyncProvider
+import com.sushi.app.sync.ThemeMode
 import com.sushi.app.sync.WebDavConfig
 import com.sushi.app.ui.components.SushiBackButton
 import com.sushi.app.ui.components.SushiIcons
@@ -183,8 +186,24 @@ fun SyncScreen(
             LocalBackupSection(
                 isExporting = uiState.isExporting,
                 isImporting = uiState.isImporting,
-                onExport = { viewModel.exportToFile() },
+                onExport = { viewModel.setShowExportFormatDialog(true) },
                 onImport = { filePickerLauncher.launch(arrayOf("application/json")) }
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(InkFaintest)
+            )
+
+            // #23 偏好设置
+            PreferencesSection(
+                config = uiState.syncConfig,
+                onThemeModeChange = viewModel::setThemeMode,
+                onConflictResolutionChange = viewModel::setConflictResolution,
+                onWhiteNoiseChange = viewModel::setWhiteNoiseEnabled,
+                onDailyQuoteChange = viewModel::setDailyQuoteEnabled
             )
 
             // 状态消息
@@ -275,6 +294,20 @@ fun SyncScreen(
 
         Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
     }
+
+    // 导出格式选择对话框
+    ExportFormatDialog(
+        visible = uiState.showExportFormatDialog,
+        onSelectJson = {
+            viewModel.setShowExportFormatDialog(false)
+            viewModel.exportToFile()
+        },
+        onSelectCsv = {
+            viewModel.setShowExportFormatDialog(false)
+            viewModel.exportToCsvFile()
+        },
+        onDismiss = { viewModel.setShowExportFormatDialog(false) }
+    )
 }
 
 @Composable
@@ -773,7 +806,7 @@ private fun LocalBackupSection(
         SectionTitle(title = "本地备份")
 
         Text(
-            text = "将数据导出为 JSON 文件保存到本地，或从 JSON 文件恢复数据。",
+            text = "将数据导出为 JSON 或 CSV 文件保存到本地，或从 JSON 文件恢复数据。",
             style = MaterialTheme.typography.bodySmall,
             color = InkFaint
         )
@@ -878,6 +911,167 @@ private fun StatusMessage(
                 contentDescription = "关闭",
                 tint = InkFaint,
                 modifier = Modifier.size(14.dp)
+            )
+        }
+    }
+}
+
+/**
+ * #23 偏好设置：主题、冲突解决、白噪音、每日一句
+ */
+@Composable
+private fun PreferencesSection(
+    config: SyncConfig,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    onConflictResolutionChange: (ConflictResolution) -> Unit,
+    onWhiteNoiseChange: (Boolean) -> Unit,
+    onDailyQuoteChange: (Boolean) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
+        SectionTitle(title = "偏好设置")
+
+        // 主题
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "主题",
+                style = MaterialTheme.typography.labelMedium,
+                color = InkLight
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(PillShape)
+                    .background(Linen)
+                    .padding(SushiSpacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
+            ) {
+                listOf(
+                    ThemeMode.SYSTEM to "跟随系统",
+                    ThemeMode.LIGHT to "浅色",
+                    ThemeMode.DARK to "深色"
+                ).forEach { (mode, label) ->
+                    val isSelected = config.themeMode == mode
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(PillShape)
+                            .background(if (isSelected) Cinnabar else Paper)
+                            .clickable { onThemeModeChange(mode) }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) Paper else InkLight,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+
+        // 冲突解决
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "同步冲突解决",
+                style = MaterialTheme.typography.labelMedium,
+                color = InkLight
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(
+                    ConflictResolution.ASK_EACH_TIME to "每次询问",
+                    ConflictResolution.LOCAL_WINS to "本地覆盖",
+                    ConflictResolution.REMOTE_WINS to "云端覆盖",
+                    ConflictResolution.ALWAYS_MERGE to "总是合并"
+                ).forEach { (resolution, label) ->
+                    val isSelected = config.conflictResolution == resolution
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(CardShapeSmall)
+                            .background(if (isSelected) CinnabarFaint else Linen)
+                            .clickable { onConflictResolutionChange(resolution) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(CircleShape)
+                                .background(if (isSelected) Cinnabar else InkFaintest)
+                        )
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isSelected) Cinnabar else Ink
+                        )
+                    }
+                }
+            }
+        }
+
+        // 白噪音
+        ToggleSettingRow(
+            title = "白噪音",
+            subtitle = "专注时播放白噪音（实验性）",
+            checked = config.whiteNoiseEnabled,
+            onChange = onWhiteNoiseChange
+        )
+
+        // 每日一句
+        ToggleSettingRow(
+            title = "每日一句",
+            subtitle = "在主面板显示随机金句",
+            checked = config.dailyQuoteEnabled,
+            onChange = onDailyQuoteChange
+        )
+    }
+}
+
+@Composable
+private fun ToggleSettingRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CardShapeSmall)
+            .background(Linen)
+            .clickable { onChange(!checked) }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = InkFaint
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(width = 32.dp, height = 18.dp)
+                .clip(CircleShape)
+                .background(if (checked) Cinnabar else InkFaintest)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(14.dp)
+                    .padding(2.dp)
+                    .clip(CircleShape)
+                    .background(Paper)
+                    .align(if (checked) Alignment.CenterEnd else Alignment.CenterStart)
             )
         }
     }

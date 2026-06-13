@@ -107,7 +107,8 @@ import java.util.Locale
 
 @Composable
 fun SkillScreen(
-    viewModel: SkillViewModel = hiltViewModel()
+    viewModel: SkillViewModel = hiltViewModel(),
+    onNavigateToSkillTree: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val haptic = rememberHaptic()
@@ -144,6 +145,10 @@ fun SkillScreen(
                     onDeleteTimeRecord = { id ->
                         haptic(HapticType.KEYBOARD_TAP)
                         viewModel.deleteTimeRecord(id)
+                    },
+                    onGraduateSkill = { id, msg ->
+                        haptic(HapticType.LONG_PRESS)
+                        viewModel.graduateSkill(id, msg)
                     }
                 )
             } else {
@@ -157,7 +162,8 @@ fun SkillScreen(
                     onCreateSkill = {
                         haptic(HapticType.KEYBOARD_TAP)
                         viewModel.showCreateSkill()
-                    }
+                    },
+                    onNavigateToSkillTree = onNavigateToSkillTree
                 )
             }
         }
@@ -215,13 +221,13 @@ fun SkillScreen(
         )
     }
 }
-
 @Composable
 private fun SkillListContent(
     uiState: SkillUiState,
     onSelectCategory: (SkillCategory) -> Unit,
     onSelectSkill: (String) -> Unit,
-    onCreateSkill: () -> Unit
+    onCreateSkill: () -> Unit,
+    onNavigateToSkillTree: () -> Unit = {}
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -238,6 +244,47 @@ private fun SkillListContent(
                 selectedCategory = uiState.selectedCategory,
                 categoryStats = uiState.categoryStats
             )
+
+            // #19 技能树入口
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.sm)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(CardShapeSmall)
+                        .background(CinnabarFaint.copy(alpha = 0.4f))
+                        .clickable { onNavigateToSkillTree() }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = SushiIcons.Star,
+                            contentDescription = null,
+                            tint = Cinnabar,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "查看技能树",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Cinnabar
+                        )
+                    }
+                    Icon(
+                        imageVector = SushiIcons.KeyboardRight,
+                        contentDescription = null,
+                        tint = Cinnabar,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
 
             Column(
                 modifier = Modifier
@@ -462,13 +509,15 @@ private fun SkillDetailContent(
     onManualInject: () -> Unit,
     onDeleteSkill: () -> Unit,
     onEditSkillName: (String) -> Unit,
-    onDeleteTimeRecord: (String) -> Unit
+    onDeleteTimeRecord: (String) -> Unit,
+    onGraduateSkill: (String, String) -> Unit = { _, _ -> }
 ) {
     val tierColor = tierColorFor(detail.tierLabel)
     val progress = (detail.progress / 120f).coerceIn(0f, 1f)
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showEditNameDialog by remember { mutableStateOf(false) }
+    var showGraduateDialog by remember { mutableStateOf(false) }
     var recordToDelete by remember { mutableStateOf<TimeRecord?>(null) }
     var lastDeleted by remember { mutableStateOf<TimeRecord?>(null) }
     var showUndoSnackbar by remember { mutableStateOf(false) }
@@ -489,19 +538,33 @@ private fun SkillDetailContent(
             ) {
                 SushiBackButton(onClick = onBack)
                 SushiOverflowMenu(
-                    actions = listOf(
-                        MenuAction(
-                            label = "编辑名称",
-                            icon = SushiIcons.Edit,
-                            onClick = { showEditNameDialog = true }
-                        ),
-                        MenuAction(
-                            label = "删除技能",
-                            icon = SushiIcons.Delete,
-                            isDestructive = true,
-                            onClick = { showDeleteConfirm = true }
+                    actions = buildList {
+                        add(
+                            MenuAction(
+                                label = "编辑名称",
+                                icon = SushiIcons.Edit,
+                                onClick = { showEditNameDialog = true }
+                            )
                         )
-                    )
+                        // #21 毕业 - 仅 LV 100+ 且未毕业时可触发
+                        if (detail.level >= 100 && !detail.skill.isGraduated) {
+                            add(
+                                MenuAction(
+                                    label = "毕业",
+                                    icon = SushiIcons.Star,
+                                    onClick = { showGraduateDialog = true }
+                                )
+                            )
+                        }
+                        add(
+                            MenuAction(
+                                label = "删除技能",
+                                icon = SushiIcons.Delete,
+                                isDestructive = true,
+                                onClick = { showDeleteConfirm = true }
+                            )
+                        )
+                    }
                 )
             }
 
@@ -849,6 +912,67 @@ private fun SkillDetailContent(
             },
             dismissButton = {
                 TextButton(onClick = { showEditNameDialog = false }) {
+                    Text(text = "取消", color = InkLight)
+                }
+            },
+            containerColor = Paper
+        )
+    }
+
+    if (showGraduateDialog) {
+        var gradMessage by rememberSaveable { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showGraduateDialog = false },
+            shape = DialogShape,
+            title = {
+                Text(
+                    text = "技能毕业",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Ink
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
+                    Text(
+                        text = "「${detail.skill.name}」已至黑曜之境。毕业后此技能将移入「已毕业」分组。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = InkLight
+                    )
+                    TextField(
+                        value = gradMessage,
+                        onValueChange = { gradMessage = it },
+                        placeholder = { Text("毕业寄语（可选）", color = InkFaint) },
+                        singleLine = false,
+                        maxLines = 3,
+                        shape = CardShapeSmall,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Paper,
+                            unfocusedContainerColor = Paper,
+                            cursorColor = Ink,
+                            focusedIndicatorColor = Cinnabar,
+                            unfocusedIndicatorColor = InkFaint
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showGraduateDialog = false
+                        onGraduateSkill(detail.skill.id, gradMessage.trim())
+                    },
+                    shape = CardShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Cinnabar,
+                        contentColor = Paper
+                    )
+                ) {
+                    Text(text = "毕业")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGraduateDialog = false }) {
                     Text(text = "取消", color = InkLight)
                 }
             },

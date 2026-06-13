@@ -3,6 +3,7 @@ package com.sushi.app
 import android.app.Application
 import com.sushi.app.data.repository.SeedData
 import com.sushi.app.data.repository.SushiRepository
+import com.sushi.app.logic.ExperienceEngine
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +16,7 @@ class SushiApp : Application() {
 
     @Inject lateinit var repository: SushiRepository
     @Inject lateinit var seedData: SeedData
+    @Inject lateinit var engine: ExperienceEngine
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -25,8 +27,9 @@ class SushiApp : Application() {
 
     private fun seedIfFirstLaunch() {
         appScope.launch {
-            // Fix #7: 真正判断首次启动——通过查询预置技能是否存在
+            // 首次启动预置数据
             try {
+                // 技能/职业/词条/任务
                 val skills = seedData.seedSkills()
                 val existingSkill = repository.getSkillById(skills.first().id)
                 if (existingSkill == null) {
@@ -36,7 +39,6 @@ class SushiApp : Application() {
                     for (task in seedData.seedTasks()) {
                         repository.insertTask(task)
                     }
-                    // Fix #10: 预置后同步职业经验值（按关联技能求和）
                     val professions = seedData.seedProfessions()
                     for (profession in professions) {
                         val linkedExp = skills
@@ -45,6 +47,9 @@ class SushiApp : Application() {
                         repository.updateProfessionExp(profession.id, linkedExp)
                     }
                 }
+                // 默认成就 + 帮助条目（独立判断，已有则跳过）
+                engine.seedDefaultAchievements()
+                engine.seedHelpEntries()
             } catch (_: Exception) {
                 // 首次启动数据初始化失败不影响应用运行
             }
