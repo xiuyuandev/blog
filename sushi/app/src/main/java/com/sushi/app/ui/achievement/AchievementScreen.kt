@@ -23,10 +23,9 @@ import com.sushi.app.ui.components.AchievementBadge
 import com.sushi.app.ui.components.SushiBackButton
 import com.sushi.app.ui.components.SushiLoading
 import com.sushi.app.ui.components.SushiProgressBar
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.Paper
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.SushiSpacing
 
 @Composable
@@ -39,7 +38,7 @@ fun AchievementScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .background(MaterialColor.surface)
     ) {
         Row(
             modifier = Modifier
@@ -62,18 +61,18 @@ fun AchievementScreen(
                 Text(
                     text = "成就",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
                 Text(
                     text = "已解锁 ${uiState.unlockedCount} / ${uiState.totalCount}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkFaint
+                    color = MaterialColor.outline
                 )
             }
 
             SushiProgressBar(
                 progress = if (uiState.totalCount > 0) uiState.unlockedCount.toFloat() / uiState.totalCount else 0f,
-                color = Cinnabar,
+                color = MaterialColor.primary,
                 size = 6.dp
             )
 
@@ -88,7 +87,7 @@ fun AchievementScreen(
                         Text(
                             text = "$tier 成就",
                             style = MaterialTheme.typography.titleSmall,
-                            color = Ink
+                            color = MaterialColor.onSurface
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                             list.chunked(3).forEach { row ->

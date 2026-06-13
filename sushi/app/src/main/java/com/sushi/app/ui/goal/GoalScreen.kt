@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,16 +47,9 @@ import com.sushi.app.ui.components.SushiFab
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
 import com.sushi.app.ui.theme.DialogShape
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.Linen
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.SushiMinTouchTarget
 import com.sushi.app.ui.theme.SushiSpacing
 import java.util.Calendar
 
@@ -66,7 +60,7 @@ fun GoalScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize().background(Paper)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialColor.surface)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
@@ -85,7 +79,7 @@ fun GoalScreen(
                     .padding(horizontal = SushiSpacing.xxl),
                 verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)
             ) {
-                Text(text = "目标", style = MaterialTheme.typography.headlineMedium, color = Ink)
+                Text(text = "目标", style = MaterialTheme.typography.headlineMedium, color = MaterialColor.onSurface)
 
                 if (uiState.goals.isEmpty()) {
                     Box(
@@ -95,8 +89,8 @@ fun GoalScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "尚未设定目标", style = MaterialTheme.typography.bodyLarge, color = InkFaint)
-                            Text(text = "点击 + 设定本周或本月目标", style = MaterialTheme.typography.bodySmall, color = InkFaint)
+                            Text(text = "尚未设定目标", style = MaterialTheme.typography.bodyLarge, color = MaterialColor.outline)
+                            Text(text = "点击 + 设定本周或本月目标", style = MaterialTheme.typography.bodySmall, color = MaterialColor.outline)
                         }
                     }
                 }
@@ -149,47 +143,62 @@ private fun GoalCard(
             .fillMaxWidth()
             .shadow(1.dp, CardShape)
             .clip(CardShape)
-            .background(PaperWarm)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .background(MaterialColor.surfaceVariant)
+            .padding(SushiSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = goal.name, style = MaterialTheme.typography.bodyLarge, color = Ink)
+                Text(
+                    text = goal.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialColor.onSurface
+                )
                 Text(
                     text = "$periodLabel · $scope",
                     style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint
+                    color = MaterialColor.onSurfaceVariant
                 )
             }
             Box(
                 modifier = Modifier
-                    .size(24.dp)
-                    .clip(CardShapeSmall)
-                    .background(Linen)
-                    .clickable { showMenu = true },
+                    .size(SushiMinTouchTarget)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .clickable { showMenu = true }
+                    .background(MaterialColor.surface),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = SushiIcons.More,
                     contentDescription = "更多",
-                    tint = InkLight,
-                    modifier = Modifier.size(16.dp)
+                    tint = MaterialColor.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
                 )
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     DropdownMenuItem(
-                        text = { Text("停用") },
+                        text = {
+                            Text(
+                                "停用",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
                         onClick = {
                             onDeactivate()
                             showMenu = false
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("删除", color = Cinnabar) },
+                        text = {
+                            Text(
+                                "删除",
+                                color = MaterialColor.error,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
                         onClick = {
                             onDelete()
                             showMenu = false
@@ -207,12 +216,12 @@ private fun GoalCard(
             Text(
                 text = "${goal.currentMinutes} / ${goal.targetMinutes} 分",
                 style = MaterialTheme.typography.titleMedium,
-                color = if (goal.currentMinutes >= goal.targetMinutes) Cinnabar else Ink
+                color = if (goal.currentMinutes >= goal.targetMinutes) MaterialColor.primary else MaterialColor.onSurface
             )
             Text(
                 text = "${(percent * 100).toInt()}%",
                 style = MaterialTheme.typography.labelMedium,
-                color = Cinnabar
+                color = MaterialColor.primary
             )
         }
 
@@ -222,14 +231,14 @@ private fun GoalCard(
                 .fillMaxWidth()
                 .height(6.dp)
                 .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(InkFaintest.copy(alpha = 0.3f))
+                .background(MaterialColor.outlineVariant.copy(alpha = 0.3f))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(percent)
                     .height(6.dp)
                     .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(if (goal.currentMinutes >= goal.targetMinutes) Cinnabar else CinnabarLight)
+                    .background(if (goal.currentMinutes >= goal.targetMinutes) MaterialColor.primary else MaterialColor.primary)
             )
         }
     }
@@ -249,42 +258,42 @@ private fun CreateGoalDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = DialogShape,
-        title = { Text("新目标", style = MaterialTheme.typography.headlineSmall, color = Ink) },
+        title = { Text("新目标", style = MaterialTheme.typography.headlineSmall, color = MaterialColor.onSurface) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("目标名称", color = InkLight) },
+                    label = { Text("目标名称", color = MaterialColor.onSurfaceVariant) },
                     singleLine = true,
                     shape = CardShapeSmall,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Cinnabar,
-                        unfocusedBorderColor = InkFaint,
-                        cursorColor = Ink,
-                        focusedTextColor = Ink,
-                        unfocusedTextColor = Ink
+                        focusedBorderColor = MaterialColor.primary,
+                        unfocusedBorderColor = MaterialColor.outline,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedTextColor = MaterialColor.onSurface,
+                        unfocusedTextColor = MaterialColor.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // 周期选择
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // 周期选择 - Material 3 触屏目标 48dp
+                Row(horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                     listOf("WEEKLY" to "周", "MONTHLY" to "月", "CUSTOM" to "自定义").forEach { (value, label) ->
                         val isSelected = period == value
                         Box(
                             modifier = Modifier
                                 .weight(1f)
+                                .defaultMinSize(minHeight = SushiMinTouchTarget)
                                 .clip(CardShapeSmall)
-                                .background(if (isSelected) CinnabarFaint else Linen)
-                                .clickable { period = value }
-                                .padding(vertical = 8.dp),
+                                .background(if (isSelected) MaterialColor.primaryContainer else MaterialColor.surfaceVariant)
+                                .clickable { period = value },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (isSelected) Cinnabar else InkLight,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (isSelected) MaterialColor.primary else MaterialColor.onSurfaceVariant,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
@@ -294,49 +303,58 @@ private fun CreateGoalDialog(
                 OutlinedTextField(
                     value = targetMinutes,
                     onValueChange = { targetMinutes = it.filter { c -> c.isDigit() } },
-                    label = { Text("目标分钟数", color = InkLight) },
+                    label = { Text("目标分钟数", color = MaterialColor.onSurfaceVariant) },
                     singleLine = true,
                     shape = CardShapeSmall,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Cinnabar,
-                        unfocusedBorderColor = InkFaint,
-                        cursorColor = Ink,
-                        focusedTextColor = Ink,
-                        unfocusedTextColor = Ink
+                        focusedBorderColor = MaterialColor.primary,
+                        unfocusedBorderColor = MaterialColor.outline,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedTextColor = MaterialColor.onSurface,
+                        unfocusedTextColor = MaterialColor.onSurface
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // 技能范围
-                Text("限定技能（可选）", style = MaterialTheme.typography.labelMedium, color = InkLight)
+                // 技能范围 - Material 3 触屏目标 48dp
+                Text(
+                    text = "限定技能（可选）",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialColor.onSurfaceVariant
+                )
                 Box(
                     modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = SushiMinTouchTarget)
                         .clip(CardShapeSmall)
-                        .background(if (selectedSkillId == null) CinnabarFaint else Linen)
+                        .background(if (selectedSkillId == null) MaterialColor.primaryContainer else MaterialColor.surfaceVariant)
                         .clickable { selectedSkillId = null }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
+                    contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
                         text = "全部技能",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (selectedSkillId == null) Cinnabar else InkLight
+                        color = if (selectedSkillId == null) MaterialColor.primary else MaterialColor.onSurfaceVariant
                     )
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)) {
                     allSkills.forEach { skill ->
                         val isSelected = selectedSkillId == skill.id
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .defaultMinSize(minHeight = SushiMinTouchTarget)
                                 .clip(CardShapeSmall)
-                                .background(if (isSelected) CinnabarFaint else Linen)
+                                .background(if (isSelected) MaterialColor.primaryContainer else MaterialColor.surfaceVariant)
                                 .clickable { selectedSkillId = skill.id }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
+                            contentAlignment = Alignment.CenterStart
                         ) {
                             Text(
                                 text = skill.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) Cinnabar else InkLight
+                                color = if (isSelected) MaterialColor.primary else MaterialColor.onSurfaceVariant
                             )
                         }
                     }
@@ -354,21 +372,35 @@ private fun CreateGoalDialog(
                 enabled = name.isNotBlank() && (targetMinutes.toIntOrNull() ?: 0) > 0,
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper,
-                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
-                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.onPrimary,
+                    disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
+                    disabledContentColor = MaterialColor.onPrimary.copy(alpha = 0.5f)
                 )
             ) {
-                Text("创建", fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "创建",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("取消", color = InkLight)
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.defaultMinSize(
+                    minWidth = SushiMinTouchTarget,
+                    minHeight = SushiMinTouchTarget
+                )
+            ) {
+                Text(
+                    text = "取消",
+                    color = MaterialColor.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge
+                )
             }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }
 

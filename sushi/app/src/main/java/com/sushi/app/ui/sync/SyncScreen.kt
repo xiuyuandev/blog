@@ -61,15 +61,13 @@ import com.sushi.app.ui.components.SushiBackButton
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.InkLight
-import com.sushi.app.ui.theme.Linen
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.SushiAnim
 import com.sushi.app.ui.theme.SushiSpacing
@@ -121,7 +119,7 @@ fun SyncScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .background(MaterialColor.surface)
             .verticalScroll(rememberScrollState())
     ) {
         // 返回按钮
@@ -143,7 +141,7 @@ fun SyncScreen(
             Text(
                 text = "同步与备份",
                 style = MaterialTheme.typography.headlineMedium,
-                color = Ink
+                color = MaterialColor.onSurface
             )
 
             // 同步方式选择
@@ -167,7 +165,7 @@ fun SyncScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(InkFaintest)
+                        .background(MaterialColor.outlineVariant)
                 )
 
                 CloudActions(
@@ -185,7 +183,7 @@ fun SyncScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(InkFaintest)
+                    .background(MaterialColor.outlineVariant)
             )
 
             // 本地备份
@@ -200,7 +198,7 @@ fun SyncScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(InkFaintest)
+                    .background(MaterialColor.outlineVariant)
             )
 
             // #23 偏好设置(精简版:只保留主题+每日一句)
@@ -235,18 +233,18 @@ fun SyncScreen(
                         Text(
                             "覆盖：云端数据替换本地数据",
                             style = MaterialTheme.typography.bodySmall,
-                            color = InkLight
+                            color = MaterialColor.onSurfaceVariant
                         )
                         Text(
                             "合并：保留双方独有数据，冲突时取较新/较高值",
                             style = MaterialTheme.typography.bodySmall,
-                            color = InkLight
+                            color = MaterialColor.onSurfaceVariant
                         )
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = { viewModel.confirmPull() }) {
-                        Text("覆盖拉取", color = Cinnabar)
+                        Text("覆盖拉取", color = MaterialColor.primary)
                     }
                 },
                 dismissButton = {
@@ -277,7 +275,7 @@ fun SyncScreen(
                         Text(
                             text = preview + if ((uiState.pendingImportJson?.length ?: 0) > 200) "..." else "",
                             style = MaterialTheme.typography.bodySmall,
-                            color = InkLight,
+                            color = MaterialColor.onSurfaceVariant,
                             maxLines = 5,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -285,7 +283,7 @@ fun SyncScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { viewModel.confirmImport() }) {
-                        Text("确认导入", color = Cinnabar)
+                        Text("确认导入", color = MaterialColor.primary)
                     }
                 },
                 dismissButton = {
@@ -326,7 +324,7 @@ private fun ProviderSelection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(PillShape)
-                .background(Linen)
+                .background(MaterialColor.surfaceVariant)
                 .padding(SushiSpacing.xs),
             horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
         ) {
@@ -348,12 +346,12 @@ private fun ProviderOption(
     modifier: Modifier = Modifier
 ) {
     val bgColor by animateColorAsState(
-        targetValue = if (isSelected) Cinnabar else Paper,
+        targetValue = if (isSelected) MaterialColor.primary else MaterialColor.surface,
         animationSpec = tween(SushiAnim.NORMAL),
         label = "providerBg"
     )
     val textColor by animateColorAsState(
-        targetValue = if (isSelected) Paper else InkFaint,
+        targetValue = if (isSelected) MaterialColor.surface else MaterialColor.outline,
         animationSpec = tween(SushiAnim.NORMAL),
         label = "providerText"
     )
@@ -384,12 +382,12 @@ private fun SectionTitle(title: String) {
             modifier = Modifier
                 .size(4.dp, 14.dp)
                 .clip(CardShapeSmall)
-                .background(Cinnabar)
+                .background(MaterialColor.primary)
         )
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
-            color = InkLight
+            color = MaterialColor.onSurfaceVariant
         )
     }
 }
@@ -410,7 +408,7 @@ private fun WebDavConfigSection(
             .fillMaxWidth()
             .shadow(2.dp, CardShape)
             .clip(CardShape)
-            .background(PaperWarm)
+            .background(MaterialColor.surfaceVariant)
             .padding(SushiSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
     ) {
@@ -419,15 +417,15 @@ private fun WebDavConfigSection(
         OutlinedTextField(
             value = serverUrl,
             onValueChange = { serverUrl = it },
-            label = { Text("服务器地址", color = InkLight) },
-            placeholder = { Text("https://dav.jianguoyun.com/dav/", color = InkFaint) },
+            label = { Text("服务器地址", color = MaterialColor.onSurfaceVariant) },
+            placeholder = { Text("https://dav.jianguoyun.com/dav/", color = MaterialColor.outline) },
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
+                focusedBorderColor = MaterialColor.primary,
+                unfocusedBorderColor = MaterialColor.outline,
+                focusedTextColor = MaterialColor.onSurface,
+                unfocusedTextColor = MaterialColor.onSurface,
+                cursorColor = MaterialColor.onSurface
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -435,14 +433,14 @@ private fun WebDavConfigSection(
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
-            label = { Text("账号", color = InkLight) },
+            label = { Text("账号", color = MaterialColor.onSurfaceVariant) },
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
+                focusedBorderColor = MaterialColor.primary,
+                unfocusedBorderColor = MaterialColor.outline,
+                focusedTextColor = MaterialColor.onSurface,
+                unfocusedTextColor = MaterialColor.onSurface,
+                cursorColor = MaterialColor.onSurface
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -450,14 +448,14 @@ private fun WebDavConfigSection(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("应用专用密码", color = InkLight) },
+            label = { Text("应用专用密码", color = MaterialColor.onSurfaceVariant) },
             singleLine = true,
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
                 Box(
                     modifier = Modifier
                         .clip(CardShapeSmall)
-                        .background(CinnabarFaint)
+                        .background(MaterialColor.primaryContainer)
                         .clickable { showPassword = !showPassword }
                         .padding(horizontal = SushiSpacing.sm, vertical = SushiSpacing.xs),
                     contentAlignment = Alignment.Center
@@ -465,16 +463,16 @@ private fun WebDavConfigSection(
                     Text(
                         text = if (showPassword) "隐藏" else "显示",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Cinnabar
+                        color = MaterialColor.primary
                     )
                 }
             },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
+                focusedBorderColor = MaterialColor.primary,
+                unfocusedBorderColor = MaterialColor.outline,
+                focusedTextColor = MaterialColor.onSurface,
+                unfocusedTextColor = MaterialColor.onSurface,
+                cursorColor = MaterialColor.onSurface
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -482,15 +480,15 @@ private fun WebDavConfigSection(
         OutlinedTextField(
             value = remotePath,
             onValueChange = { remotePath = it },
-            label = { Text("远程目录", color = InkLight) },
-            placeholder = { Text("/sushi/", color = InkFaint) },
+            label = { Text("远程目录", color = MaterialColor.onSurfaceVariant) },
+            placeholder = { Text("/sushi/", color = MaterialColor.outline) },
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Cinnabar,
-                unfocusedBorderColor = InkFaint,
-                focusedTextColor = Ink,
-                unfocusedTextColor = Ink,
-                cursorColor = Ink
+                focusedBorderColor = MaterialColor.primary,
+                unfocusedBorderColor = MaterialColor.outline,
+                focusedTextColor = MaterialColor.onSurface,
+                unfocusedTextColor = MaterialColor.onSurface,
+                cursorColor = MaterialColor.onSurface
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -502,8 +500,8 @@ private fun WebDavConfigSection(
             modifier = Modifier.fillMaxWidth(),
             shape = CardShape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Cinnabar,
-                contentColor = Paper
+                containerColor = MaterialColor.primary,
+                contentColor = MaterialColor.surface
             )
         ) {
             Row(
@@ -513,7 +511,7 @@ private fun WebDavConfigSection(
                 Icon(
                     imageVector = SushiIcons.Check,
                     contentDescription = null,
-                    tint = Paper,
+                    tint = MaterialColor.surface,
                     modifier = Modifier.size(14.dp)
                 )
                 Text(text = "保存配置")
@@ -540,7 +538,7 @@ private fun CloudActions(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(CardShapeSmall)
-                    .background(CinnabarFaint)
+                    .background(MaterialColor.primaryContainer)
                     .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
@@ -548,13 +546,13 @@ private fun CloudActions(
                 Icon(
                     imageVector = SushiIcons.Schedule,
                     contentDescription = null,
-                    tint = Cinnabar,
+                    tint = MaterialColor.primary,
                     modifier = Modifier.size(12.dp)
                 )
                 Text(
                     text = "上次同步: $lastSyncTime",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Cinnabar
+                    color = MaterialColor.primary
                 )
             }
         }
@@ -569,13 +567,13 @@ private fun CloudActions(
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
                     strokeWidth = 2.dp,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(SushiSpacing.sm))
             }
             Text(
                 text = if (isTesting) "测试中…" else "测试连接",
-                color = InkLight
+                color = MaterialColor.onSurfaceVariant
             )
         }
 
@@ -589,17 +587,17 @@ private fun CloudActions(
                 modifier = Modifier.weight(1f),
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper,
-                    disabledContainerColor = Cinnabar.copy(alpha = 0.4f),
-                    disabledContentColor = Paper.copy(alpha = 0.6f)
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.surface,
+                    disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
+                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.6f)
                 )
             ) {
                 if (isPushing) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = Paper
+                        color = MaterialColor.surface
                     )
                     Spacer(modifier = Modifier.width(SushiSpacing.sm))
                 }
@@ -612,17 +610,17 @@ private fun CloudActions(
                 modifier = Modifier.weight(1f),
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Ink,
-                    contentColor = Paper,
-                    disabledContainerColor = Ink.copy(alpha = 0.4f),
-                    disabledContentColor = Paper.copy(alpha = 0.6f)
+                    containerColor = MaterialColor.onSurface,
+                    contentColor = MaterialColor.surface,
+                    disabledContainerColor = MaterialColor.onSurface.copy(alpha = 0.4f),
+                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.6f)
                 )
             ) {
                 if (isPulling) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = Paper
+                        color = MaterialColor.surface
                     )
                     Spacer(modifier = Modifier.width(SushiSpacing.sm))
                 }
@@ -645,7 +643,7 @@ private fun LocalBackupSection(
         Text(
             text = "将数据导出为 JSON 或 CSV 文件保存到本地，或从 JSON 文件恢复数据。",
             style = MaterialTheme.typography.bodySmall,
-            color = InkFaint
+            color = MaterialColor.outline
         )
 
         Row(
@@ -658,15 +656,15 @@ private fun LocalBackupSection(
                 modifier = Modifier.weight(1f),
                 shape = CardShape,
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Cinnabar,
-                    disabledContentColor = Cinnabar.copy(alpha = 0.4f)
+                    contentColor = MaterialColor.primary,
+                    disabledContentColor = MaterialColor.primary.copy(alpha = 0.4f)
                 )
             ) {
                 if (isExporting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = Cinnabar.copy(alpha = 0.4f)
+                        color = MaterialColor.primary.copy(alpha = 0.4f)
                     )
                     Spacer(modifier = Modifier.width(SushiSpacing.sm))
                 }
@@ -679,15 +677,15 @@ private fun LocalBackupSection(
                 modifier = Modifier.weight(1f),
                 shape = CardShape,
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Ink,
-                    disabledContentColor = Ink.copy(alpha = 0.4f)
+                    contentColor = MaterialColor.onSurface,
+                    disabledContentColor = MaterialColor.onSurface.copy(alpha = 0.4f)
                 )
             ) {
                 if (isImporting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = Ink.copy(alpha = 0.4f)
+                        color = MaterialColor.onSurface.copy(alpha = 0.4f)
                     )
                     Spacer(modifier = Modifier.width(SushiSpacing.sm))
                 }
@@ -705,7 +703,7 @@ private fun StatusMessage(
     val isError = message.contains("失败") || message.contains("错误")
 
     val bgColor by animateColorAsState(
-        targetValue = CinnabarFaint,
+        targetValue = MaterialColor.primaryContainer,
         animationSpec = tween(SushiAnim.FAST),
         label = "statusBg"
     )
@@ -727,13 +725,13 @@ private fun StatusMessage(
             Icon(
                 imageVector = if (isError) SushiIcons.Delete else SushiIcons.Check,
                 contentDescription = null,
-                tint = Cinnabar,
+                tint = MaterialColor.primary,
                 modifier = Modifier.size(16.dp)
             )
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (isError) Cinnabar else Ink
+                color = if (isError) MaterialColor.primary else MaterialColor.onSurface
             )
         }
         Box(
@@ -746,7 +744,7 @@ private fun StatusMessage(
             Icon(
                 imageVector = SushiIcons.Delete,
                 contentDescription = "关闭",
-                tint = InkFaint,
+                tint = MaterialColor.outline,
                 modifier = Modifier.size(14.dp)
             )
         }
@@ -774,13 +772,13 @@ private fun PreferencesSection(
             Text(
                 text = "主题",
                 style = MaterialTheme.typography.labelMedium,
-                color = InkLight
+                color = MaterialColor.onSurfaceVariant
             )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(PillShape)
-                    .background(Linen)
+                    .background(MaterialColor.surfaceVariant)
                     .padding(SushiSpacing.xs),
                 horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
             ) {
@@ -794,7 +792,7 @@ private fun PreferencesSection(
                         modifier = Modifier
                             .weight(1f)
                             .clip(PillShape)
-                            .background(if (isSelected) Cinnabar else Paper)
+                            .background(if (isSelected) MaterialColor.primary else MaterialColor.surface)
                             .clickable { onThemeModeChange(mode) }
                             .padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center
@@ -802,7 +800,7 @@ private fun PreferencesSection(
                         Text(
                             text = label,
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) Paper else InkLight,
+                            color = if (isSelected) MaterialColor.surface else MaterialColor.onSurfaceVariant,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                         )
                     }
@@ -831,7 +829,7 @@ private fun ToggleSettingRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardShapeSmall)
-            .background(Linen)
+            .background(MaterialColor.surfaceVariant)
             .clickable { onChange(!checked) }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -841,26 +839,26 @@ private fun ToggleSettingRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Ink
+                color = MaterialColor.onSurface
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = InkFaint
+                color = MaterialColor.outline
             )
         }
         Box(
             modifier = Modifier
                 .size(width = 32.dp, height = 18.dp)
                 .clip(CircleShape)
-                .background(if (checked) Cinnabar else InkFaintest)
+                .background(if (checked) MaterialColor.primary else MaterialColor.outlineVariant)
         ) {
             Box(
                 modifier = Modifier
                     .size(14.dp)
                     .padding(2.dp)
                     .clip(CircleShape)
-                    .background(Paper)
+                    .background(MaterialColor.surface)
                     .align(if (checked) Alignment.CenterEnd else Alignment.CenterStart)
             )
         }

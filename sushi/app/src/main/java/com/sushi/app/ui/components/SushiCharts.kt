@@ -27,14 +27,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.Linen
 import kotlin.math.max
 import kotlin.math.min
 
@@ -46,19 +38,19 @@ fun TrendLineChart(
     dataPoints: List<Pair<Int, Float>>,  // (label index, value)
     yAxisLabels: List<String> = listOf("0", "中", "高"),
     height: Dp = 180.dp,
-    lineColor: Color = Cinnabar,
-    fillColor: Color = CinnabarFaint,
-    gridColor: Color = InkFaintest
+    lineColor: Color = MaterialColor.primary,
+    fillColor: Color = MaterialColor.primaryContainer,
+    gridColor: Color = MaterialColor.outlineVariant
 ) {
     if (dataPoints.isEmpty()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(height)
-                .background(Linen.copy(alpha = 0.3f)),
+                .background(MaterialColor.surfaceVariant.copy(alpha = 0.3f)),
             contentAlignment = Alignment.Center
         ) {
-            Text("暂无数据", style = MaterialTheme.typography.bodySmall, color = InkFaint)
+            Text("暂无数据", style = MaterialTheme.typography.bodySmall, color = MaterialColor.outline)
         }
         return
     }
@@ -80,8 +72,8 @@ fun TrendLineChart(
                 yAxisLabels.reversed().forEach { label ->
                     Text(
                         text = label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = InkFaint
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialColor.onSurfaceVariant
                     )
                 }
             }
@@ -151,8 +143,8 @@ fun TrendLineChart(
                 if (i % labelStep == 0 || i == dataPoints.lastIndex) {
                     Text(
                         text = "${pair.first}",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = InkFaint,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialColor.onSurfaceVariant,
                         modifier = Modifier.width(20.dp)
                     )
                 }
@@ -223,13 +215,13 @@ fun PieChart(
                     Text(
                         text = name,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Ink,
+                        color = MaterialColor.onSurface,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
                         text = "${value}分 (${percent}%)",
                         style = MaterialTheme.typography.labelSmall,
-                        color = InkFaint
+                        color = MaterialColor.outline
                     )
                 }
             }
@@ -244,7 +236,7 @@ fun PieChart(
 fun BarChart(
     dataPoints: List<Pair<String, Int>>,
     height: Dp = 160.dp,
-    barColor: Color = Cinnabar
+    barColor: Color = MaterialColor.primary
 ) {
     val maxVal = dataPoints.maxOf { it.second }.coerceAtLeast(1)
 
@@ -261,7 +253,7 @@ fun BarChart(
                 val x = i * (barWidth + gap) + gap / 2
                 val y = h - barHeight
                 drawRoundRect(
-                    color = if (value > 0) barColor else InkFaintest.copy(alpha = 0.3f),
+                    color = if (value > 0) barColor else MaterialColor.outlineVariant.copy(alpha = 0.3f),
                     topLeft = Offset(x, y),
                     size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f, 2f)
@@ -272,8 +264,8 @@ fun BarChart(
             listOf("0", "6", "12", "18", "24").forEach { label ->
                 Text(
                     text = label,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = InkFaint
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialColor.onSurfaceVariant
                 )
             }
         }
@@ -286,7 +278,7 @@ fun BarChart(
 @Composable
 fun HorizontalBarChart(
     dataPoints: List<Pair<String, Int>>,
-    barColor: Color = CinnabarLight
+    barColor: Color = MaterialColor.primary
 ) {
     val maxVal = dataPoints.maxOfOrNull { it.second }?.coerceAtLeast(1) ?: 1
 
@@ -304,7 +296,7 @@ fun HorizontalBarChart(
                 Text(
                     text = name,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Ink,
+                    color = MaterialColor.onSurface,
                     modifier = Modifier.width(80.dp)
                 )
                 Box(
@@ -312,7 +304,7 @@ fun HorizontalBarChart(
                         .weight(1f)
                         .height(8.dp)
                         .clip(androidx.compose.foundation.shape.CircleShape)
-                        .background(InkFaintest.copy(alpha = 0.3f))
+                        .background(MaterialColor.outlineVariant.copy(alpha = 0.3f))
                 ) {
                     Box(
                         modifier = Modifier
@@ -325,7 +317,7 @@ fun HorizontalBarChart(
                 Text(
                     text = "${value}分",
                     style = MaterialTheme.typography.labelSmall,
-                    color = InkFaint
+                    color = MaterialColor.outline
                 )
             }
         }

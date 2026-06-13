@@ -51,18 +51,11 @@ import androidx.compose.ui.unit.dp
 import com.sushi.app.data.model.Affix
 import com.sushi.app.data.model.AttributeType
 import com.sushi.app.data.model.Profession
+import com.sushi.app.ui.components.SushiDivider
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.components.SushiLoading
 import com.sushi.app.ui.theme.CardShape
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.InkLight
-import com.sushi.app.ui.theme.Linen
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.SushiAnim
 import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.viewmodel.PanelViewModel
@@ -102,7 +95,7 @@ fun PanelScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .background(MaterialColor.background)
     ) {
         AnimatedVisibility(
             visible = uiState.isLoading,
@@ -118,12 +111,12 @@ fun PanelScreen(
             exit = fadeOut()
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = SushiSpacing.xxl, vertical = SushiSpacing.xxxl),
-                verticalArrangement = Arrangement.spacedBy(SushiSpacing.xxl)
-            ) {
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.xl),
+            verticalArrangement = Arrangement.spacedBy(SushiSpacing.xl)
+        ) {
                 PanelHeader(
                     professionName = uiState.professionName,
                     totalPureTimeMin = uiState.totalPureTimeMin,
@@ -171,24 +164,32 @@ private fun QuickActionsGrid(
     Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
         Text(
             text = "快捷入口",
-            style = MaterialTheme.typography.labelLarge,
-            color = InkLight
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialColor.onSurfaceVariant
         )
-        Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
-                QuickActionTile(label = "成就", icon = com.sushi.app.ui.components.SushiIcons.Star, onClick = onAchievement, modifier = Modifier.weight(1f))
-                QuickActionTile(label = "目标", icon = com.sushi.app.ui.components.SushiIcons.Edit, onClick = onGoal, modifier = Modifier.weight(1f))
-                QuickActionTile(label = "周报", icon = com.sushi.app.ui.components.SushiIcons.Calendar, onClick = onReport, modifier = Modifier.weight(1f))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
-                QuickActionTile(label = "反思", icon = com.sushi.app.ui.components.SushiIcons.History, onClick = onReflection, modifier = Modifier.weight(1f))
-                QuickActionTile(label = "帮助", icon = com.sushi.app.ui.components.SushiIcons.Help, onClick = onHelp, modifier = Modifier.weight(1f))
-                QuickActionTile(label = "同步", icon = com.sushi.app.ui.components.SushiIcons.Sync, onClick = {}, modifier = Modifier.weight(1f))
-            }
+        // 第一行
+        Row(horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+            QuickActionTile(label = "成就", icon = SushiIcons.Star, onClick = onAchievement, modifier = Modifier.weight(1f))
+            QuickActionTile(label = "目标", icon = SushiIcons.Edit, onClick = onGoal, modifier = Modifier.weight(1f))
+            QuickActionTile(label = "周报", icon = SushiIcons.Calendar, onClick = onReport, modifier = Modifier.weight(1f))
+        }
+        // 第二行
+        Row(horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
+            QuickActionTile(label = "反思", icon = SushiIcons.History, onClick = onReflection, modifier = Modifier.weight(1f))
+            QuickActionTile(label = "帮助", icon = SushiIcons.Help, onClick = onHelp, modifier = Modifier.weight(1f))
+            QuickActionTile(label = "同步", icon = SushiIcons.Sync, onClick = {}, modifier = Modifier.weight(1f))
         }
     }
 }
 
+/**
+ * 快捷入口瓦片 · Material 3 规范
+ *
+ * - 高度 80dp(48dp 触屏目标 + 余量)
+ * - 背景:surfaceVariant
+ * - 选中/激活态:background = primaryContainer
+ * - 24dp 图标(主操作) + labelMedium 文字
+ */
 @Composable
 private fun QuickActionTile(
     label: String,
@@ -198,24 +199,25 @@ private fun QuickActionTile(
 ) {
     Column(
         modifier = modifier
+            .height(80.dp)
             .shadow(1.dp, CardShape)
             .clip(CardShape)
-            .background(Linen.copy(alpha = 0.5f))
+            .background(MaterialColor.surfaceVariant)
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+            .padding(vertical = SushiSpacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = Cinnabar,
-            modifier = Modifier.size(18.dp)
+            tint = MaterialColor.primary,
+            modifier = Modifier.size(24.dp)
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = Ink
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialColor.onSurface
         )
     }
 }
@@ -246,7 +248,7 @@ private fun PanelHeader(
             Text(
                 text = professionName.ifBlank { "游侠" },
                 style = MaterialTheme.typography.headlineMedium,
-                color = Ink,
+                color = MaterialColor.onSurface,
                 modifier = Modifier.clickable { dropdownExpanded = true }
             )
             DropdownMenu(
@@ -259,7 +261,7 @@ private fun PanelHeader(
                             Text(
                                 text = profession.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (profession.name == professionName) Cinnabar else Ink
+                                color = if (profession.name == professionName) MaterialColor.primary else MaterialColor.onSurface
                             )
                         },
                         onClick = {
@@ -277,19 +279,19 @@ private fun PanelHeader(
             Text(
                 text = timeText,
                 style = MaterialTheme.typography.displayMedium,
-                color = Ink
+                color = MaterialColor.onSurface
             )
             Text(
                 text = "纯时",
                 style = MaterialTheme.typography.bodyMedium,
-                color = InkLight,
+                color = MaterialColor.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = SushiSpacing.xs)
             )
         }
         Text(
             text = "$formattedExp Exp",
             style = MaterialTheme.typography.bodySmall,
-            color = InkFaint
+            color = MaterialColor.outline
         )
 
         // 今日古语(Week 3 新增: 节气古语)
@@ -316,7 +318,7 @@ private fun DateSubHeader() {
     Text(
         text = "$dateText $termText $lunarText",
         style = MaterialTheme.typography.bodySmall,
-        color = InkLight
+        color = MaterialColor.onSurfaceVariant
     )
 }
 
@@ -332,21 +334,16 @@ private fun QuoteSubHeader() {
     Text(
         text = "「$quote」",
         style = MaterialTheme.typography.bodySmall,
-        color = InkFaint,
+        color = MaterialColor.outline,
         modifier = Modifier.padding(top = SushiSpacing.xs)
     )
 }
 
 @Composable
 private fun SectionDivider() {
-    Spacer(modifier = Modifier.height(SushiSpacing.xs))
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(0.5.dp)
-            .background(InkFaintest)
-    )
-    Spacer(modifier = Modifier.height(SushiSpacing.xs))
+    Spacer(modifier = Modifier.height(SushiSpacing.sm))
+    SushiDivider()
+    Spacer(modifier = Modifier.height(SushiSpacing.sm))
 }
 
 @Composable
@@ -393,7 +390,7 @@ private fun RadarChartSection(
         Text(
             text = "属性",
             style = MaterialTheme.typography.labelLarge,
-            color = InkLight
+            color = MaterialColor.onSurfaceVariant
         )
 
         Canvas(
@@ -423,8 +420,8 @@ private fun RadarChartSection(
                                 nearest = radarAttributes[i]
                             }
                         }
-                        // 选中在 80px 内的属性
-                        if (minDist < 80f && nearest != null) {
+                        // 选中 48dp 半径内的属性(Material 3 触屏目标)
+                        if (minDist < 96f && nearest != null) {
                             selectedAttribute = if (selectedAttribute == nearest) null else nearest
                         } else {
                             selectedAttribute = null
@@ -444,8 +441,8 @@ private fun RadarChartSection(
                 width = 0.8f,
                 pathEffect = dashEffect
             )
-            val gridColor = InkFaint.copy(alpha = 0.5f)
-            val axisColor = InkFaint.copy(alpha = 0.35f)
+            val gridColor = MaterialColor.outline.copy(alpha = 0.5f)
+            val axisColor = MaterialColor.outline.copy(alpha = 0.35f)
 
             // Draw 3 concentric pentagon grids
             for (ring in 1..3) {
@@ -514,12 +511,12 @@ private fun RadarChartSection(
             }
             drawPath(
                 path = dataPath,
-                color = Cinnabar.copy(alpha = 0.06f),
+                color = MaterialColor.primary.copy(alpha = 0.06f),
                 style = Fill
             )
             drawPath(
                 path = dataPath,
-                color = Cinnabar.copy(alpha = 0.4f),
+                color = MaterialColor.primary.copy(alpha = 0.4f),
                 style = Stroke(
                     width = 1.2f,
                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 3f), 0f)
@@ -529,7 +526,7 @@ private fun RadarChartSection(
             // Draw data point dots
             for (point in dataPoints) {
                 drawCircle(
-                    color = Cinnabar,
+                    color = MaterialColor.primary,
                     radius = 4f,
                     center = point
                 )
@@ -547,10 +544,10 @@ private fun RadarChartSection(
 
                 val isHighlighted = selectedAttribute == attrType
                 val nameStyle = MaterialTheme.typography.labelMedium.copy(
-                    color = if (isHighlighted) Cinnabar else Ink
+                    color = if (isHighlighted) MaterialColor.primary else MaterialColor.onSurface
                 )
                 val valueStyle = MaterialTheme.typography.labelSmall.copy(
-                    color = if (isHighlighted) Cinnabar else InkLight
+                    color = if (isHighlighted) MaterialColor.primary else MaterialColor.onSurfaceVariant
                 )
 
                 val nameResult = textMeasurer.measure(label, nameStyle)
@@ -560,7 +557,7 @@ private fun RadarChartSection(
 
                 drawText(
                     textLayoutResult = nameResult,
-                    color = if (isHighlighted) Cinnabar else Ink,
+                    color = if (isHighlighted) MaterialColor.primary else MaterialColor.onSurface,
                     topLeft = Offset(
                         labelX - nameResult.size.width / 2f,
                         labelY - totalHeight / 2f
@@ -568,7 +565,7 @@ private fun RadarChartSection(
                 )
                 drawText(
                     textLayoutResult = valueResult,
-                    color = if (isHighlighted) Cinnabar else InkLight,
+                    color = if (isHighlighted) MaterialColor.primary else MaterialColor.onSurfaceVariant,
                     topLeft = Offset(
                         labelX - valueResult.size.width / 2f,
                         labelY - totalHeight / 2f + nameResult.size.height + 2
@@ -580,8 +577,8 @@ private fun RadarChartSection(
                     val vx = centerX + radius * cos(angle)
                     val vy = centerY + radius * sin(angle)
                     drawCircle(
-                        color = CinnabarFaint,
-                        radius = 14f,
+                        color = MaterialColor.primaryContainer,
+                        radius = 16f,
                         center = Offset(vx, vy)
                     )
                 }
@@ -601,7 +598,7 @@ private fun RadarChartSection(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(CardShape)
-                        .background(CinnabarFaint)
+                        .background(MaterialColor.primaryContainer)
                         .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -609,12 +606,12 @@ private fun RadarChartSection(
                     Text(
                         text = attributeLabels[attr] ?: "",
                         style = MaterialTheme.typography.labelLarge,
-                        color = Cinnabar
+                        color = MaterialColor.primary
                     )
                     Text(
                         text = "$value",
                         style = MaterialTheme.typography.labelLarge,
-                        color = Cinnabar
+                        color = MaterialColor.primary
                     )
                 }
             }
@@ -633,7 +630,7 @@ private fun AffixesSection(
         Text(
             text = "已解锁词条",
             style = MaterialTheme.typography.labelLarge,
-            color = InkLight
+            color = MaterialColor.onSurfaceVariant
         )
 
         if (affixes.isEmpty()) {
@@ -642,7 +639,7 @@ private fun AffixesSection(
                     .fillMaxWidth()
                     .shadow(1.dp, CardShape)
                     .clip(CardShape)
-                    .background(Linen.copy(alpha = 0.5f))
+                    .background(MaterialColor.surfaceVariant)
                     .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
@@ -650,13 +647,13 @@ private fun AffixesSection(
                 Icon(
                     imageVector = SushiIcons.Lock,
                     contentDescription = null,
-                    tint = InkFaintest,
+                    tint = MaterialColor.outline,
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
                     text = "尚无解锁词条",
                     style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint
+                    color = MaterialColor.outline
                 )
             }
         } else {
@@ -674,7 +671,7 @@ private fun AffixRow(affix: Affix) {
             .fillMaxWidth()
             .shadow(1.dp, CardShape)
             .clip(CardShape)
-            .background(Linen.copy(alpha = 0.5f))
+            .background(MaterialColor.surfaceVariant)
             .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.md),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -686,12 +683,12 @@ private fun AffixRow(affix: Affix) {
             Text(
                 text = affix.name,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Ink
+                color = MaterialColor.onSurface
             )
             Text(
                 text = affix.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = InkLight
+                color = MaterialColor.onSurfaceVariant
             )
         }
         // 朱砂红印章标识
@@ -699,7 +696,7 @@ private fun AffixRow(affix: Affix) {
             modifier = Modifier
                 .size(14.dp)
                 .clip(CardShape)
-                .background(Cinnabar)
+                .background(MaterialColor.primary)
         )
     }
 }
@@ -709,9 +706,10 @@ private fun SyncEntry(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(56.dp)
             .shadow(1.dp, CardShape)
             .clip(CardShape)
-            .background(Linen)
+            .background(MaterialColor.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.md),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -719,25 +717,25 @@ private fun SyncEntry(onClick: () -> Unit) {
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
+            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.md)
         ) {
             Icon(
                 imageVector = SushiIcons.Sync,
                 contentDescription = null,
-                tint = InkLight,
-                modifier = Modifier.size(18.dp)
+                tint = MaterialColor.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
             )
             Text(
                 text = "同步与备份",
                 style = MaterialTheme.typography.bodyMedium,
-                color = InkLight
+                color = MaterialColor.onSurface
             )
         }
         Icon(
             imageVector = SushiIcons.KeyboardRight,
             contentDescription = null,
-            tint = InkFaint,
-            modifier = Modifier.size(16.dp)
+            tint = MaterialColor.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
         )
     }
 }

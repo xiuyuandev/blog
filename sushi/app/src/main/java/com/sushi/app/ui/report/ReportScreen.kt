@@ -31,15 +31,13 @@ import com.sushi.app.ui.components.SushiBackButton
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.components.SushiLoading
 import com.sushi.app.ui.theme.CardShape
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.Linen
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.SushiAnim
 import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.logic.WeeklyReport
@@ -57,7 +55,7 @@ fun ReportScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .background(MaterialColor.surface)
             .verticalScroll(rememberScrollState())
     ) {
         Row(
@@ -78,7 +76,7 @@ fun ReportScreen(
             Text(
                 text = "周报",
                 style = MaterialTheme.typography.headlineMedium,
-                color = Ink
+                color = MaterialColor.onSurface
             )
 
             if (uiState.isLoading) {
@@ -93,19 +91,19 @@ fun ReportScreen(
                     Text(
                         text = "24 小时专注分布",
                         style = MaterialTheme.typography.titleSmall,
-                        color = Ink
+                        color = MaterialColor.onSurface
                     )
                     Text(
                         text = "你最高效的时段：${uiState.peakHour}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = InkFaint
+                        color = MaterialColor.outline
                     )
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .shadow(1.dp, CardShape)
                             .clip(CardShape)
-                            .background(PaperWarm)
+                            .background(MaterialColor.surfaceVariant)
                             .padding(16.dp)
                     ) {
                         BarChart(
@@ -122,14 +120,14 @@ fun ReportScreen(
                     Text(
                         text = "本周技能分布",
                         style = MaterialTheme.typography.titleSmall,
-                        color = Ink
+                        color = MaterialColor.onSurface
                     )
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .shadow(1.dp, CardShape)
                             .clip(CardShape)
-                            .background(PaperWarm)
+                            .background(MaterialColor.surfaceVariant)
                             .padding(16.dp)
                     ) {
                         HorizontalBarChart(
@@ -161,14 +159,14 @@ private fun WeeklyReportSection(report: WeeklyReport) {
             .fillMaxWidth()
             .shadow(2.dp, CardShape)
             .clip(CardShape)
-            .background(PaperWarm)
+            .background(MaterialColor.surfaceVariant)
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)
     ) {
         Text(
             text = weekRange,
             style = MaterialTheme.typography.labelLarge,
-            color = InkFaint
+            color = MaterialColor.outline
         )
 
         // 总时长
@@ -176,17 +174,17 @@ private fun WeeklyReportSection(report: WeeklyReport) {
             Text(
                 text = "本周总纯时间",
                 style = MaterialTheme.typography.bodySmall,
-                color = InkFaint
+                color = MaterialColor.outline
             )
             Text(
                 text = if (totalHours > 0) "${totalHours}h ${totalMinutes}m" else "${totalMinutes}m",
                 style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-                color = Cinnabar
+                color = MaterialColor.primary
             )
             Text(
                 text = if (diffPercent > 0) "比上周 +${diffPercent}%" else if (diffPercent < 0) "比上周 ${diffPercent}%" else "与上周持平",
                 style = MaterialTheme.typography.bodySmall,
-                color = if (diffPercent >= 0) Cinnabar else InkFaint
+                color = if (diffPercent >= 0) MaterialColor.primary else MaterialColor.outline
             )
         }
 
@@ -204,7 +202,7 @@ private fun WeeklyReportSection(report: WeeklyReport) {
         Text(
             text = "上周累计：${lastWeekHours}h ${report.lastWeekMin % 60}m",
             style = MaterialTheme.typography.bodySmall,
-            color = InkFaint
+            color = MaterialColor.outline
         )
     }
 }
@@ -218,12 +216,12 @@ private fun DataPoint(label: String, value: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium,
-            color = Ink
+            color = MaterialColor.onSurface
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = InkFaint
+            color = MaterialColor.outline
         )
     }
 }

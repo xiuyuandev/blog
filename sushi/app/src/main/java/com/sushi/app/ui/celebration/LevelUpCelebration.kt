@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,12 +25,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.SerifFontFamily
+import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.util.HapticType
 import com.sushi.app.util.rememberHaptic
 import kotlinx.coroutines.delay
@@ -65,8 +65,8 @@ fun LevelUpCelebration(
 
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(animationSpec = tween(300)),
-        exit = fadeOut(animationSpec = tween(300))
+        enter = fadeIn(animationSpec = tween(SushiAnim.MEDIUM)),
+        exit = fadeOut(animationSpec = tween(SushiAnim.MEDIUM))
     ) {
         Box(
             modifier = Modifier
@@ -76,44 +76,48 @@ fun LevelUpCelebration(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .padding(32.dp),
+                    .fillMaxWidth(0.85f)
+                    .background(
+                        color = MaterialColor.inverseSurface,
+                        shape = CardShape
+                    )
+                    .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.xxl),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
             ) {
-                // 主数字翻牌
+                // 主数字翻牌 - Material 3 displayLarge (57sp) 衬线体
                 FlipNumber(targetLevel = newLevel, key = newLevel)
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(SushiSpacing.xs))
 
                 Text(
                     text = "升级",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialColor.onPrimary
+                    color = MaterialColor.inverseOnSurface
                 )
 
                 Text(
                     text = skillName,
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialColor.onPrimary,
-                    fontWeight = FontWeight.Bold
+                    color = MaterialColor.inverseOnSurface,
+                    fontWeight = FontWeight.SemiBold
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(SushiSpacing.xs))
 
                 Text(
                     text = "从 LV $oldLevel 到 LV $newLevel",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialColor.onPrimary.copy(alpha = 0.8f),
+                    color = MaterialColor.inverseOnSurface.copy(alpha = 0.72f),
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(SushiSpacing.sm))
 
                 Text(
                     text = "你向下一段旅程又近了一步。",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialColor.onPrimary.copy(alpha = 0.6f),
+                    color = MaterialColor.inverseOnSurface.copy(alpha = 0.56f),
                     textAlign = TextAlign.Center
                 )
             }
@@ -122,7 +126,8 @@ fun LevelUpCelebration(
 }
 
 /**
- * 数字翻牌效果 — 0.5 秒从 0 翻到目标值
+ * 数字翻牌效果 — 0.8 秒从 0 翻到目标值
+ * 使用 Material 3 displayLarge + 衬线体（与时间显示一致）
  */
 @Composable
 private fun FlipNumber(targetLevel: Int, key: Int) {
@@ -139,16 +144,16 @@ private fun FlipNumber(targetLevel: Int, key: Int) {
     Text(
         text = animated.toInt().toString().padStart(2, '0'),
         style = MaterialTheme.typography.displayLarge.copy(
-            fontWeight = FontWeight.Black,
-            fontSize = 120.sp
+            fontFamily = SerifFontFamily,
+            fontWeight = FontWeight.Bold
         ),
-        color = MaterialColor.onPrimary,
-        modifier = Modifier.scale(1f)
+        color = MaterialColor.inversePrimary
     )
 }
 
-/**
- * Material 3 标准 scrim(半透明遮罩)
- */
-private val MaterialColor.scrim: androidx.compose.ui.graphics.Color
-    get() = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.6f)
+/** 动画时长 token */
+private object SushiAnim {
+    const val FAST = 150
+    const val MEDIUM = 300
+    const val SLOW = 500
+}

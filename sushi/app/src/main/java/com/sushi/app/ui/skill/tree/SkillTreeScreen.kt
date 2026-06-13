@@ -34,17 +34,12 @@ import com.sushi.app.data.model.Skill
 import com.sushi.app.logic.ExperienceEngine
 import com.sushi.app.ui.components.SushiBackButton
 import com.sushi.app.ui.components.SushiLoading
-import com.sushi.app.ui.theme.AmberGold
-import com.sushi.app.ui.theme.BronzeCopper
 import com.sushi.app.ui.theme.CardShape
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.ObsidianBlack
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.RawStoneGray
 import com.sushi.app.ui.theme.SushiSpacing
 import kotlin.math.cos
@@ -61,7 +56,7 @@ fun SkillTreeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .background(MaterialColor.surface)
     ) {
         Row(
             modifier = Modifier
@@ -80,18 +75,18 @@ fun SkillTreeScreen(
                 .padding(horizontal = SushiSpacing.xxl),
             verticalArrangement = Arrangement.spacedBy(SushiSpacing.xl)
         ) {
-            Text(text = "技能树", style = MaterialTheme.typography.headlineMedium, color = Ink)
+            Text(text = "技能树", style = MaterialTheme.typography.headlineMedium, color = MaterialColor.onSurface)
             Text(
                 text = "线条表示前置关联，节点大小代表等级",
                 style = MaterialTheme.typography.bodySmall,
-                color = InkFaint
+                color = MaterialColor.outline
             )
 
             if (uiState.skills.isEmpty()) {
                 Text(
                     text = "暂无技能",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkFaint
+                    color = MaterialColor.outline
                 )
             } else {
                 Box(
@@ -100,7 +95,7 @@ fun SkillTreeScreen(
                         .height(420.dp)
                         .shadow(1.dp, CardShape)
                         .clip(CardShape)
-                        .background(PaperWarm)
+                        .background(MaterialColor.surfaceVariant)
                 ) {
                     SkillTreeCanvas(
                         skills = uiState.skills,
@@ -153,7 +148,7 @@ private fun SkillTreeCanvas(
                     val prereqIdx = skills.indexOf(prereq)
                     val prereqX = (prereqIdx * (w / sorted.size.coerceAtLeast(1)) + (w / sorted.size.coerceAtLeast(1)) / 2)
                     drawLine(
-                        color = if (prereq in sorted) CinnabarFaint else InkFaintest,
+                        color = if (prereq in sorted) MaterialColor.primaryContainer else MaterialColor.outlineVariant,
                         start = Offset(prereqX, centerY),
                         end = Offset(nodeX, centerY),
                         strokeWidth = 2f,
@@ -168,24 +163,24 @@ private fun SkillTreeCanvas(
                 val level = ExperienceEngine().calculateLevel(skill.totalExp)
                 val radius = 14f + level * 0.5f
                 val tierColor = when {
-                    level >= 100 -> ObsidianBlack
-                    level >= 30 -> AmberGold
-                    level >= 10 -> BronzeCopper
+                    level >= 100 -> MaterialColor.scrim
+                    level >= 30 -> MaterialColor.tertiary
+                    level >= 10 -> MaterialColor.tertiary
                     else -> RawStoneGray
                 }
 
                 drawCircle(
-                    color = if (skill.isGraduated) Cinnabar else tierColor,
+                    color = if (skill.isGraduated) MaterialColor.primary else tierColor,
                     radius = radius,
                     center = Offset(x, centerY)
                 )
                 drawCircle(
-                    color = Paper,
+                    color = MaterialColor.surface,
                     radius = radius * 0.5f,
                     center = Offset(x, centerY)
                 )
                 drawCircle(
-                    color = if (skill.isGraduated) Cinnabar else tierColor,
+                    color = if (skill.isGraduated) MaterialColor.primary else tierColor,
                     radius = radius * 0.4f,
                     center = Offset(x, centerY)
                 )
@@ -198,9 +193,9 @@ private fun SkillTreeCanvas(
 private fun SkillTreeListItem(skill: Skill, onClick: () -> Unit) {
     val level = ExperienceEngine().calculateLevel(skill.totalExp)
     val tierColor = when {
-        level >= 100 -> ObsidianBlack
-        level >= 30 -> AmberGold
-        level >= 10 -> BronzeCopper
+        level >= 100 -> MaterialColor.scrim
+        level >= 30 -> MaterialColor.tertiary
+        level >= 10 -> MaterialColor.tertiary
         else -> RawStoneGray
     }
     Box(
@@ -208,7 +203,7 @@ private fun SkillTreeListItem(skill: Skill, onClick: () -> Unit) {
             .fillMaxWidth()
             .shadow(1.dp, CardShape)
             .clip(CardShape)
-            .background(if (skill.isGraduated) CinnabarFaint else PaperWarm)
+            .background(if (skill.isGraduated) MaterialColor.primaryContainer else MaterialColor.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(12.dp)
     ) {
@@ -217,19 +212,19 @@ private fun SkillTreeListItem(skill: Skill, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(12.dp)
                     .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(if (skill.isGraduated) Cinnabar else tierColor)
+                    .background(if (skill.isGraduated) MaterialColor.primary else tierColor)
             )
             Text(
                 text = skill.name,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (skill.isGraduated) Cinnabar else Ink,
+                color = if (skill.isGraduated) MaterialColor.primary else MaterialColor.onSurface,
                 fontWeight = if (skill.isGraduated) FontWeight.SemiBold else FontWeight.Normal,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 text = "LV $level",
                 style = MaterialTheme.typography.labelMedium,
-                color = if (skill.isGraduated) Cinnabar else Ink
+                color = if (skill.isGraduated) MaterialColor.primary else MaterialColor.onSurface
             )
         }
     }

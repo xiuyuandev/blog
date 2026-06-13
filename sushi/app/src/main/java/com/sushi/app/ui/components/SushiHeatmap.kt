@@ -5,12 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,30 +17,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.sushi.app.ui.theme.AmberGold
-import com.sushi.app.ui.theme.BronzeCopper
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.Linen
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
-import com.sushi.app.ui.theme.RawStoneGray
-import com.sushi.app.ui.theme.SilverGray
+import com.sushi.app.ui.theme.MaterialColor
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlin.math.max
-import kotlin.math.min
 
 /**
  * 年度热力图 - GitHub 风格
+ * Material 3 设计:cell 12dp,圆角 2dp,5 级配色
  */
 @Composable
 fun HeatmapCalendar(
@@ -51,10 +35,10 @@ fun HeatmapCalendar(
 ) {
     if (heatmap.isEmpty()) {
         Box(
-            modifier = modifier.fillMaxWidth().height(80.dp),
+            modifier = modifier.fillMaxWidth().height(96.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text("暂无数据", style = MaterialTheme.typography.bodySmall, color = InkFaint)
+            Text("暂无数据", style = MaterialTheme.typography.bodyMedium, color = MaterialColor.outline)
         }
         return
     }
@@ -64,36 +48,33 @@ fun HeatmapCalendar(
     val cal = Calendar.getInstance()
     val sortedKeys = heatmap.keys.sorted()
 
-    // 找到第一个 dateKey 对应的 Calendar
     cal.time = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(sortedKeys.first()) ?: Date()
 
     val rows = 7  // 周日到周六
     val firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK)  // 1=Sunday
-    val offset = firstDayOfWeek - 1  // 周日作为列 0
+    val offset = firstDayOfWeek - 1
     val totalDays = heatmap.size
     val totalCells = offset + totalDays
-    val cols = (totalCells + 6) / 7  // 向上取整
+    val cols = (totalCells + 6) / 7
 
-    val cellSize = 11.dp
-    val gap = 2.dp
+    val cellSize = 12.dp
+    val gap = 3.dp
 
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // 标题
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // 标题行
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
                 text = "${sortedKeys.first()} ~ ${sortedKeys.last()}",
-                style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialColor.onSurfaceVariant
             )
             Text(
                 text = "${heatmap.values.count { it > 0 }} 天有记录",
-                style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialColor.onSurfaceVariant
             )
         }
 
@@ -120,7 +101,7 @@ fun HeatmapCalendar(
                                 Box(
                                     modifier = Modifier
                                         .size(cellSize)
-                                        .clip(RoundedCornerShape(2.dp))
+                                        .clip(RoundedCornerShape(3.dp))
                                         .background(color)
                                 )
                                 col++
@@ -139,38 +120,38 @@ fun HeatmapCalendar(
         ) {
             Text(
                 text = "少",
-                style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialColor.onSurfaceVariant
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
-                modifier = Modifier.padding(horizontal = 4.dp)
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                modifier = Modifier.padding(horizontal = 6.dp)
             ) {
                 listOf(0, 1, 2, 3, 4).forEach { level ->
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
-                            .clip(RoundedCornerShape(2.dp))
+                            .size(12.dp)
+                            .clip(RoundedCornerShape(3.dp))
                             .background(heatmapColor(level * (maxVal / 4).coerceAtLeast(1), maxVal))
                     )
                 }
             }
             Text(
                 text = "多",
-                style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialColor.onSurfaceVariant
             )
         }
     }
 }
 
 private fun heatmapColor(value: Int, maxVal: Int): Color {
-    if (value <= 0) return InkFaintest.copy(alpha = 0.3f)
+    if (value <= 0) return MaterialColor.surfaceVariant
     val ratio = value.toFloat() / maxVal
     return when {
-        ratio < 0.25f -> CinnabarFaint.copy(alpha = 0.4f)
-        ratio < 0.5f -> CinnabarFaint.copy(alpha = 0.7f)
-        ratio < 0.75f -> Cinnabar
-        else -> Cinnabar
+        ratio < 0.25f -> MaterialColor.primaryContainer
+        ratio < 0.5f -> MaterialColor.primary.copy(alpha = 0.5f)
+        ratio < 0.75f -> MaterialColor.primary.copy(alpha = 0.75f)
+        else -> MaterialColor.primary
     }
 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,14 +38,9 @@ import androidx.compose.ui.unit.sp
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.Linen
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.SushiAnim
+import com.sushi.app.ui.theme.SushiMinTouchTarget
 import com.sushi.app.ui.theme.SushiSpacing
 
 @Composable
@@ -91,7 +87,7 @@ fun OnboardingScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .background(MaterialColor.surface)
     ) {
         Column(
             modifier = Modifier
@@ -111,13 +107,13 @@ fun OnboardingScreen(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(CircleShape)
-                        .background(CinnabarFaint),
+                        .background(MaterialColor.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = page.icon,
                         contentDescription = null,
-                        tint = Cinnabar,
+                        tint = MaterialColor.primary,
                         modifier = Modifier.size(40.dp)
                     )
                 }
@@ -128,14 +124,14 @@ fun OnboardingScreen(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp
                     ),
-                    color = Ink,
+                    color = MaterialColor.onSurface,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
                     text = page.subtitle,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Cinnabar,
+                    color = MaterialColor.primary,
                     textAlign = TextAlign.Center
                 )
 
@@ -144,7 +140,7 @@ fun OnboardingScreen(
                 Text(
                     text = page.description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkLight,
+                    color = MaterialColor.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
@@ -152,7 +148,7 @@ fun OnboardingScreen(
             Spacer(modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.height(SushiSpacing.xxxl))
 
-            // 页面指示
+            // 页面指示 - Material 3:12dp 当前页,6dp 其余
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -161,35 +157,45 @@ fun OnboardingScreen(
                 pages.forEachIndexed { i, _ ->
                     Box(
                         modifier = Modifier
-                            .size(if (i == currentPage) 12.dp else 6.dp)
+                            .size(if (i == currentPage) 12.dp else 8.dp)
                             .clip(CircleShape)
-                            .background(if (i == currentPage) Cinnabar else InkFaint)
+                            .background(if (i == currentPage) MaterialColor.primary else MaterialColor.outlineVariant)
                     )
-                    if (i < pages.lastIndex) Spacer(modifier = Modifier.size(6.dp))
+                    if (i < pages.lastIndex) Spacer(modifier = Modifier.size(8.dp))
                 }
             }
 
             Spacer(modifier = Modifier.height(SushiSpacing.xxl))
 
-            // 按钮
+            // 按钮 - Material 3 触屏目标 ≥ 48dp
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(SushiSpacing.md),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 if (currentPage > 0) {
                     Button(
                         onClick = { currentPage-- },
                         shape = CardShape,
+                        modifier = Modifier.defaultMinSize(
+                            minWidth = SushiMinTouchTarget,
+                            minHeight = SushiMinTouchTarget
+                        ),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Linen,
-                            contentColor = InkLight
+                            containerColor = MaterialColor.surfaceVariant,
+                            contentColor = MaterialColor.onSurfaceVariant
                         )
                     ) {
-                        Text("上一步")
+                        Text(
+                            text = "上一步",
+                            style = MaterialTheme.typography.labelLarge
+                        )
                     }
                 } else {
                     Spacer(modifier = Modifier.size(1.dp))
                 }
+
+                Spacer(modifier = Modifier.weight(1f))
 
                 Button(
                     onClick = {
@@ -201,13 +207,18 @@ fun OnboardingScreen(
                         }
                     },
                     shape = CardShape,
+                    modifier = Modifier.defaultMinSize(
+                        minWidth = SushiMinTouchTarget,
+                        minHeight = SushiMinTouchTarget
+                    ),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Cinnabar,
-                        contentColor = Paper
+                        containerColor = MaterialColor.primary,
+                        contentColor = MaterialColor.onPrimary
                     )
                 ) {
                     Text(
                         text = if (currentPage == pages.lastIndex) "开始" else "下一步",
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
                 }

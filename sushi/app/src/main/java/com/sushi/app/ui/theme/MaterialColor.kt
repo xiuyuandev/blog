@@ -86,4 +86,32 @@ object MaterialColor {
     val onError: androidx.compose.ui.graphics.Color
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.colorScheme.onError
+
+    val errorContainer: androidx.compose.ui.graphics.Color
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.errorContainer
+
+    val onErrorContainer: androidx.compose.ui.graphics.Color
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.onErrorContainer
+
+    val scrim: androidx.compose.ui.graphics.Color
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.scrim
+
+    val surfaceTint: androidx.compose.ui.graphics.Color
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.surfaceTint
+
+    val inverseSurface: androidx.compose.ui.graphics.Color
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.inverseSurface
+
+    val inverseOnSurface: androidx.compose.ui.graphics.Color
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.inverseOnSurface
+
+    val inversePrimary: androidx.compose.ui.graphics.Color
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.inversePrimary
 }

@@ -179,6 +179,11 @@ fun SushiNavHost(
 
 /**
  * Material 3 底部导航
+ *
+ * - tonalElevation 0(Material 3 默认)
+ * - containerColor: surface(无色调,纯色)
+ * - indicatorColor: secondaryContainer(选中态)
+ * - selectedTextColor: onSecondaryContainer
  */
 @Composable
 private fun SushiBottomBar(
@@ -188,7 +193,7 @@ private fun SushiBottomBar(
     NavigationBar(
         containerColor = MaterialColor.surface,
         contentColor = MaterialColor.onSurface,
-        tonalElevation = 2.dp
+        tonalElevation = 0.dp
     ) {
         tabItems.forEach { item ->
             val selected = currentRoute == item.route
@@ -204,15 +209,15 @@ private fun SushiBottomBar(
                 label = {
                     Text(
                         text = item.label,
-                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+                        style = MaterialTheme.typography.labelMedium
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialColor.onPrimaryContainer,
-                    selectedTextColor = MaterialColor.primary,
+                    selectedIconColor = MaterialColor.onSecondaryContainer,
+                    selectedTextColor = MaterialColor.onSurface,
                     unselectedIconColor = MaterialColor.onSurfaceVariant,
                     unselectedTextColor = MaterialColor.onSurfaceVariant,
-                    indicatorColor = MaterialColor.primaryContainer
+                    indicatorColor = MaterialColor.secondaryContainer
                 )
             )
         }

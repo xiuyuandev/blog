@@ -46,15 +46,13 @@ import com.sushi.app.ui.components.SushiLoading
 import com.sushi.app.ui.components.SushiProgressBar
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.InkLight
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.SerifFontFamily
 import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.viewmodel.ReviewViewModel
@@ -69,7 +67,7 @@ fun ReviewScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize().background(Paper)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialColor.surface)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -177,7 +175,7 @@ private fun CalendarView(
             .fillMaxWidth()
             .shadow(2.dp, CardShape)
             .clip(CardShape)
-            .background(PaperWarm)
+            .background(MaterialColor.surfaceVariant)
             .padding(SushiSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
     ) {
@@ -200,7 +198,7 @@ private fun CalendarView(
                 Icon(
                     imageVector = SushiIcons.KeyboardLeft,
                     contentDescription = "上个月",
-                    tint = InkLight,
+                    tint = MaterialColor.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -212,13 +210,13 @@ private fun CalendarView(
                 Text(
                     text = "${year}年 ${monthNames[month]}",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
                 // Today button
                 Box(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(CinnabarFaint)
+                        .background(MaterialColor.primaryContainer)
                         .clickable { onSelectDate(System.currentTimeMillis()) }
                         .padding(horizontal = SushiSpacing.sm, vertical = SushiSpacing.xs),
                     contentAlignment = Alignment.Center
@@ -230,13 +228,13 @@ private fun CalendarView(
                         Icon(
                             imageVector = SushiIcons.Calendar,
                             contentDescription = null,
-                            tint = Cinnabar,
+                            tint = MaterialColor.primary,
                             modifier = Modifier.size(10.dp)
                         )
                         Text(
                             text = "今天",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Cinnabar
+                            color = MaterialColor.primary
                         )
                     }
                 }
@@ -255,7 +253,7 @@ private fun CalendarView(
                 Icon(
                     imageVector = SushiIcons.KeyboardRight,
                     contentDescription = "下个月",
-                    tint = InkLight,
+                    tint = MaterialColor.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -274,7 +272,7 @@ private fun CalendarView(
                     style = MaterialTheme.typography.labelSmall.copy(
                         letterSpacing = 1.sp
                     ),
-                    color = InkFaint,
+                    color = MaterialColor.outline,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
                 )
@@ -317,20 +315,20 @@ private fun CalendarView(
                                 .padding(vertical = 2.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            // Background circles
+                            // Background circles - Material 3:40dp tap target
                             if (isSelected) {
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(40.dp)
                                         .clip(CircleShape)
-                                        .background(Cinnabar)
+                                        .background(MaterialColor.primary)
                                 )
                             } else if (isToday) {
                                 Box(
                                     modifier = Modifier
-                                        .size(32.dp)
+                                        .size(40.dp)
                                         .clip(CircleShape)
-                                        .background(InkFaintest.copy(alpha = 0.4f))
+                                        .background(MaterialColor.outlineVariant.copy(alpha = 0.4f))
                                 )
                             }
 
@@ -349,23 +347,23 @@ private fun CalendarView(
                                     text = "$dayNumber",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = when {
-                                        isSelected -> Paper
-                                        isToday -> Cinnabar
-                                        else -> Ink
+                                        isSelected -> MaterialColor.surface
+                                        isToday -> MaterialColor.primary
+                                        else -> MaterialColor.onSurface
                                     },
                                     fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal
                                 )
-                                // Record indicator dot
+                                // Record indicator dot - Material 3 规范 6dp
                                 if (hasRecord) {
-                                    Spacer(modifier = Modifier.height(1.dp))
+                                    Spacer(modifier = Modifier.height(2.dp))
                                     Box(
                                         modifier = Modifier
-                                            .size(4.dp)
+                                            .size(6.dp)
                                             .clip(CircleShape)
-                                            .background(if (isSelected) Paper else Cinnabar)
+                                            .background(if (isSelected) MaterialColor.surface else MaterialColor.primary)
                                     )
                                 } else {
-                                    Spacer(modifier = Modifier.height(5.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
                             }
                         }
@@ -386,14 +384,14 @@ private fun TimelineSection(
             .fillMaxWidth()
             .shadow(2.dp, CardShape)
             .clip(CardShape)
-            .background(PaperWarm)
+            .background(MaterialColor.surfaceVariant)
             .padding(SushiSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
     ) {
         Text(
             text = "时间记录",
             style = MaterialTheme.typography.headlineSmall,
-            color = Ink
+            color = MaterialColor.onSurface
         )
 
         Crossfade(
@@ -411,7 +409,7 @@ private fun TimelineSection(
                         Text(
                             text = "加载中…",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = InkFaint
+                            color = MaterialColor.outline
                         )
                     }
                 }
@@ -445,18 +443,18 @@ private fun EmptyTimelineState() {
         Icon(
             imageVector = SushiIcons.History,
             contentDescription = null,
-            tint = InkFaintest,
+            tint = MaterialColor.outlineVariant,
             modifier = Modifier.size(40.dp)
         )
         Text(
             text = "此日暂无记录",
             style = MaterialTheme.typography.bodyMedium,
-            color = InkFaint
+            color = MaterialColor.outline
         )
         Text(
             text = "选择有记录的日期查看详情",
             style = MaterialTheme.typography.bodySmall,
-            color = InkFaintest
+            color = MaterialColor.outlineVariant
         )
     }
 }
@@ -479,14 +477,14 @@ private fun TimelineEntry(record: TimeRecord, isLast: Boolean) {
                 modifier = Modifier
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(Cinnabar)
+                    .background(MaterialColor.primary)
             )
             if (!isLast) {
                 Box(
                     modifier = Modifier
                         .width(1.5.dp)
                         .height(40.dp)
-                        .background(InkFaintest)
+                        .background(MaterialColor.outlineVariant)
                 )
             }
         }
@@ -496,7 +494,7 @@ private fun TimelineEntry(record: TimeRecord, isLast: Boolean) {
             modifier = Modifier
                 .weight(1f)
                 .clip(CardShapeSmall)
-                .background(Paper)
+                .background(MaterialColor.surface)
                 .padding(SushiSpacing.md),
             verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
         ) {
@@ -508,13 +506,13 @@ private fun TimelineEntry(record: TimeRecord, isLast: Boolean) {
                 Text(
                     text = "$startText → $endText",
                     style = MaterialTheme.typography.labelLarge,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
                 // Duration badge
                 Box(
                     modifier = Modifier
                         .clip(CardShapeSmall)
-                        .background(CinnabarFaint)
+                        .background(MaterialColor.primaryContainer)
                         .padding(horizontal = SushiSpacing.sm, vertical = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -525,13 +523,13 @@ private fun TimelineEntry(record: TimeRecord, isLast: Boolean) {
                         Icon(
                             imageVector = SushiIcons.Schedule,
                             contentDescription = null,
-                            tint = Cinnabar,
+                            tint = MaterialColor.primary,
                             modifier = Modifier.size(10.dp)
                         )
                         Text(
                             text = formatDuration(record.netDurationMin),
                             style = MaterialTheme.typography.labelSmall,
-                            color = Cinnabar,
+                            color = MaterialColor.primary,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -542,7 +540,7 @@ private fun TimelineEntry(record: TimeRecord, isLast: Boolean) {
                 Text(
                     text = record.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
             }
         }
@@ -565,14 +563,14 @@ private fun StatisticsSection(
             .fillMaxWidth()
             .shadow(2.dp, CardShape)
             .clip(CardShape)
-            .background(PaperWarm)
+            .background(MaterialColor.surfaceVariant)
             .padding(SushiSpacing.xl),
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.lg)
     ) {
         Text(
             text = "统计",
             style = MaterialTheme.typography.headlineSmall,
-            color = Ink
+            color = MaterialColor.onSurface
         )
 
         // Total pure time
@@ -580,14 +578,14 @@ private fun StatisticsSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(CardShapeSmall)
-                .background(CinnabarFaint)
+                .background(MaterialColor.primaryContainer)
                 .padding(SushiSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
         ) {
             Text(
                 text = "总累计纯时间",
                 style = MaterialTheme.typography.labelLarge,
-                color = InkLight
+                color = MaterialColor.onSurfaceVariant
             )
             Text(
                 text = if (totalPureTimeMin > 0) formatDuration(totalPureTimeMin) else "暂无数据",
@@ -595,7 +593,7 @@ private fun StatisticsSection(
                     fontFamily = SerifFontFamily,
                     fontWeight = FontWeight.Bold
                 ),
-                color = if (totalPureTimeMin > 0) Cinnabar else InkFaint
+                color = if (totalPureTimeMin > 0) MaterialColor.primary else MaterialColor.outline
             )
         }
 
@@ -613,13 +611,13 @@ private fun StatisticsSection(
                     Icon(
                         imageVector = SushiIcons.Calendar,
                         contentDescription = null,
-                        tint = InkLight,
+                        tint = MaterialColor.onSurfaceVariant,
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
                         text = "本周纯时间",
                         style = MaterialTheme.typography.labelLarge,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                 }
                 Text(
@@ -627,19 +625,19 @@ private fun StatisticsSection(
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontFamily = SerifFontFamily
                     ),
-                    color = if (weeklyTotalMin > 0) Ink else InkFaint
+                    color = if (weeklyTotalMin > 0) MaterialColor.onSurface else MaterialColor.outline
                 )
             }
             // 进度条（统一组件）
             SushiProgressBar(
                 progress = weeklyProgress,
-                color = Cinnabar,
+                color = MaterialColor.primary,
                 size = 6.dp
             )
             Text(
                 text = if (weeklyTotalMin > 0) "目标 ${formatDuration(weeklyGoalMin)}" else "",
                 style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
+                color = MaterialColor.outline
             )
         }
 
@@ -648,7 +646,7 @@ private fun StatisticsSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(InkFaintest.copy(alpha = 0.3f))
+                .background(MaterialColor.outlineVariant.copy(alpha = 0.3f))
         )
 
         // Monthly stats
@@ -665,13 +663,13 @@ private fun StatisticsSection(
                     Icon(
                         imageVector = SushiIcons.History,
                         contentDescription = null,
-                        tint = InkLight,
+                        tint = MaterialColor.onSurfaceVariant,
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
                         text = "本月纯时间",
                         style = MaterialTheme.typography.labelLarge,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                 }
                 Text(
@@ -679,18 +677,18 @@ private fun StatisticsSection(
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontFamily = SerifFontFamily
                     ),
-                    color = if (monthlyTotalMin > 0) Ink else InkFaint
+                    color = if (monthlyTotalMin > 0) MaterialColor.onSurface else MaterialColor.outline
                 )
             }
             SushiProgressBar(
                 progress = monthlyProgress,
-                color = CinnabarLight,
+                color = MaterialColor.primary,
                 size = 6.dp
             )
             Text(
                 text = if (monthlyTotalMin > 0) "目标 ${formatDuration(monthlyGoalMin)}" else "",
                 style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
+                color = MaterialColor.outline
             )
         }
     }

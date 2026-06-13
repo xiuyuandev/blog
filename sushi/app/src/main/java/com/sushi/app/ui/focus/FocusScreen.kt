@@ -69,17 +69,10 @@ import com.sushi.app.ui.components.PauseReasonDialog
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
 import com.sushi.app.ui.theme.DialogShape
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkLight
-import com.sushi.app.ui.theme.Linen
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.PillShape
+import com.sushi.app.ui.theme.SerifFontFamily
 import com.sushi.app.ui.theme.SushiSpacing
 import com.sushi.app.util.HapticType
 import com.sushi.app.util.rememberHaptic
@@ -238,7 +231,7 @@ private fun TaskSelectionContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Linen)
+            .background(MaterialColor.surfaceVariant)
     ) {
         Column(
             modifier = Modifier
@@ -250,7 +243,7 @@ private fun TaskSelectionContent(
             Text(
                 text = "选择任务",
                 style = MaterialTheme.typography.headlineMedium,
-                color = Ink
+                color = MaterialColor.onSurface
             )
 
             Spacer(modifier = Modifier.height(SushiSpacing.sm))
@@ -260,7 +253,7 @@ private fun TaskSelectionContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(CardShape)
-                    .background(Paper),
+                    .background(MaterialColor.surface),
                 horizontalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 TabItem(
@@ -352,8 +345,8 @@ private fun TaskSelectionContent(
                     .shadow(2.dp, CardShape),
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.surface
                 )
             ) {
                 Row(
@@ -363,7 +356,7 @@ private fun TaskSelectionContent(
                     Icon(
                         imageVector = SushiIcons.Add,
                         contentDescription = null,
-                        tint = Paper,
+                        tint = MaterialColor.surface,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -404,18 +397,18 @@ private fun EmptyTabState(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = InkFaint,
+                tint = MaterialColor.outline,
                 modifier = Modifier.size(32.dp)
             )
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = InkLight
+                color = MaterialColor.onSurfaceVariant
             )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = InkFaint
+                color = MaterialColor.outline
             )
         }
     }
@@ -431,7 +424,7 @@ private fun TabItem(
     Box(
         modifier = modifier
             .clip(CardShapeSmall)
-            .background(if (selected) Cinnabar else Color.Transparent)
+            .background(if (selected) MaterialColor.primary else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(vertical = SushiSpacing.sm),
         contentAlignment = Alignment.Center
@@ -440,7 +433,7 @@ private fun TabItem(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (selected) Paper else InkLight
+            color = if (selected) MaterialColor.surface else MaterialColor.onSurfaceVariant
         )
     }
 }
@@ -456,7 +449,7 @@ private fun TaskCard(
             .fillMaxWidth()
             .shadow(1.dp, CardShape)
             .clip(CardShape)
-            .background(Paper)
+            .background(MaterialColor.surface)
             .clickable(onClick = onClick)
             .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
@@ -464,7 +457,7 @@ private fun TaskCard(
         Text(
             text = task.name,
             style = MaterialTheme.typography.bodyLarge,
-            color = Ink
+            color = MaterialColor.onSurface
         )
         if (skillName.isNotBlank()) {
             Row(
@@ -474,13 +467,13 @@ private fun TaskCard(
                 Icon(
                     imageVector = SushiIcons.Inventory,
                     contentDescription = null,
-                    tint = Cinnabar,
+                    tint = MaterialColor.primary,
                     modifier = Modifier.size(12.dp)
                 )
                 Text(
                     text = skillName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Cinnabar
+                    color = MaterialColor.primary
                 )
             }
         }
@@ -497,7 +490,7 @@ private fun SkillCard(
             .fillMaxWidth()
             .shadow(1.dp, CardShape)
             .clip(CardShape)
-            .background(Paper)
+            .background(MaterialColor.surface)
             .clickable(onClick = onClick)
             .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
@@ -505,12 +498,12 @@ private fun SkillCard(
         Text(
             text = skill.name,
             style = MaterialTheme.typography.bodyLarge,
-            color = Ink
+            color = MaterialColor.onSurface
         )
         Text(
             text = skillCategoryLabel(skill.category),
             style = MaterialTheme.typography.bodySmall,
-            color = Cinnabar
+            color = MaterialColor.primary
         )
     }
 }
@@ -535,7 +528,7 @@ private fun CompletedTaskCard(
             .fillMaxWidth()
             .shadow(1.dp, CardShape)
             .clip(CardShape)
-            .background(Paper)
+            .background(MaterialColor.surface)
             .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
     ) {
@@ -547,13 +540,13 @@ private fun CompletedTaskCard(
             Icon(
                 imageVector = SushiIcons.Check,
                 contentDescription = null,
-                tint = Cinnabar,
+                tint = MaterialColor.primary,
                 modifier = Modifier.size(16.dp)
             )
             Text(
                 text = task.name,
                 style = MaterialTheme.typography.bodyLarge,
-                color = InkLight,
+                color = MaterialColor.onSurfaceVariant,
                 modifier = Modifier.weight(1f)
             )
             IconButton(
@@ -563,7 +556,7 @@ private fun CompletedTaskCard(
                 Icon(
                     imageVector = SushiIcons.Delete,
                     contentDescription = "删除",
-                    tint = Cinnabar,
+                    tint = MaterialColor.primary,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -572,7 +565,7 @@ private fun CompletedTaskCard(
             Text(
                 text = skillName,
                 style = MaterialTheme.typography.bodySmall,
-                color = CinnabarFaint
+                color = MaterialColor.primaryContainer
             )
         }
         Spacer(modifier = Modifier.height(SushiSpacing.xs))
@@ -580,8 +573,8 @@ private fun CompletedTaskCard(
             onClick = onReactivate,
             shape = CardShapeSmall,
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = PaperWarm,
-                contentColor = InkLight
+                containerColor = MaterialColor.surfaceVariant,
+                contentColor = MaterialColor.onSurfaceVariant
             ),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -592,7 +585,7 @@ private fun CompletedTaskCard(
                 Icon(
                     imageVector = SushiIcons.Sync,
                     contentDescription = null,
-                    tint = InkLight,
+                    tint = MaterialColor.onSurfaceVariant,
                     modifier = Modifier.size(12.dp)
                 )
                 Text(text = "重新激活")
@@ -620,7 +613,7 @@ private fun CreateTaskDialog(
             Text(
                 text = "新建任务",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialColor.onSurface
             )
         },
         text = {
@@ -628,14 +621,14 @@ private fun CreateTaskDialog(
                 TextField(
                     value = taskName,
                     onValueChange = { taskName = it },
-                    placeholder = { Text("任务名称", color = InkFaint) },
+                    placeholder = { Text("任务名称", color = MaterialColor.outline) },
                     singleLine = true,
                     shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = PaperWarm,
-                        unfocusedContainerColor = PaperWarm,
-                        cursorColor = Ink,
-                        focusedIndicatorColor = Cinnabar,
+                        focusedContainerColor = MaterialColor.surfaceVariant,
+                        unfocusedContainerColor = MaterialColor.surfaceVariant,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedIndicatorColor = MaterialColor.primary,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent
                     ),
@@ -650,14 +643,14 @@ private fun CreateTaskDialog(
                             estimatedMinText = newValue
                         }
                     },
-                    placeholder = { Text("估算时长（分钟，可选）", color = InkFaint) },
+                    placeholder = { Text("估算时长（分钟，可选）", color = MaterialColor.outline) },
                     singleLine = true,
                     shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = PaperWarm,
-                        unfocusedContainerColor = PaperWarm,
-                        cursorColor = Ink,
-                        focusedIndicatorColor = Cinnabar,
+                        focusedContainerColor = MaterialColor.surfaceVariant,
+                        unfocusedContainerColor = MaterialColor.surfaceVariant,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedIndicatorColor = MaterialColor.primary,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent
                     ),
@@ -669,7 +662,7 @@ private fun CreateTaskDialog(
                     Text(
                         text = "优先级",
                         style = MaterialTheme.typography.labelLarge,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf(0 to "普通", 1 to "重要", 2 to "紧急").forEach { (level, label) ->
@@ -678,7 +671,7 @@ private fun CreateTaskDialog(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(PillShape)
-                                    .background(if (isSelected) Cinnabar else PaperWarm)
+                                    .background(if (isSelected) MaterialColor.primary else MaterialColor.surfaceVariant)
                                     .clickable { priority = level }
                                     .padding(vertical = 6.dp),
                                 contentAlignment = Alignment.Center
@@ -686,7 +679,7 @@ private fun CreateTaskDialog(
                                 Text(
                                     text = label,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (isSelected) Paper else InkLight
+                                    color = if (isSelected) MaterialColor.surface else MaterialColor.onSurfaceVariant
                                 )
                             }
                         }
@@ -707,19 +700,19 @@ private fun CreateTaskDialog(
                         modifier = Modifier
                             .size(16.dp)
                             .clip(CardShapeSmall)
-                            .background(if (isTemplate) Cinnabar else InkFaintest)
+                            .background(if (isTemplate) MaterialColor.primary else MaterialColor.outlineVariant)
                     )
                     Text(
                         text = "保存为模板（可重复使用）",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Ink
+                        color = MaterialColor.onSurface
                     )
                 }
 
                 Text(
                     text = "绑定技能",
                     style = MaterialTheme.typography.labelLarge,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
 
                 Column(
@@ -731,7 +724,7 @@ private fun CreateTaskDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(CardShapeSmall)
-                                .background(if (isSelected) CinnabarFaint else PaperWarm)
+                                .background(if (isSelected) MaterialColor.primaryContainer else MaterialColor.surfaceVariant)
                                 .clickable { selectedSkillId = skill.id }
                                 .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically
@@ -740,13 +733,13 @@ private fun CreateTaskDialog(
                                 modifier = Modifier
                                     .size(18.dp)
                                     .clip(CircleShape)
-                                    .background(if (isSelected) Cinnabar else InkFaint)
+                                    .background(if (isSelected) MaterialColor.primary else MaterialColor.outline)
                             )
                             if (isSelected) {
                                 Icon(
                                     imageVector = SushiIcons.Check,
                                     contentDescription = null,
-                                    tint = Paper,
+                                    tint = MaterialColor.surface,
                                     modifier = Modifier
                                         .size(18.dp)
                                         .padding(4.dp)
@@ -756,7 +749,7 @@ private fun CreateTaskDialog(
                             Text(
                                 text = skill.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) Ink else InkLight
+                                color = if (isSelected) MaterialColor.onSurface else MaterialColor.onSurfaceVariant
                             )
                         }
                     }
@@ -780,10 +773,10 @@ private fun CreateTaskDialog(
                 enabled = taskName.isNotBlank() && selectedSkillId.isNotBlank(),
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper,
-                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
-                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.surface,
+                    disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
+                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.5f)
                 )
             ) {
                 Text(
@@ -796,10 +789,10 @@ private fun CreateTaskDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "取消", color = InkLight)
+                Text(text = "取消", color = MaterialColor.onSurfaceVariant)
             }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }
 
@@ -846,7 +839,7 @@ private fun FocusTimerContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper),
+            .background(MaterialColor.surface),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -861,12 +854,12 @@ private fun FocusTimerContent(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(if (isPaused) InkFaint else Cinnabar)
+                        .background(if (isPaused) MaterialColor.outline else MaterialColor.primary)
                 )
                 Text(
                     text = if (isPaused) "已暂停" else "专注中",
                     style = MaterialTheme.typography.labelLarge,
-                    color = Cinnabar,
+                    color = MaterialColor.primary,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -874,7 +867,7 @@ private fun FocusTimerContent(
             Text(
                 text = taskName,
                 style = MaterialTheme.typography.bodyMedium,
-                color = InkLight
+                color = MaterialColor.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(SushiSpacing.sm))
@@ -884,7 +877,7 @@ private fun FocusTimerContent(
                     val strokeWidth = 3.dp.toPx()
                     val arcPadding = strokeWidth / 2
                     drawArc(
-                        color = Linen,
+                        color = MaterialColor.surfaceVariant,
                         startAngle = -90f,
                         sweepAngle = 360f,
                         useCenter = false,
@@ -893,7 +886,7 @@ private fun FocusTimerContent(
                         style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                     )
                     drawArc(
-                        color = Cinnabar,
+                        color = MaterialColor.primary,
                         startAngle = -90f,
                         sweepAngle = progressAngle,
                         useCenter = false,
@@ -906,10 +899,13 @@ private fun FocusTimerContent(
                 Text(
                     text = formatElapsedTime(elapsedSeconds),
                     style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 56.sp,
+                        lineHeight = 64.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontFamily = SerifFontFamily,
+                        letterSpacing = (-0.5).sp
                     ),
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
             }
 
@@ -920,14 +916,14 @@ private fun FocusTimerContent(
                     modifier = Modifier
                         .size(24.dp)
                         .clip(CircleShape)
-                        .background(Cinnabar.copy(alpha = 0.15f))
+                        .background(MaterialColor.primary.copy(alpha = 0.15f))
                         .alpha(if (isPaused) 0.3f else breathingAlpha)
                 )
                 Box(
                     modifier = Modifier
                         .size(12.dp)
                         .clip(CircleShape)
-                        .background(Cinnabar)
+                        .background(MaterialColor.primary)
                         .alpha(if (isPaused) 0.3f else breathingAlpha)
                 )
             }
@@ -942,20 +938,20 @@ private fun FocusTimerContent(
                     Box(
                         modifier = Modifier
                             .clip(CardShapeSmall)
-                            .background(CinnabarFaint)
+                            .background(MaterialColor.primaryContainer)
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "已暂停 $interruptCount 次",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Cinnabar
+                            color = MaterialColor.primary
                         )
                     }
                     if (!lastPauseReason.isNullOrBlank()) {
                         Text(
                             text = "· $lastPauseReason",
                             style = MaterialTheme.typography.labelSmall,
-                            color = InkFaint
+                            color = MaterialColor.outline
                         )
                     }
                 }
@@ -968,13 +964,13 @@ private fun FocusTimerContent(
                 Box(
                     modifier = Modifier
                         .clip(CardShapeSmall)
-                        .background(Ink)
+                        .background(MaterialColor.onSurface)
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "全屏专注中",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Paper
+                        color = MaterialColor.surface
                     )
                 }
                 Spacer(modifier = Modifier.height(SushiSpacing.sm))
@@ -989,8 +985,8 @@ private fun FocusTimerContent(
                         onClick = onResume,
                         shape = CardShape,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Cinnabar,
-                            contentColor = Paper
+                            containerColor = MaterialColor.primary,
+                            contentColor = MaterialColor.surface
                         )
                     ) {
                         Row(
@@ -1000,7 +996,7 @@ private fun FocusTimerContent(
                             Icon(
                                 imageVector = SushiIcons.Play,
                                 contentDescription = null,
-                                tint = Paper,
+                                tint = MaterialColor.surface,
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(text = "继续")
@@ -1011,8 +1007,8 @@ private fun FocusTimerContent(
                         onClick = onPause,
                         shape = CardShape,
                         colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = Paper,
-                            contentColor = InkLight
+                            containerColor = MaterialColor.surface,
+                            contentColor = MaterialColor.onSurfaceVariant
                         )
                     ) {
                         Row(
@@ -1022,12 +1018,12 @@ private fun FocusTimerContent(
                             Box(
                                 modifier = Modifier
                                     .size(width = 3.dp, height = 12.dp)
-                                    .background(InkLight)
+                                    .background(MaterialColor.onSurfaceVariant)
                             )
                             Box(
                                 modifier = Modifier
                                     .size(width = 3.dp, height = 12.dp)
-                                    .background(InkLight)
+                                    .background(MaterialColor.onSurfaceVariant)
                             )
                             Text(text = "暂停")
                         }
@@ -1038,8 +1034,8 @@ private fun FocusTimerContent(
                     onClick = onStop,
                     shape = CardShape,
                     colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Paper,
-                        contentColor = Cinnabar
+                        containerColor = MaterialColor.surface,
+                        contentColor = MaterialColor.primary
                     )
                 ) {
                     Row(
@@ -1049,7 +1045,7 @@ private fun FocusTimerContent(
                         Box(
                             modifier = Modifier
                                 .size(10.dp)
-                                .background(Cinnabar)
+                                .background(MaterialColor.primary)
                         )
                         Text(text = "停止")
                     }
@@ -1060,8 +1056,8 @@ private fun FocusTimerContent(
                     onClick = onToggleFullScreen,
                     shape = CardShape,
                     colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (isFullScreen) Ink else Paper,
-                        contentColor = if (isFullScreen) Paper else InkLight
+                        containerColor = if (isFullScreen) MaterialColor.onSurface else MaterialColor.surface,
+                        contentColor = if (isFullScreen) MaterialColor.surface else MaterialColor.onSurfaceVariant
                     )
                 ) {
                     Text(text = if (isFullScreen) "退出全屏" else "全屏")
@@ -1100,7 +1096,7 @@ private fun SettlementDialog(
             Text(
                 text = "结算",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialColor.onSurface
             )
         },
         text = {
@@ -1108,7 +1104,7 @@ private fun SettlementDialog(
                 Text(
                     text = "原始时长：${rawDurationMin} 分钟",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
 
                 // #11 中断次数 + #12 暂停原因 在结算对话框中显示
@@ -1117,7 +1113,7 @@ private fun SettlementDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(CardShapeSmall)
-                            .background(CinnabarFaint.copy(alpha = 0.4f))
+                            .background(MaterialColor.primaryContainer.copy(alpha = 0.4f))
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1125,13 +1121,13 @@ private fun SettlementDialog(
                         Icon(
                             imageVector = SushiIcons.Sync,
                             contentDescription = null,
-                            tint = Cinnabar,
+                            tint = MaterialColor.primary,
                             modifier = Modifier.size(12.dp)
                         )
                         Text(
                             text = "本次被打断 $interruptCount 次" + if (!lastPauseReason.isNullOrBlank()) " · 最近：$lastPauseReason" else "",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Cinnabar
+                            color = MaterialColor.primary
                         )
                     }
                 }
@@ -1139,7 +1135,7 @@ private fun SettlementDialog(
                 Text(
                     text = "请诚实地扣除杂质时间，记录纯时间",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
 
                 Slider(
@@ -1147,9 +1143,9 @@ private fun SettlementDialog(
                     onValueChange = { onNetDurationChange(it.toInt()) },
                     valueRange = 0f..rawDurationMin.toFloat().coerceAtLeast(1f),
                     colors = SliderDefaults.colors(
-                        thumbColor = Cinnabar,
-                        activeTrackColor = Cinnabar,
-                        inactiveTrackColor = Linen
+                        thumbColor = MaterialColor.primary,
+                        activeTrackColor = MaterialColor.primary,
+                        inactiveTrackColor = MaterialColor.surfaceVariant
                     )
                 )
 
@@ -1163,10 +1159,10 @@ private fun SettlementDialog(
                             enabled = netDurationMin + adjustment >= 0,
                             shape = CardShapeSmall,
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = PaperWarm,
-                                contentColor = InkLight,
-                                disabledContainerColor = PaperWarm,
-                                disabledContentColor = InkFaint
+                                containerColor = MaterialColor.surfaceVariant,
+                                contentColor = MaterialColor.onSurfaceVariant,
+                                disabledContainerColor = MaterialColor.surfaceVariant,
+                                disabledContentColor = MaterialColor.outline
                             ),
                             modifier = Modifier.weight(1f)
                         ) {
@@ -1180,7 +1176,7 @@ private fun SettlementDialog(
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
 
                 LinearProgressIndicator(
@@ -1189,27 +1185,27 @@ private fun SettlementDialog(
                         .fillMaxWidth()
                         .height(4.dp)
                         .clip(CircleShape),
-                    color = Cinnabar,
-                    trackColor = Linen,
+                    color = MaterialColor.primary,
+                    trackColor = MaterialColor.surfaceVariant,
                 )
 
                 Text(
                     text = "做了什么",
                     style = MaterialTheme.typography.labelLarge,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
                 TextField(
                     value = description,
                     onValueChange = onDescriptionChange,
-                    placeholder = { Text("记录你做了什么…", color = InkFaint) },
+                    placeholder = { Text("记录你做了什么…", color = MaterialColor.outline) },
                     singleLine = false,
                     maxLines = 3,
                     shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = PaperWarm,
-                        unfocusedContainerColor = PaperWarm,
-                        cursorColor = Ink,
-                        focusedIndicatorColor = Cinnabar,
+                        focusedContainerColor = MaterialColor.surfaceVariant,
+                        unfocusedContainerColor = MaterialColor.surfaceVariant,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedIndicatorColor = MaterialColor.primary,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent
                     ),
@@ -1223,10 +1219,10 @@ private fun SettlementDialog(
                 enabled = netDurationMin > 0,
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper,
-                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
-                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.surface,
+                    disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
+                    disabledContentColor = MaterialColor.surface.copy(alpha = 0.5f)
                 )
             ) {
                 Text(
@@ -1239,10 +1235,10 @@ private fun SettlementDialog(
         },
         dismissButton = {
             TextButton(onClick = onCancel) {
-                Text(text = "取消", color = InkLight)
+                Text(text = "取消", color = MaterialColor.onSurfaceVariant)
             }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }
 
@@ -1259,7 +1255,7 @@ private fun SettlementResultDialog(
             Text(
                 text = "结算完成",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialColor.onSurface
             )
         },
         text = {
@@ -1269,7 +1265,7 @@ private fun SettlementResultDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(CardShapeSmall)
-                            .background(CinnabarFaint)
+                            .background(MaterialColor.primaryContainer)
                             .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
@@ -1277,13 +1273,13 @@ private fun SettlementResultDialog(
                         Icon(
                             imageVector = SushiIcons.Check,
                             contentDescription = null,
-                            tint = Cinnabar,
+                            tint = MaterialColor.primary,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "任务已完成",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Ink,
+                            color = MaterialColor.onSurface,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -1300,7 +1296,7 @@ private fun SettlementResultDialog(
                     Text(
                         text = "解锁词条",
                         style = MaterialTheme.typography.labelLarge,
-                        color = Cinnabar,
+                        color = MaterialColor.primary,
                         fontWeight = FontWeight.SemiBold
                     )
                     result.unlockedAffixes.forEach { affix ->
@@ -1308,7 +1304,7 @@ private fun SettlementResultDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(CardShapeSmall)
-                                .background(CinnabarFaint)
+                                .background(MaterialColor.primaryContainer)
                                 .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
@@ -1316,13 +1312,13 @@ private fun SettlementResultDialog(
                             Icon(
                                 imageVector = SushiIcons.Star,
                                 contentDescription = null,
-                                tint = Cinnabar,
+                                tint = MaterialColor.primary,
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = affix.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Ink,
+                                color = MaterialColor.onSurface,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -1333,7 +1329,7 @@ private fun SettlementResultDialog(
                     Text(
                         text = "纯时间已记录",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                 }
             }
@@ -1343,8 +1339,8 @@ private fun SettlementResultDialog(
                 onClick = onDismiss,
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.surface
                 )
             ) {
                 Text(
@@ -1355,7 +1351,7 @@ private fun SettlementResultDialog(
                 )
             }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }
 
@@ -1365,7 +1361,7 @@ private fun LevelUpItem(event: LevelUpEvent) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardShapeSmall)
-            .background(CinnabarFaint)
+            .background(MaterialColor.primaryContainer)
             .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
@@ -1373,30 +1369,30 @@ private fun LevelUpItem(event: LevelUpEvent) {
         Icon(
             imageVector = SushiIcons.KeyboardUp,
             contentDescription = null,
-            tint = Cinnabar,
+            tint = MaterialColor.primary,
             modifier = Modifier.size(14.dp)
         )
         Text(
             text = event.skillName,
             style = MaterialTheme.typography.bodyMedium,
-            color = Ink,
+            color = MaterialColor.onSurface,
             fontWeight = FontWeight.Medium
         )
         Text(
             text = "LV ${event.oldLevel}",
             style = MaterialTheme.typography.bodyMedium,
-            color = InkLight
+            color = MaterialColor.onSurfaceVariant
         )
         Icon(
             imageVector = SushiIcons.KeyboardRight,
             contentDescription = null,
-            tint = Cinnabar,
+            tint = MaterialColor.primary,
             modifier = Modifier.size(14.dp)
         )
         Text(
             text = "${event.newLevel}",
             style = MaterialTheme.typography.bodyMedium,
-            color = Cinnabar,
+            color = MaterialColor.primary,
             fontWeight = FontWeight.Bold
         )
     }
@@ -1419,7 +1415,7 @@ private fun GraduationHintDialog(
             Text(
                 text = "已至 LV 100，是否毕业？",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialColor.onSurface
             )
         },
         text = {
@@ -1427,20 +1423,20 @@ private fun GraduationHintDialog(
                 Text(
                     text = "此技能已至黑曜之境。毕业后此技能将移入「已毕业」分组，并留下你的寄语。",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
                 TextField(
                     value = message,
                     onValueChange = { message = it },
-                    placeholder = { Text("毕业寄语（可选）", color = InkFaint) },
+                    placeholder = { Text("毕业寄语（可选）", color = MaterialColor.outline) },
                     singleLine = false,
                     maxLines = 3,
                     shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = PaperWarm,
-                        unfocusedContainerColor = PaperWarm,
-                        cursorColor = Ink,
-                        focusedIndicatorColor = Cinnabar,
+                        focusedContainerColor = MaterialColor.surfaceVariant,
+                        unfocusedContainerColor = MaterialColor.surfaceVariant,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedIndicatorColor = MaterialColor.primary,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent
                     ),
@@ -1453,8 +1449,8 @@ private fun GraduationHintDialog(
                 onClick = { onConfirm(message) },
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.surface
                 )
             ) {
                 Text(
@@ -1467,9 +1463,9 @@ private fun GraduationHintDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "暂不", color = InkLight)
+                Text(text = "暂不", color = MaterialColor.onSurfaceVariant)
             }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }

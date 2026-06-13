@@ -1,13 +1,13 @@
 package com.sushi.app.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -19,9 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,28 +41,93 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.sushi.app.ui.theme.AmberGold
-import com.sushi.app.ui.theme.BronzeCopper
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
 import com.sushi.app.ui.theme.DialogShape
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.Linen
-import com.sushi.app.ui.theme.ObsidianBlack
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.PillShape
-import com.sushi.app.ui.theme.RawStoneGray
-import com.sushi.app.ui.theme.SilverGray
 import com.sushi.app.ui.theme.SushiSpacing
+
+/**
+ * 通用空状态
+ *
+ * Material 3 规范: 居中显示,垂直间距 8dp,Icon 48dp 浅色,主副文案颜色 onSurface/onSurfaceVariant。
+ *
+ * @param icon 顶部图标(48dp,色 = outline)
+ * @param title 主标题(bodyLarge, onSurface)
+ * @param subtitle 副标题(bodySmall, onSurfaceVariant)
+ * @param actionLabel 行动按钮文案(可选)
+ * @param onAction 行动按钮回调(可选)
+ */
+@Composable
+fun SushiEmptyState(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = SushiSpacing.xxxl),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.size(48.dp)
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.outline
+        )
+        if (actionLabel != null && onAction != null) {
+            Spacer(modifier = Modifier.height(SushiSpacing.xs))
+            Button(
+                onClick = onAction,
+                shape = CardShapeSmall,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(
+                    text = actionLabel,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 通用 1px 分隔线 · Material 3 outlineVariant
+ */
+@Composable
+fun SushiDivider(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant)
+    )
+}
 
 /**
  * 标签选择器
@@ -81,29 +144,29 @@ fun TagPicker(
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
         // 已选标签
         if (tags.isNotEmpty()) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)) {
                 items(items = tags, key = { it }) { t ->
                     Row(
                         modifier = Modifier
                             .clip(PillShape)
-                            .background(CinnabarFaint)
-                            .padding(start = 10.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .padding(start = 10.dp, end = SushiSpacing.xs, top = SushiSpacing.xs, bottom = SushiSpacing.xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "#$t",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Cinnabar
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         IconButton(
                             onClick = { onTagsChange(tags - t) },
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
-                                imageVector = SushiIcons.Delete,
+                                imageVector = Icons.Outlined.Close,
                                 contentDescription = "移除",
-                                tint = Cinnabar,
-                                modifier = Modifier.size(10.dp)
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(12.dp)
                             )
                         }
                     }
@@ -115,20 +178,18 @@ fun TagPicker(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
         ) {
             OutlinedTextField(
                 value = newTag,
                 onValueChange = { newTag = it.trim() },
-                placeholder = { Text("添加标签", color = InkFaint, style = MaterialTheme.typography.bodySmall) },
+                placeholder = { Text("添加标签", color = MaterialColor.outline, style = MaterialTheme.typography.bodySmall) },
                 singleLine = true,
                 shape = PillShape,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Cinnabar,
-                    unfocusedBorderColor = InkFaint,
-                    cursorColor = Ink,
-                    focusedTextColor = Ink,
-                    unfocusedTextColor = Ink
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    cursorColor = MaterialTheme.colorScheme.onSurface
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 modifier = Modifier.weight(1f)
@@ -143,12 +204,12 @@ fun TagPicker(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(CinnabarFaint)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Icon(
                     imageVector = SushiIcons.Add,
                     contentDescription = "添加",
-                    tint = Cinnabar,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -156,22 +217,22 @@ fun TagPicker(
 
         // 推荐标签
         if (suggestions.isNotEmpty()) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)) {
                 items(items = suggestions, key = { it }) { s ->
                     if (s !in tags) {
                         Box(
                             modifier = Modifier
                                 .clip(PillShape)
-                                .background(Linen)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable {
                                     onTagsChange(tags + s)
                                 }
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.xs)
                         ) {
                             Text(
                                 text = "+ $s",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = InkLight
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -197,34 +258,32 @@ fun PriorityPicker(
     )
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
     ) {
         options.forEach { (value, label) ->
             val isSelected = priority == value
             val color = when (value) {
-                0 -> InkFaint
-                1 -> CinnabarLight
-                2 -> Cinnabar
-                else -> InkFaint
+                0 -> MaterialTheme.colorScheme.outline
+                1 -> MaterialColor.primary
+                2 -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.outline
             }
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .clip(CardShapeSmall)
-                    .background(if (isSelected) color.copy(alpha = 0.15f) else Linen)
-                    .border(
-                        width = if (isSelected) 1.dp else 0.dp,
-                        color = if (isSelected) color else Color.Transparent,
-                        shape = CardShapeSmall
+                    .background(
+                        if (isSelected) color.copy(alpha = 0.12f)
+                        else MaterialTheme.colorScheme.surfaceVariant
                     )
                     .clickable { onPriorityChange(value) }
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = SushiSpacing.sm),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (isSelected) color else InkLight,
+                    color = if (isSelected) color else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                 )
             }
@@ -259,31 +318,35 @@ fun PauseReasonDialog(
             Text(
                 text = "暂停原因",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)) {
                 Text(
-                    text = "为什么暂停？",
+                    text = "为什么暂停?",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)) {
                     reasons.forEach { (cat, label) ->
                         val isSelected = selectedCategory == cat
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(CardShapeSmall)
-                                .background(if (isSelected) CinnabarFaint else Linen)
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                                )
                                 .clickable { selectedCategory = cat }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm)
                         ) {
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) Cinnabar else Ink
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -292,13 +355,13 @@ fun PauseReasonDialog(
                     OutlinedTextField(
                         value = customReason,
                         onValueChange = { customReason = it },
-                        placeholder = { Text("备注", color = InkFaint) },
+                        placeholder = { Text("备注", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                         singleLine = true,
                         shape = CardShapeSmall,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Cinnabar,
-                            unfocusedBorderColor = InkFaint,
-                            cursorColor = Ink
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            cursorColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -315,21 +378,21 @@ fun PauseReasonDialog(
                 enabled = selectedCategory != null,
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper,
-                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
-                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
+                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
                 )
             ) {
-                Text("记录", fontWeight = FontWeight.SemiBold)
+                Text("记录", style = MaterialTheme.typography.labelLarge)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("稍后", color = InkLight)
+                Text("稍后", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
-        containerColor = Paper
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 
@@ -350,44 +413,48 @@ fun AchievementBadge(
         "铜" -> BronzeCopper
         "银" -> SilverGray
         "金" -> AmberGold
-        else -> Cinnabar
+        else -> MaterialTheme.colorScheme.primary
     }
 
     Column(
         modifier = modifier
             .shadow(if (isUnlocked) 1.dp else 0.dp, CardShapeSmall)
             .clip(CardShapeSmall)
-            .background(if (isUnlocked) PaperWarm else Linen.copy(alpha = 0.5f))
-            .padding(12.dp),
+            .background(
+                if (isUnlocked) MaterialColor.surfaceVariant
+                else MaterialTheme.colorScheme.surfaceVariant
+            )
+            .padding(SushiSpacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
     ) {
         // 印章
         Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(if (isUnlocked) tierColor else InkFaintest.copy(alpha = 0.4f)),
+                .background(if (isUnlocked) tierColor else MaterialTheme.colorScheme.outlineVariant),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = SushiIcons.Star,
                 contentDescription = null,
-                tint = if (isUnlocked) Paper else InkFaintest,
+                tint = if (isUnlocked) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(20.dp)
             )
         }
         Text(
             text = name,
             style = MaterialTheme.typography.labelMedium,
-            color = if (isUnlocked) Ink else InkFaint,
+            color = if (isUnlocked) MaterialTheme.colorScheme.onSurface
+            else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (isUnlocked) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1
         )
         Text(
             text = description,
             style = MaterialTheme.typography.labelSmall,
-            color = InkFaint,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 2
         )
         if (!isUnlocked && threshold > 0) {
@@ -399,14 +466,14 @@ fun AchievementBadge(
             Text(
                 text = "$progress/$threshold",
                 style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         } else if (isUnlocked) {
             Box(
                 modifier = Modifier
                     .clip(PillShape)
-                    .background(tierColor.copy(alpha = 0.15f))
-                    .padding(horizontal = 6.dp, vertical = 1.dp)
+                    .background(tierColor.copy(alpha = 0.12f))
+                    .padding(horizontal = SushiSpacing.xs, vertical = 1.dp)
             ) {
                 Text(
                     text = tier,
@@ -431,67 +498,28 @@ fun DailyQuoteCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(CardShapeSmall)
-            .background(Linen.copy(alpha = 0.6f))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            .padding(horizontal = SushiSpacing.lg, vertical = SushiSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(SushiSpacing.xs)
     ) {
         Text(
             text = "今日一句",
             style = MaterialTheme.typography.labelSmall,
-            color = InkFaint
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = "「$quote」",
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Medium
             ),
-            color = Ink
+            color = MaterialTheme.colorScheme.onSurface
         )
         if (author.isNotBlank()) {
             Text(
                 text = "— $author",
                 style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
-}
-
-/**
- * 情绪评分选择
- */
-@Composable
-fun MoodPicker(
-    moodScore: Int,
-    onMoodChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val options = listOf(
-        1 to "😔",
-        2 to "😕",
-        3 to "😐",
-        4 to "🙂",
-        5 to "😊"
-    )
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        options.forEach { (score, emoji) ->
-            val isSelected = moodScore == score
-            Box(
-                modifier = Modifier
-                    .size(if (isSelected) 48.dp else 40.dp)
-                    .clip(CircleShape)
-                    .background(if (isSelected) CinnabarFaint else Linen)
-                    .clickable { onMoodChange(score) },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = emoji,
-                    style = MaterialTheme.typography.headlineSmall
-                )
-            }
         }
     }
 }
@@ -514,20 +542,20 @@ fun ExportFormatDialog(
             Text(
                 text = "选择导出格式",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                 Text(
-                    text = "JSON：完整备份，可重新导入还原全部数据",
+                    text = "JSON:完整备份,可重新导入还原全部数据",
                     style = MaterialTheme.typography.bodySmall,
-                    color = InkLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "CSV：仅时间记录，可在 Excel 中打开分析",
+                    text = "CSV:仅时间记录,可在 Excel 中打开分析",
                     style = MaterialTheme.typography.bodySmall,
-                    color = InkLight
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
@@ -536,24 +564,18 @@ fun ExportFormatDialog(
                 onClick = onSelectJson,
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
                 Text("JSON 完整备份")
             }
         },
         dismissButton = {
-            Row {
-                TextButton(onClick = onSelectCsv) {
-                    Text("CSV 时间记录", color = InkLight)
-                }
+            TextButton(onClick = onSelectCsv) {
+                Text("CSV 时间记录", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         },
-        containerColor = Paper
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
-
-/**
- * 同步冲突提示对话框
- */

@@ -68,28 +68,29 @@ import com.sushi.app.logic.SettlementResult
 import com.sushi.app.ui.components.MenuAction
 import com.sushi.app.ui.components.StampDeleteButton
 import com.sushi.app.ui.components.SushiBackButton
+import com.sushi.app.ui.components.SushiDivider
+import com.sushi.app.ui.components.SushiEmptyState
 import com.sushi.app.ui.components.SushiFab
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.components.SushiLoading
 import com.sushi.app.ui.components.SushiOverflowMenu
 import com.sushi.app.ui.components.SushiProgressBar
+import com.sushi.app.ui.components.TierPill
 import com.sushi.app.ui.components.UndoSnackbar
 import com.sushi.app.ui.theme.AmberGold
 import com.sushi.app.ui.theme.BronzeCopper
 import com.sushi.app.ui.theme.CardShape
 import com.sushi.app.ui.theme.CardShapeSmall
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.DialogShape
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.InkFaintest
-import com.sushi.app.ui.theme.InkLight
-import com.sushi.app.ui.theme.Linen
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.ObsidianBlack
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.PillShape
 import com.sushi.app.ui.theme.RawStoneGray
 import com.sushi.app.ui.theme.SushiAnim
@@ -232,7 +233,7 @@ private fun SkillListContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Paper)
+                .background(MaterialColor.surface)
         ) {
             CategoryTabs(
                 selectedCategory = uiState.selectedCategory,
@@ -254,7 +255,7 @@ private fun SkillListContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(CardShapeSmall)
-                        .background(CinnabarFaint.copy(alpha = 0.4f))
+                        .background(MaterialColor.primaryContainer.copy(alpha = 0.4f))
                         .clickable { onNavigateToSkillTree() }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -267,19 +268,19 @@ private fun SkillListContent(
                         Icon(
                             imageVector = SushiIcons.Star,
                             contentDescription = null,
-                            tint = Cinnabar,
+                            tint = MaterialColor.primary,
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
                             text = "查看技能树",
                             style = MaterialTheme.typography.labelMedium,
-                            color = Cinnabar
+                            color = MaterialColor.primary
                         )
                     }
                     Icon(
                         imageVector = SushiIcons.KeyboardRight,
                         contentDescription = null,
-                        tint = Cinnabar,
+                        tint = MaterialColor.primary,
                         modifier = Modifier.size(14.dp)
                     )
                 }
@@ -293,7 +294,7 @@ private fun SkillListContent(
                 verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
             ) {
                 if (uiState.skills.isEmpty() && !uiState.isLoading) {
-                    EmptyState(
+                    SushiEmptyState(
                         icon = SushiIcons.Inventory,
                         title = "暂无技能",
                         subtitle = "在当前分类下还没有技能",
@@ -334,7 +335,7 @@ private fun CategoryTabs(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Paper)
+            .background(MaterialColor.surface)
             .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.lg),
         horizontalArrangement = Arrangement.spacedBy(0.dp)
     ) {
@@ -346,12 +347,12 @@ private fun CategoryTabs(
                 label = "tabIndicatorWidth_$index"
             )
             val animatedIndicatorColor by animateColorAsState(
-                targetValue = if (isSelected) Ink else Color.Transparent,
+                targetValue = if (isSelected) MaterialColor.onSurface else Color.Transparent,
                 animationSpec = tween(durationMillis = 250),
                 label = "tabIndicatorColor_$index"
             )
             val animatedTextColor by animateColorAsState(
-                targetValue = if (isSelected) Ink else InkFaint,
+                targetValue = if (isSelected) MaterialColor.onSurface else MaterialColor.outline,
                 animationSpec = tween(durationMillis = 250),
                 label = "tabTextColor_$index"
             )
@@ -396,7 +397,7 @@ private fun CategoryStatsBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(PaperWarm)
+            .background(MaterialColor.surfaceVariant)
             .padding(horizontal = SushiSpacing.xl, vertical = SushiSpacing.sm)
     ) {
         Row(
@@ -407,14 +408,14 @@ private fun CategoryStatsBar(
             Text(
                 text = "${categoryLabel}总经验",
                 style = MaterialTheme.typography.labelMedium,
-                color = InkLight
+                color = MaterialColor.onSurfaceVariant
             )
             Text(
                 text = "$totalExp Exp",
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.SemiBold
                 ),
-                color = Ink
+                color = MaterialColor.onSurface
             )
         }
     }
@@ -433,7 +434,7 @@ private fun SkillCard(
             .fillMaxWidth()
             .clip(CardShape)
             .shadow(1.dp, CardShape)
-            .background(Linen)
+            .background(MaterialColor.surfaceVariant)
             .clickable(onClick = onClick)
             .padding(horizontal = SushiSpacing.lg, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -446,7 +447,7 @@ private fun SkillCard(
             Text(
                 text = display.skill.name,
                 style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.SansSerif),
-                color = Ink
+                color = MaterialColor.onSurface
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -458,7 +459,7 @@ private fun SkillCard(
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
                 TierPill(label = display.tierLabel, color = tierColor)
             }
@@ -477,25 +478,9 @@ private fun SkillCard(
             Text(
                 text = "${display.progress}/120",
                 style = MaterialTheme.typography.labelSmall,
-                color = InkFaint
+                color = MaterialColor.outline
             )
         }
-    }
-}
-
-@Composable
-fun TierPill(label: String, color: Color) {
-    Box(
-        modifier = Modifier
-            .clip(PillShape)
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 8.dp, vertical = 2.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = color
-        )
     }
 }
 
@@ -521,7 +506,7 @@ private fun SkillDetailContent(
     var lastDeleted by remember { mutableStateOf<TimeRecord?>(null) }
     var showUndoSnackbar by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize().background(Paper)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialColor.surface)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -584,7 +569,7 @@ private fun SkillDetailContent(
                             fontSize = 72.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Ink
+                        color = MaterialColor.onSurface
                     )
                     Box(
                         modifier = Modifier
@@ -605,14 +590,14 @@ private fun SkillDetailContent(
                 Text(
                     text = detail.skill.name,
                     style = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.SansSerif),
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = "经验值",
                         style = MaterialTheme.typography.labelMedium,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -627,7 +612,7 @@ private fun SkillDetailContent(
                         Text(
                             text = "${detail.progress}/120",
                             style = MaterialTheme.typography.labelMedium,
-                            color = InkFaint
+                            color = MaterialColor.outline
                         )
                     }
                 }
@@ -638,8 +623,8 @@ private fun SkillDetailContent(
                         .fillMaxWidth()
                         .height(48.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Cinnabar,
-                        contentColor = Paper
+                        containerColor = MaterialColor.primary,
+                        contentColor = MaterialColor.onPrimary
                     ),
                     shape = CardShape
                 ) {
@@ -651,13 +636,13 @@ private fun SkillDetailContent(
                     )
                 }
 
-                Divider1px()
+                SushiDivider()
 
                 Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                     Text(
                         text = "关联职业",
                         style = MaterialTheme.typography.labelMedium,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -674,7 +659,7 @@ private fun SkillDetailContent(
                             modifier = Modifier
                                 .clip(PillShape)
                                 .shadow(0.5.dp, PillShape)
-                                .background(Linen)
+                                .background(MaterialColor.surfaceVariant)
                                 .clickable { onAddProfession() }
                                 .padding(horizontal = 14.dp, vertical = 6.dp)
                         ) {
@@ -685,26 +670,26 @@ private fun SkillDetailContent(
                                 Icon(
                                     imageVector = SushiIcons.Add,
                                     contentDescription = null,
-                                    tint = InkFaint,
+                                    tint = MaterialColor.outline,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
                                     text = "添加",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = InkFaint
+                                    color = MaterialColor.outline
                                 )
                             }
                         }
                     }
                 }
 
-                Divider1px()
+                SushiDivider()
 
                 Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                     Text(
                         text = "词条",
                         style = MaterialTheme.typography.labelMedium,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
 
                     if (detail.unlockedAffixes.isEmpty() && detail.lockedAffixes.isEmpty()) {
@@ -712,7 +697,7 @@ private fun SkillDetailContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(CardShapeSmall)
-                                .background(PaperWarm)
+                                .background(MaterialColor.surfaceVariant)
                                 .padding(SushiSpacing.lg),
                             contentAlignment = Alignment.Center
                         ) {
@@ -723,13 +708,13 @@ private fun SkillDetailContent(
                                 Icon(
                                     imageVector = SushiIcons.Lock,
                                     contentDescription = null,
-                                    tint = InkFaintest,
+                                    tint = MaterialColor.outlineVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
                                     text = "暂无词条",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = InkFaint
+                                    color = MaterialColor.outline
                                 )
                             }
                         }
@@ -744,13 +729,13 @@ private fun SkillDetailContent(
                     }
                 }
 
-                Divider1px()
+                SushiDivider()
 
                 Column(verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)) {
                     Text(
                         text = "历史记录",
                         style = MaterialTheme.typography.labelMedium,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
 
                     if (detail.historyRecords.isEmpty()) {
@@ -758,7 +743,7 @@ private fun SkillDetailContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(CardShapeSmall)
-                                .background(PaperWarm)
+                                .background(MaterialColor.surfaceVariant)
                                 .padding(SushiSpacing.lg),
                             contentAlignment = Alignment.Center
                         ) {
@@ -769,13 +754,13 @@ private fun SkillDetailContent(
                                 Icon(
                                     imageVector = SushiIcons.History,
                                     contentDescription = null,
-                                    tint = InkFaintest,
+                                    tint = MaterialColor.outlineVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
                                     text = "暂无记录",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = InkFaint
+                                    color = MaterialColor.outline
                                 )
                             }
                         }
@@ -826,14 +811,14 @@ private fun SkillDetailContent(
                 Text(
                     text = "确认删除",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
             },
             text = {
                 Text(
                     text = "确定要删除技能「${detail.skill.name}」吗？此操作不可撤销。",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
             },
             confirmButton = {
@@ -843,8 +828,8 @@ private fun SkillDetailContent(
                         onDeleteSkill()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Cinnabar,
-                        contentColor = Paper
+                        containerColor = MaterialColor.primary,
+                        contentColor = MaterialColor.onPrimary
                     ),
                     shape = CardShape
                 ) {
@@ -853,10 +838,10 @@ private fun SkillDetailContent(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text(text = "取消", color = InkLight)
+                    Text(text = "取消", color = MaterialColor.onSurfaceVariant)
                 }
             },
-            containerColor = Paper
+            containerColor = MaterialColor.surface
         )
     }
 
@@ -870,7 +855,7 @@ private fun SkillDetailContent(
                 Text(
                     text = "编辑技能名称",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
             },
             text = {
@@ -880,11 +865,11 @@ private fun SkillDetailContent(
                     singleLine = true,
                     shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Paper,
-                        unfocusedContainerColor = Paper,
-                        cursorColor = Ink,
-                        focusedIndicatorColor = Cinnabar,
-                        unfocusedIndicatorColor = InkFaint
+                        focusedContainerColor = MaterialColor.surface,
+                        unfocusedContainerColor = MaterialColor.surface,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedIndicatorColor = MaterialColor.primary,
+                        unfocusedIndicatorColor = MaterialColor.outline
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -899,10 +884,10 @@ private fun SkillDetailContent(
                     },
                     enabled = editName.isNotBlank(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Cinnabar,
-                        contentColor = Paper,
-                        disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
-                        disabledContentColor = Paper.copy(alpha = 0.5f)
+                        containerColor = MaterialColor.primary,
+                        contentColor = MaterialColor.onPrimary,
+                        disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
+                        disabledContentColor = MaterialColor.onPrimary.copy(alpha = 0.5f)
                     ),
                     shape = CardShape
                 ) {
@@ -911,10 +896,10 @@ private fun SkillDetailContent(
             },
             dismissButton = {
                 TextButton(onClick = { showEditNameDialog = false }) {
-                    Text(text = "取消", color = InkLight)
+                    Text(text = "取消", color = MaterialColor.onSurfaceVariant)
                 }
             },
-            containerColor = Paper
+            containerColor = MaterialColor.surface
         )
     }
 
@@ -927,7 +912,7 @@ private fun SkillDetailContent(
                 Text(
                     text = "技能毕业",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
             },
             text = {
@@ -935,21 +920,21 @@ private fun SkillDetailContent(
                     Text(
                         text = "「${detail.skill.name}」已至黑曜之境。毕业后此技能将移入「已毕业」分组。",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                     TextField(
                         value = gradMessage,
                         onValueChange = { gradMessage = it },
-                        placeholder = { Text("毕业寄语（可选）", color = InkFaint) },
+                        placeholder = { Text("毕业寄语（可选）", color = MaterialColor.outline) },
                         singleLine = false,
                         maxLines = 3,
                         shape = CardShapeSmall,
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Paper,
-                            unfocusedContainerColor = Paper,
-                            cursorColor = Ink,
-                            focusedIndicatorColor = Cinnabar,
-                            unfocusedIndicatorColor = InkFaint
+                            focusedContainerColor = MaterialColor.surface,
+                            unfocusedContainerColor = MaterialColor.surface,
+                            cursorColor = MaterialColor.onSurface,
+                            focusedIndicatorColor = MaterialColor.primary,
+                            unfocusedIndicatorColor = MaterialColor.outline
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -963,8 +948,8 @@ private fun SkillDetailContent(
                     },
                     shape = CardShape,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Cinnabar,
-                        contentColor = Paper
+                        containerColor = MaterialColor.primary,
+                        contentColor = MaterialColor.onPrimary
                     )
                 ) {
                     Text(text = "毕业")
@@ -972,10 +957,10 @@ private fun SkillDetailContent(
             },
             dismissButton = {
                 TextButton(onClick = { showGraduateDialog = false }) {
-                    Text(text = "取消", color = InkLight)
+                    Text(text = "取消", color = MaterialColor.onSurfaceVariant)
                 }
             },
-            containerColor = Paper
+            containerColor = MaterialColor.surface
         )
     }
 
@@ -987,14 +972,14 @@ private fun SkillDetailContent(
                 Text(
                     text = "确认删除",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
             },
             text = {
                 Text(
                     text = "确定要删除这条 ${record.netDurationMin} 分钟的时间记录吗？",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
             },
             confirmButton = {
@@ -1005,8 +990,8 @@ private fun SkillDetailContent(
                         showUndoSnackbar = true
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Cinnabar,
-                        contentColor = Paper
+                        containerColor = MaterialColor.primary,
+                        contentColor = MaterialColor.onPrimary
                     ),
                     shape = CardShape
                 ) {
@@ -1015,22 +1000,12 @@ private fun SkillDetailContent(
             },
             dismissButton = {
                 TextButton(onClick = { recordToDelete = null }) {
-                    Text(text = "取消", color = InkLight)
+                    Text(text = "取消", color = MaterialColor.onSurfaceVariant)
                 }
             },
-            containerColor = Paper
+            containerColor = MaterialColor.surface
         )
     }
-}
-
-@Composable
-private fun Divider1px() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(1.dp)
-            .background(InkFaintest)
-    )
 }
 
 @Composable
@@ -1044,7 +1019,7 @@ private fun HistoryRecordItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardShapeSmall)
-            .background(Linen)
+            .background(MaterialColor.surfaceVariant)
             .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -1058,7 +1033,7 @@ private fun HistoryRecordItem(
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Medium
                 ),
-                color = Ink
+                color = MaterialColor.onSurface
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1068,20 +1043,20 @@ private fun HistoryRecordItem(
                     Box(
                         modifier = Modifier
                             .clip(PillShape)
-                            .background(Cinnabar.copy(alpha = 0.1f))
+                            .background(MaterialColor.primary.copy(alpha = 0.1f))
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "手动",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Cinnabar
+                            color = MaterialColor.primary
                         )
                     }
                 }
                 Icon(
                     imageVector = SushiIcons.Delete,
                     contentDescription = "删除",
-                    tint = Cinnabar,
+                    tint = MaterialColor.primary,
                     modifier = Modifier
                         .size(16.dp)
                         .clip(CircleShape)
@@ -1093,13 +1068,13 @@ private fun HistoryRecordItem(
         Text(
             text = "${dateFormat.format(record.startDateTime)} → ${dateFormat.format(record.endDateTime)}",
             style = MaterialTheme.typography.bodySmall,
-            color = InkFaint
+            color = MaterialColor.outline
         )
         if (record.description.isNotBlank()) {
             Text(
                 text = record.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = InkLight
+                color = MaterialColor.onSurfaceVariant
             )
         }
     }
@@ -1114,7 +1089,7 @@ private fun ProfessionChip(
         modifier = Modifier
             .clip(PillShape)
             .shadow(0.5.dp, PillShape)
-            .background(Linen)
+            .background(MaterialColor.surfaceVariant)
             .padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1122,12 +1097,12 @@ private fun ProfessionChip(
         Text(
             text = profession.name,
             style = MaterialTheme.typography.labelMedium,
-            color = Ink
+            color = MaterialColor.onSurface
         )
         Icon(
             imageVector = SushiIcons.KeyboardRight,
             contentDescription = null,
-            tint = InkFaint,
+            tint = MaterialColor.outline,
             modifier = Modifier
                 .size(12.dp)
                 .clip(CircleShape)
@@ -1148,7 +1123,7 @@ private fun AffixItem(
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardShapeSmall)
-            .background(if (isUnlocked) Linen else PaperWarm)
+            .background(if (isUnlocked) MaterialColor.surfaceVariant else MaterialColor.surfaceVariant)
             .alpha(contentAlpha)
             .padding(horizontal = SushiSpacing.md, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1166,7 +1141,7 @@ private fun AffixItem(
         Icon(
             imageVector = if (isUnlocked) SushiIcons.Check else SushiIcons.Lock,
             contentDescription = null,
-            tint = if (isUnlocked) tierColor else InkFaint,
+            tint = if (isUnlocked) tierColor else MaterialColor.outline,
             modifier = Modifier.size(14.dp)
         )
         Column(
@@ -1176,75 +1151,25 @@ private fun AffixItem(
             Text(
                 text = affix.name,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Ink
+                color = MaterialColor.onSurface
             )
             Text(
                 text = affix.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = InkLight
+                color = MaterialColor.onSurfaceVariant
             )
         }
         if (!isUnlocked) {
             Box(
                 modifier = Modifier
                     .clip(PillShape)
-                    .background(InkFaintest)
+                    .background(MaterialColor.outlineVariant)
                     .padding(horizontal = 8.dp, vertical = 2.dp)
             ) {
                 Text(
                     text = "LV${affix.requiredSkillLevel}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = InkFaint
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyState(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    subtitle: String,
-    actionLabel: String? = null,
-    onAction: (() -> Unit)? = null
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 64.dp, bottom = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = InkFaintest,
-            modifier = Modifier.size(48.dp)
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = InkFaint
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = InkFaintest
-        )
-        if (actionLabel != null && onAction != null) {
-            Spacer(modifier = Modifier.height(SushiSpacing.md))
-            Button(
-                onClick = onAction,
-                shape = CardShape,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper
-                )
-            ) {
-                Text(
-                    text = actionLabel,
-                    style = MaterialTheme.typography.labelLarge
+                    color = MaterialColor.outline
                 )
             }
         }
@@ -1274,7 +1199,7 @@ private fun CreateSkillDialog(
             Text(
                 text = "创建新技能",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialColor.onSurface
             )
         },
         text = {
@@ -1282,20 +1207,20 @@ private fun CreateSkillDialog(
                 Text(
                     text = "技能名称",
                     style = MaterialTheme.typography.labelLarge,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
                 TextField(
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = { Text("输入技能名称…", color = InkFaint) },
+                    placeholder = { Text("输入技能名称…", color = MaterialColor.outline) },
                     singleLine = true,
                     shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Paper,
-                        unfocusedContainerColor = Paper,
-                        cursorColor = Ink,
-                        focusedIndicatorColor = Cinnabar,
-                        unfocusedIndicatorColor = InkFaint
+                        focusedContainerColor = MaterialColor.surface,
+                        unfocusedContainerColor = MaterialColor.surface,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedIndicatorColor = MaterialColor.primary,
+                        unfocusedIndicatorColor = MaterialColor.outline
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1303,7 +1228,7 @@ private fun CreateSkillDialog(
                 Text(
                     text = "分类",
                     style = MaterialTheme.typography.labelLarge,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
                 ExposedDropdownMenuBox(
                     expanded = expanded,
@@ -1316,10 +1241,10 @@ private fun CreateSkillDialog(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         shape = CardShapeSmall,
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Paper,
-                            unfocusedContainerColor = Paper,
-                            focusedIndicatorColor = Cinnabar,
-                            unfocusedIndicatorColor = InkFaint
+                            focusedContainerColor = MaterialColor.surface,
+                            unfocusedContainerColor = MaterialColor.surface,
+                            focusedIndicatorColor = MaterialColor.primary,
+                            unfocusedIndicatorColor = MaterialColor.outline
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1331,7 +1256,7 @@ private fun CreateSkillDialog(
                     ) {
                         categories.forEachIndexed { index, (_, label) ->
                             DropdownMenuItem(
-                                text = { Text(text = label, color = Ink) },
+                                text = { Text(text = label, color = MaterialColor.onSurface) },
                                 onClick = {
                                     selectedCategoryIndex = index
                                     expanded = false
@@ -1351,10 +1276,10 @@ private fun CreateSkillDialog(
                 },
                 enabled = name.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper,
-                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
-                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.onPrimary,
+                    disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
+                    disabledContentColor = MaterialColor.onPrimary.copy(alpha = 0.5f)
                 ),
                 shape = CardShape
             ) {
@@ -1368,10 +1293,10 @@ private fun CreateSkillDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "取消", color = InkLight)
+                Text(text = "取消", color = MaterialColor.onSurfaceVariant)
             }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }
 
@@ -1388,12 +1313,12 @@ private fun AddProfessionDialog(
             Text(
                 text = "添加关联职业",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialColor.onSurface
             )
         },
         text = {
             if (availableProfessions.isEmpty()) {
-                EmptyState(
+                SushiEmptyState(
                     icon = SushiIcons.Work,
                     title = "没有可添加的职业",
                     subtitle = "请先创建一个职业"
@@ -1408,7 +1333,7 @@ private fun AddProfessionDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(CardShapeSmall)
-                                .background(Linen)
+                                .background(MaterialColor.surfaceVariant)
                                 .clickable { onSelect(profession.id) }
                                 .padding(horizontal = SushiSpacing.md, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -1416,7 +1341,7 @@ private fun AddProfessionDialog(
                             Text(
                                 text = profession.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Ink
+                                color = MaterialColor.onSurface
                             )
                         }
                     }
@@ -1426,10 +1351,10 @@ private fun AddProfessionDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "取消", color = InkLight)
+                Text(text = "取消", color = MaterialColor.onSurfaceVariant)
             }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }
 
@@ -1465,7 +1390,7 @@ private fun ManualInjectDialog(
             Text(
                 text = "注入纯时间 → $skillName",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialColor.onSurface
             )
         },
         text = {
@@ -1474,7 +1399,7 @@ private fun ManualInjectDialog(
                 Text(
                     text = "纯时间（分钟）",
                     style = MaterialTheme.typography.labelLarge,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1485,8 +1410,8 @@ private fun ManualInjectDialog(
                             onClick = { minutes = preset },
                             shape = PillShape,
                             colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = if (minutes == preset) CinnabarFaint else PaperWarm,
-                                contentColor = if (minutes == preset) Cinnabar else InkLight
+                                containerColor = if (minutes == preset) MaterialColor.primaryContainer else MaterialColor.surfaceVariant,
+                                contentColor = if (minutes == preset) MaterialColor.primary else MaterialColor.onSurfaceVariant
                             ),
                             modifier = Modifier.weight(1f)
                         ) {
@@ -1508,7 +1433,7 @@ private fun ManualInjectDialog(
                             fontFamily = FontFamily.Serif,
                             fontWeight = FontWeight.Bold
                         ),
-                        color = Ink,
+                        color = MaterialColor.onSurface,
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center
                     )
@@ -1518,12 +1443,12 @@ private fun ManualInjectDialog(
                     ) { Text("+5") }
                 }
 
-                Divider1px()
+                SushiDivider()
 
                 Text(
                     text = "开始时间",
                     style = MaterialTheme.typography.labelLarge,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1553,10 +1478,10 @@ private fun ManualInjectDialog(
                             Icon(
                                 imageVector = SushiIcons.Calendar,
                                 contentDescription = null,
-                                tint = Ink,
+                                tint = MaterialColor.onSurface,
                                 modifier = Modifier.size(14.dp)
                             )
-                            Text(dateFormat.format(startDateTime), color = Ink)
+                            Text(dateFormat.format(startDateTime), color = MaterialColor.onSurface)
                         }
                     }
                     OutlinedButton(
@@ -1584,10 +1509,10 @@ private fun ManualInjectDialog(
                             Icon(
                                 imageVector = SushiIcons.Schedule,
                                 contentDescription = null,
-                                tint = Ink,
+                                tint = MaterialColor.onSurface,
                                 modifier = Modifier.size(14.dp)
                             )
-                            Text(timeFormat.format(startDateTime), color = Ink)
+                            Text(timeFormat.format(startDateTime), color = MaterialColor.onSurface)
                         }
                     }
                 }
@@ -1595,7 +1520,7 @@ private fun ManualInjectDialog(
                 Text(
                     text = "结束时间",
                     style = MaterialTheme.typography.labelLarge,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1624,10 +1549,10 @@ private fun ManualInjectDialog(
                             Icon(
                                 imageVector = SushiIcons.Calendar,
                                 contentDescription = null,
-                                tint = Ink,
+                                tint = MaterialColor.onSurface,
                                 modifier = Modifier.size(14.dp)
                             )
-                            Text(dateFormat.format(endDateTime), color = Ink)
+                            Text(dateFormat.format(endDateTime), color = MaterialColor.onSurface)
                         }
                     }
                     OutlinedButton(
@@ -1654,34 +1579,34 @@ private fun ManualInjectDialog(
                             Icon(
                                 imageVector = SushiIcons.Schedule,
                                 contentDescription = null,
-                                tint = Ink,
+                                tint = MaterialColor.onSurface,
                                 modifier = Modifier.size(14.dp)
                             )
-                            Text(timeFormat.format(endDateTime), color = Ink)
+                            Text(timeFormat.format(endDateTime), color = MaterialColor.onSurface)
                         }
                     }
                 }
 
-                Divider1px()
+                SushiDivider()
 
                 Text(
                     text = "做了什么",
                     style = MaterialTheme.typography.labelLarge,
-                    color = InkLight
+                    color = MaterialColor.onSurfaceVariant
                 )
                 TextField(
                     value = description,
                     onValueChange = { description = it },
-                    placeholder = { Text("记录你做了什么…", color = InkFaint) },
+                    placeholder = { Text("记录你做了什么…", color = MaterialColor.outline) },
                     singleLine = false,
                     maxLines = 3,
                     shape = CardShapeSmall,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Paper,
-                        unfocusedContainerColor = Paper,
-                        cursorColor = Ink,
-                        focusedIndicatorColor = Cinnabar,
-                        unfocusedIndicatorColor = InkFaint
+                        focusedContainerColor = MaterialColor.surface,
+                        unfocusedContainerColor = MaterialColor.surface,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedIndicatorColor = MaterialColor.primary,
+                        unfocusedIndicatorColor = MaterialColor.outline
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1690,7 +1615,7 @@ private fun ManualInjectDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(CardShapeSmall)
-                        .background(Linen)
+                        .background(MaterialColor.surfaceVariant)
                         .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1699,7 +1624,7 @@ private fun ManualInjectDialog(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Medium
                         ),
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                 }
             }
@@ -1711,10 +1636,10 @@ private fun ManualInjectDialog(
                 },
                 enabled = minutes > 0,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper,
-                    disabledContainerColor = CinnabarLight.copy(alpha = 0.4f),
-                    disabledContentColor = Paper.copy(alpha = 0.5f)
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.onPrimary,
+                    disabledContainerColor = MaterialColor.primary.copy(alpha = 0.4f),
+                    disabledContentColor = MaterialColor.onPrimary.copy(alpha = 0.5f)
                 ),
                 shape = CardShape
             ) {
@@ -1728,10 +1653,10 @@ private fun ManualInjectDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "取消", color = InkLight)
+                Text(text = "取消", color = MaterialColor.onSurfaceVariant)
             }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }
 
@@ -1747,7 +1672,7 @@ private fun SettlementResultDialog(
             Text(
                 text = "时间已注入",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                color = MaterialColor.onSurface
             )
         },
         text = {
@@ -1762,14 +1687,14 @@ private fun SettlementResultDialog(
                     Text(
                         text = "解锁词条",
                         style = MaterialTheme.typography.labelLarge,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                     result.unlockedAffixes.forEach { affix ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(CardShapeSmall)
-                                .background(CinnabarFaint)
+                                .background(MaterialColor.primaryContainer)
                                 .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
@@ -1777,13 +1702,13 @@ private fun SettlementResultDialog(
                             Icon(
                                 imageVector = SushiIcons.Star,
                                 contentDescription = null,
-                                tint = Cinnabar,
+                                tint = MaterialColor.primary,
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = affix.name,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Ink
+                                color = MaterialColor.onSurface
                             )
                         }
                     }
@@ -1794,14 +1719,14 @@ private fun SettlementResultDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(CardShapeSmall)
-                            .background(PaperWarm)
+                            .background(MaterialColor.surfaceVariant)
                             .padding(SushiSpacing.lg),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "纯时间已记录",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = InkLight
+                            color = MaterialColor.onSurfaceVariant
                         )
                     }
                 }
@@ -1811,15 +1736,15 @@ private fun SettlementResultDialog(
             Button(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.onPrimary
                 ),
                 shape = CardShape
             ) {
                 Text(text = "好的")
             }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }
 
@@ -1829,7 +1754,7 @@ private fun LevelUpRow(event: LevelUpEvent) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(CardShapeSmall)
-            .background(Linen)
+            .background(MaterialColor.surfaceVariant)
             .padding(horizontal = SushiSpacing.md, vertical = SushiSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(SushiSpacing.sm)
@@ -1837,20 +1762,20 @@ private fun LevelUpRow(event: LevelUpEvent) {
         Icon(
             imageVector = SushiIcons.KeyboardUp,
             contentDescription = null,
-            tint = Cinnabar,
+            tint = MaterialColor.primary,
             modifier = Modifier.size(14.dp)
         )
         Text(
             text = event.skillName,
             style = MaterialTheme.typography.bodyMedium,
-            color = Ink
+            color = MaterialColor.onSurface
         )
         Text(
             text = "LV ${event.oldLevel} → ${event.newLevel}",
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.SemiBold
             ),
-            color = Cinnabar
+            color = MaterialColor.primary
         )
     }
 }
@@ -1860,5 +1785,5 @@ private fun tierColorFor(tierLabel: String): Color = when (tierLabel) {
     "青铜" -> BronzeCopper
     "赤金" -> AmberGold
     "黑曜石" -> ObsidianBlack
-    else -> InkLight
+    else -> MaterialColor.onSurfaceVariant
 }

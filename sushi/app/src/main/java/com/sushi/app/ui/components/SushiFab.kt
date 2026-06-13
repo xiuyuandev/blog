@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
@@ -17,16 +17,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.sushi.app.ui.theme.MaterialColor
 
 /**
- * 中央 ExtendedFAB(开始/暂停/继续)
+ * 中央 ExtendedFAB · Material 3 规范
  *
- * 替代旧版圆形 FAB,符合 Material 3 规范。
- *
- * - [state] = Idle: 显示 "+ 开始",绿色 primaryContainer
- * - [state] = Running: 显示 "暂停",secondary container
- * - [state] = Paused: 显示 "继续",primary container
+ * - elevation 6dp resting / 12dp hover(Material 3 FAB 规范)
+ * - shape 默认 16dp(FAB 容器圆角)
+ * - containerColor / contentColor 跟随 Material 3 角色
  */
 @Composable
 fun SushiExtendedFab(
@@ -35,14 +32,14 @@ fun SushiExtendedFab(
     modifier: Modifier = Modifier
 ) {
     val (icon, text, container) = when (state) {
-        SushiFabState.IDLE -> Triple(Icons.Outlined.Add, "开始", MaterialColor.primaryContainer)
-        SushiFabState.RUNNING -> Triple(Icons.Outlined.Pause, "暂停", MaterialColor.tertiary)
-        SushiFabState.PAUSED -> Triple(Icons.Outlined.PlayArrow, "继续", MaterialColor.primary)
+        SushiFabState.IDLE -> Triple(Icons.Outlined.Add, "开始", MaterialTheme.colorScheme.primaryContainer)
+        SushiFabState.RUNNING -> Triple(Icons.Outlined.Pause, "暂停", MaterialTheme.colorScheme.tertiary)
+        SushiFabState.PAUSED -> Triple(Icons.Outlined.PlayArrow, "继续", MaterialTheme.colorScheme.primary)
     }
     val onContainer = if (state == SushiFabState.RUNNING || state == SushiFabState.PAUSED) {
-        MaterialColor.onPrimary
+        MaterialTheme.colorScheme.onPrimary
     } else {
-        MaterialColor.onPrimaryContainer
+        MaterialTheme.colorScheme.onPrimaryContainer
     }
 
     ExtendedFloatingActionButton(
@@ -52,7 +49,9 @@ fun SushiExtendedFab(
         contentColor = onContainer,
         elevation = FloatingActionButtonDefaults.elevation(
             defaultElevation = 6.dp,
-            pressedElevation = 12.dp
+            pressedElevation = 12.dp,
+            focusedElevation = 8.dp,
+            hoveredElevation = 8.dp
         )
     ) {
         Icon(
@@ -60,7 +59,7 @@ fun SushiExtendedFab(
             contentDescription = text,
             modifier = Modifier.size(24.dp)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(SushiSpacing.sm))
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge
@@ -69,9 +68,10 @@ fun SushiExtendedFab(
 }
 
 /**
- * 旧版圆形 FAB(用于非主操作)
+ * 圆形 FAB · Material 3 规范
  *
- * 保留兼容,供次要操作使用。
+ * - elevation 6dp resting(Material 3 FAB 规范)
+ * - shape 16dp 圆角
  */
 @Composable
 fun SushiFab(
@@ -83,11 +83,13 @@ fun SushiFab(
     FloatingActionButton(
         onClick = onClick,
         modifier = modifier,
-        containerColor = MaterialColor.primary,
-        contentColor = MaterialColor.onPrimary,
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
         elevation = FloatingActionButtonDefaults.elevation(
-            defaultElevation = 4.dp,
-            pressedElevation = 6.dp
+            defaultElevation = 6.dp,
+            pressedElevation = 12.dp,
+            focusedElevation = 8.dp,
+            hoveredElevation = 8.dp
         )
     ) {
         Icon(

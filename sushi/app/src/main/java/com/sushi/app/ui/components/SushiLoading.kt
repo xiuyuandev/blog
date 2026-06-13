@@ -13,12 +13,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.InkFaint
 import com.sushi.app.ui.theme.SushiSpacing
 
 /**
- * 统一加载状态 - 朱砂红细环
+ * 统一加载状态 · Material 3 规范
+ *
+ * - 32dp 圆环,2.5dp 描边(细而清晰)
+ * - primary 色(主题强调色)
+ * - 文案:bodySmall + onSurfaceVariant
  */
 @Composable
 fun SushiLoading(
@@ -34,15 +36,15 @@ fun SushiLoading(
             verticalArrangement = Arrangement.spacedBy(SushiSpacing.md)
         ) {
             CircularProgressIndicator(
-                modifier = Modifier.size(28.dp),
-                color = Cinnabar,
+                modifier = Modifier.size(32.dp),
+                color = MaterialTheme.colorScheme.primary,
                 strokeWidth = 2.5.dp
             )
             if (text != null) {
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

@@ -40,14 +40,13 @@ import com.sushi.app.ui.components.SushiFab
 import com.sushi.app.ui.components.SushiIcons
 import com.sushi.app.ui.components.SushiLoading
 import com.sushi.app.ui.theme.CardShape
-import com.sushi.app.ui.theme.Cinnabar
-import com.sushi.app.ui.theme.CinnabarFaint
-import com.sushi.app.ui.theme.CinnabarLight
-import com.sushi.app.ui.theme.Ink
-import com.sushi.app.ui.theme.InkFaint
-import com.sushi.app.ui.theme.Linen
-import com.sushi.app.ui.theme.Paper
-import com.sushi.app.ui.theme.PaperWarm
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
+import com.sushi.app.ui.theme.MaterialColor
 import com.sushi.app.ui.theme.SushiSpacing
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -61,7 +60,7 @@ fun ReflectionScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize().background(Paper)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialColor.surface)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
@@ -84,12 +83,12 @@ fun ReflectionScreen(
                     Text(
                         text = "今日反思",
                         style = MaterialTheme.typography.headlineMedium,
-                        color = Ink
+                        color = MaterialColor.onSurface
                     )
                     Text(
                         text = "今日 ${uiState.todayKey}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = InkFaint
+                        color = MaterialColor.outline
                     )
                 }
 
@@ -103,7 +102,7 @@ fun ReflectionScreen(
                     Text(
                         text = "• $q？",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = InkLight
+                        color = MaterialColor.onSurfaceVariant
                     )
                 }
 
@@ -111,7 +110,7 @@ fun ReflectionScreen(
                     Text(
                         text = "今日反思已记录",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Cinnabar
+                        color = MaterialColor.primary
                     )
                 } else {
                     SushiFab(
@@ -127,13 +126,13 @@ fun ReflectionScreen(
                 Text(
                     text = "历史反思",
                     style = MaterialTheme.typography.titleSmall,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
                 if (uiState.pastReflections.isEmpty()) {
                     Text(
                         text = "暂无历史反思",
                         style = MaterialTheme.typography.bodySmall,
-                        color = InkFaint
+                        color = MaterialColor.outline
                     )
                 } else {
                     uiState.pastReflections.forEach { r ->
@@ -166,7 +165,7 @@ private fun ReflectionItem(reflection: DailyReflection, onClick: () -> Unit) {
             .fillMaxWidth()
             .shadow(1.dp, CardShape)
             .clip(CardShape)
-            .background(PaperWarm)
+            .background(MaterialColor.surfaceVariant)
             .clickable { onClick() }
             .padding(16.dp)
     ) {
@@ -179,19 +178,19 @@ private fun ReflectionItem(reflection: DailyReflection, onClick: () -> Unit) {
                 Text(
                     text = reflection.dateKey,
                     style = MaterialTheme.typography.labelLarge,
-                    color = Ink
+                    color = MaterialColor.onSurface
                 )
                 Text(
                     text = "心情 ${reflection.moodScore}/5",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Cinnabar
+                    color = MaterialColor.primary
                 )
             }
             if (reflection.highlight.isNotBlank()) {
                 Text(
                     text = "亮点：${reflection.highlight}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = InkLight,
+                    color = MaterialColor.onSurfaceVariant,
                     maxLines = 2
                 )
             }
@@ -199,7 +198,7 @@ private fun ReflectionItem(reflection: DailyReflection, onClick: () -> Unit) {
                 Text(
                     text = "所学：${reflection.lesson}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = InkLight,
+                    color = MaterialColor.onSurfaceVariant,
                     maxLines = 2
                 )
             }
@@ -221,20 +220,20 @@ private fun EditReflectionDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = CardShape,
-        title = { Text("反思", style = MaterialTheme.typography.headlineSmall, color = Ink) },
+        title = { Text("反思", style = MaterialTheme.typography.headlineSmall, color = MaterialColor.onSurface) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = highlight,
                     onValueChange = { highlight = it },
-                    label = { Text("亮点", color = InkLight) },
+                    label = { Text("亮点", color = MaterialColor.onSurfaceVariant) },
                     shape = CardShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Cinnabar,
-                        unfocusedBorderColor = InkFaint,
-                        cursorColor = Ink,
-                        focusedTextColor = Ink,
-                        unfocusedTextColor = Ink
+                        focusedBorderColor = MaterialColor.primary,
+                        unfocusedBorderColor = MaterialColor.outline,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedTextColor = MaterialColor.onSurface,
+                        unfocusedTextColor = MaterialColor.onSurface
                     ),
                     maxLines = 2,
                     modifier = Modifier.fillMaxWidth()
@@ -242,14 +241,14 @@ private fun EditReflectionDialog(
                 OutlinedTextField(
                     value = lesson,
                     onValueChange = { lesson = it },
-                    label = { Text("所学", color = InkLight) },
+                    label = { Text("所学", color = MaterialColor.onSurfaceVariant) },
                     shape = CardShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Cinnabar,
-                        unfocusedBorderColor = InkFaint,
-                        cursorColor = Ink,
-                        focusedTextColor = Ink,
-                        unfocusedTextColor = Ink
+                        focusedBorderColor = MaterialColor.primary,
+                        unfocusedBorderColor = MaterialColor.outline,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedTextColor = MaterialColor.onSurface,
+                        unfocusedTextColor = MaterialColor.onSurface
                     ),
                     maxLines = 2,
                     modifier = Modifier.fillMaxWidth()
@@ -257,19 +256,19 @@ private fun EditReflectionDialog(
                 OutlinedTextField(
                     value = improvement,
                     onValueChange = { improvement = it },
-                    label = { Text("明日改进", color = InkLight) },
+                    label = { Text("明日改进", color = MaterialColor.onSurfaceVariant) },
                     shape = CardShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Cinnabar,
-                        unfocusedBorderColor = InkFaint,
-                        cursorColor = Ink,
-                        focusedTextColor = Ink,
-                        unfocusedTextColor = Ink
+                        focusedBorderColor = MaterialColor.primary,
+                        unfocusedBorderColor = MaterialColor.outline,
+                        cursorColor = MaterialColor.onSurface,
+                        focusedTextColor = MaterialColor.onSurface,
+                        unfocusedTextColor = MaterialColor.onSurface
                     ),
                     maxLines = 2,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text("心情", style = MaterialTheme.typography.labelLarge, color = InkLight)
+                Text("心情", style = MaterialTheme.typography.labelLarge, color = MaterialColor.onSurfaceVariant)
                 MoodPicker(moodScore = mood, onMoodChange = { mood = it })
             }
         },
@@ -278,16 +277,26 @@ private fun EditReflectionDialog(
                 onClick = { onConfirm(highlight, lesson, improvement, mood) },
                 shape = CardShape,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Cinnabar,
-                    contentColor = Paper
+                    containerColor = MaterialColor.primary,
+                    contentColor = MaterialColor.onPrimary
                 )
             ) {
-                Text("保存", fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "保存",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消", color = InkLight) }
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "取消",
+                    color = MaterialColor.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
         },
-        containerColor = Paper
+        containerColor = MaterialColor.surface
     )
 }
