@@ -1,0 +1,413 @@
+package com.sushi.app.ui.review
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.sushi.app.data.model.SkillCategory
+import com.sushi.app.data.model.TimeRecord
+import com.sushi.app.ui.theme.Cinnabar
+import com.sushi.app.ui.theme.Ink
+import com.sushi.app.ui.theme.InkFaint
+import com.sushi.app.ui.theme.InkLight
+import com.sushi.app.ui.theme.Linen
+import com.sushi.app.ui.theme.Paper
+import com.sushi.app.viewmodel.ReviewUiState
+import com.sushi.app.viewmodel.ReviewViewModel
+import java.util.Calendar
+
+@Composable
+fun ReviewScreen(
+    viewModel: ReviewViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Paper)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        CalendarView(
+            selectedDate = uiState.selectedDate,
+            datesWithRecords = uiState.datesWithRecords,
+            onSelectDate = viewModel::selectDate
+        )
+
+        TimelineSection(
+            records = uiState.recordsByDate,
+            isLoading = uiState.isLoading
+        )
+
+        StatisticsSection(
+            weeklyStats = uiState.weeklyStats,
+            monthlyStats = uiState.monthlyStats
+        )
+    }
+}
+
+@Composable
+private fun CalendarView(
+    selectedDate: Long,
+    datesWithRecords: Set<Long>,
+    onSelectDate: (Long) -> Unit
+) {
+    val cal = remember(selectedDate) {
+        Calendar.getInstance().apply { timeInMillis = selectedDate }
+    }
+    val displayCal = remember(cal) {
+        Calendar.getInstance().apply {
+            set(Calendar.YEAR, cal.get(Calendar.YEAR))
+            set(Calendar.MONTH, cal.get(Calendar.MONTH))
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+    }
+
+    val year = displayCal.get(Calendar.YEAR)
+    val month = displayCal.get(Calendar.MONTH)
+    val monthNames = listOf(
+        "一月", "二月", "三月", "四月", "五月", "六月",
+        "七月", "八月", "九月", "十月", "十一月", "十二月"
+    )
+
+    val daysInMonth = displayCal.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+    // Monday=1 .. Sunday=7, convert to grid index where column 0 = Monday
+    val firstDayOfWeek = displayCal.get(Calendar.DAY_OF_WEEK)
+    val startColumn = when (firstDayOfWeek) {
+        Calendar.MONDAY -> 0
+        Calendar.TUESDAY -> 1
+        Calendar.WEDNESDAY -> 2
+        Calendar.THURSDAY -> 3
+        Calendar.FRIDAY -> 4
+        Calendar.SATURDAY -> 5
+        Calendar.SUNDAY -> 6
+        else -> 0
+    }
+
+    // Selected day's start-of-day timestamp
+    val selectedCal = remember(selectedDate) {
+        Calendar.getInstance().apply {
+            timeInMillis = selectedDate
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+    }
+    val selectedDayTimestamp = selectedCal.timeInMillis
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Linen)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "${year}年 ${monthNames[month]}",
+            style = MaterialTheme.typography.headlineSmall,
+            color = Ink
+        )
+
+        // Day of week headers
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            listOf("一", "二", "三", "四", "五", "六", "日").forEach { dayName ->
+                Text(
+                    text = dayName,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = InkFaint,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        // Day grid
+        val totalCells = startColumn + daysInMonth
+        val rows = (totalCells + 6) / 7
+
+        for (row in 0 until rows) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                for (col in 0..6) {
+                    val cellIndex = row * 7 + col
+                    val dayNumber = cellIndex - startColumn + 1
+
+                    if (dayNumber < 1 || dayNumber > daysInMonth) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    } else {
+                        val dayCal = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, year)
+                            set(Calendar.MONTH, month)
+                            set(Calendar.DAY_OF_MONTH, dayNumber)
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        val dayTimestamp = dayCal.timeInMillis
+                        val isSelected = dayTimestamp == selectedDayTimestamp
+                        val hasRecord = datesWithRecords.contains(dayTimestamp)
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onSelectDate(dayTimestamp) }
+                                .padding(vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "$dayNumber",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Ink,
+                                    textDecoration = if (isSelected) TextDecoration.Underline else TextDecoration.None
+                                )
+                                if (hasRecord) {
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(4.dp)
+                                            .clip(CircleShape)
+                                            .background(Cinnabar)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimelineSection(
+    records: List<TimeRecord>,
+    isLoading: Boolean
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Linen)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "时间记录",
+            style = MaterialTheme.typography.headlineSmall,
+            color = Ink
+        )
+
+        if (isLoading) {
+            Text(
+                text = "加载中…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = InkFaint
+            )
+        } else if (records.isEmpty()) {
+            Text(
+                text = "此日无记录",
+                style = MaterialTheme.typography.bodyMedium,
+                color = InkFaint
+            )
+        } else {
+            records.forEach { record ->
+                TimelineEntry(record = record)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimelineEntry(record: TimeRecord) {
+    val cal = remember(record.timestamp) {
+        Calendar.getInstance().apply { timeInMillis = record.timestamp }
+    }
+    val hour = cal.get(Calendar.HOUR_OF_DAY)
+    val minute = cal.get(Calendar.MINUTE)
+    val timeText = "%02d:%02d".format(hour, minute)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Timeline connector
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(InkLight)
+            )
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(32.dp)
+                    .background(InkFaint)
+            )
+        }
+
+        // Content
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = timeText,
+                style = MaterialTheme.typography.labelLarge,
+                color = Ink
+            )
+            Text(
+                text = "${record.netDurationMin}分钟纯时间",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink
+            )
+            Text(
+                text = "原始 ${record.rawDurationMin}分钟",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkFaint
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatisticsSection(
+    weeklyStats: Map<SkillCategory, Int>,
+    monthlyStats: Map<SkillCategory, Int>
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Linen)
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        Text(
+            text = "统计",
+            style = MaterialTheme.typography.headlineSmall,
+            color = Ink
+        )
+
+        // Weekly stats
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "本周纯时间",
+                style = MaterialTheme.typography.labelLarge,
+                color = InkLight
+            )
+            StatsContent(stats = weeklyStats)
+        }
+
+        // Monthly stats
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "本月纯时间",
+                style = MaterialTheme.typography.labelLarge,
+                color = InkLight
+            )
+            StatsContent(stats = monthlyStats)
+        }
+    }
+}
+
+@Composable
+private fun StatsContent(stats: Map<SkillCategory, Int>) {
+    if (stats.isEmpty()) {
+        val totalWeekly = stats.values.sum()
+        Text(
+            text = if (totalWeekly > 0) "${totalWeekly}分钟" else "暂无数据",
+            style = MaterialTheme.typography.bodyMedium,
+            color = InkFaint
+        )
+    } else {
+        val maxValue = stats.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+        val categoryLabels = mapOf(
+            SkillCategory.COGNITION to "认知",
+            SkillCategory.CREATION to "造物",
+            SkillCategory.FUNCTION to "功能",
+            SkillCategory.STRATEGY to "策略"
+        )
+        val categoryColors = mapOf(
+            SkillCategory.COGNITION to Ink,
+            SkillCategory.CREATION to Cinnabar,
+            SkillCategory.FUNCTION to InkLight,
+            SkillCategory.STRATEGY to InkFaint
+        )
+
+        stats.forEach { (category, minutes) ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = categoryLabels[category] ?: category.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = InkLight,
+                    modifier = Modifier.width(36.dp)
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(8.dp)
+                        .background(Paper)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction = (minutes.toFloat() / maxValue).coerceIn(0f, 1f))
+                            .height(8.dp)
+                            .background(categoryColors[category] ?: Ink)
+                    )
+                }
+                Text(
+                    text = "${minutes}m",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = InkLight
+                )
+            }
+        }
+    }
+}
